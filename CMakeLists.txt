@@ -144,6 +144,8 @@ option(BUILD_TESTING "Build the testing tree." OFF)
 include(GNUInstallDirs)
 include(CTest)
 
+find_package(CycloneDDS REQUIRED)
+
 add_subdirectory(src)
 if(BUILD_DOCS)
   add_subdirectory(docs)
