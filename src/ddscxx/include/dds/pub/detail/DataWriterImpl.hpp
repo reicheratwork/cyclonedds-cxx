@@ -383,8 +383,8 @@ dds::pub::detail::DataWriter<T>::DataWriter(
 
     org::eclipse::cyclonedds::pub::qos::DataWriterQosDelegate dwQos = qos.delegate();
 
-    dds_entity_t ddsc_pub = (dds_entity_t)pub.delegate()->get_ddsc_entity();
-    dds_entity_t ddsc_topic = (dds_entity_t)topic.delegate()->get_ddsc_entity();
+    dds_entity_t ddsc_pub = static_cast<dds_entity_t>(pub.delegate()->get_ddsc_entity());
+    dds_entity_t ddsc_topic = static_cast<dds_entity_t>(topic.delegate()->get_ddsc_entity());
 
     // get and validate the ddsc qos
     dwQos.check();
@@ -468,7 +468,7 @@ void
 dds::pub::detail::DataWriter<T>::write(const T& sample)
 {
     this->check();
-    AnyDataWriterDelegate::write((dds_entity_t)this->ddsc_entity,
+    AnyDataWriterDelegate::write(static_cast<dds_entity_t>(this->ddsc_entity),
                                   &sample,
                                   dds::core::InstanceHandle(dds::core::null),
                                   dds::core::Time::invalid());
@@ -479,7 +479,7 @@ void
 dds::pub::detail::DataWriter<T>::write(const T& sample, const dds::core::Time& timestamp)
 {
     this->check();
-    AnyDataWriterDelegate::write((dds_entity_t)this->ddsc_entity,
+    AnyDataWriterDelegate::write(static_cast<dds_entity_t>(this->ddsc_entity),
                                   &sample,
                                   dds::core::InstanceHandle(dds::core::null),
                                   timestamp);
@@ -490,7 +490,7 @@ void
 dds::pub::detail::DataWriter<T>::write(const T& sample, const ::dds::core::InstanceHandle& instance)
 {
     this->check();
-    AnyDataWriterDelegate::write((dds_entity_t)this->ddsc_entity,
+    AnyDataWriterDelegate::write(static_cast<dds_entity_t>(this->ddsc_entity),
                                   &sample,
                                   instance,
                                   dds::core::Time::invalid());
@@ -503,7 +503,7 @@ dds::pub::detail::DataWriter<T>::write(const T& sample,
            const dds::core::Time& timestamp)
 {
     this->check();
-    AnyDataWriterDelegate::write((dds_entity_t)this->ddsc_entity,
+    AnyDataWriterDelegate::write(static_cast<dds_entity_t>(this->ddsc_entity),
                                   &sample,
                                   instance,
                                   timestamp);
@@ -514,7 +514,7 @@ void
 dds::pub::detail::DataWriter<T>::write(const dds::topic::TopicInstance<T>& i)
 {
     this->check();
-    AnyDataWriterDelegate::write((dds_entity_t)this->ddsc_entity,
+    AnyDataWriterDelegate::write(static_cast<dds_entity_t>(this->ddsc_entity),
                                   &i.sample(),
                                   i.handle(),
                                   dds::core::Time::invalid());
@@ -526,7 +526,7 @@ dds::pub::detail::DataWriter<T>::write(const dds::topic::TopicInstance<T>& i,
            const dds::core::Time& timestamp)
 {
     this->check();
-    AnyDataWriterDelegate::write((dds_entity_t)this->ddsc_entity,
+    AnyDataWriterDelegate::write(static_cast<dds_entity_t>(this->ddsc_entity),
                                   &i.sample(),
                                   i.handle(),
                                   timestamp);
@@ -538,7 +538,7 @@ dds::pub::detail::DataWriter<T>::writedispose(const T& sample)
 {
     this->check();
     AnyDataWriterDelegate::writedispose(
-                                  (dds_entity_t)this->ddsc_entity,
+                                  static_cast<dds_entity_t>(this->ddsc_entity),
                                   &sample,
                                   dds::core::InstanceHandle(dds::core::null),
                                   dds::core::Time::invalid());
@@ -550,7 +550,7 @@ dds::pub::detail::DataWriter<T>::writedispose(const T& sample, const dds::core::
 {
     this->check();
     AnyDataWriterDelegate::writedispose(
-                                  (dds_entity_t)this->ddsc_entity,
+                                  static_cast<dds_entity_t>(this->ddsc_entity),
                                   &sample,
                                   dds::core::InstanceHandle(dds::core::null),
                                   timestamp);
@@ -562,7 +562,7 @@ dds::pub::detail::DataWriter<T>::writedispose(const T& sample, const ::dds::core
 {
     this->check();
     AnyDataWriterDelegate::writedispose(
-                                  (dds_entity_t)this->ddsc_entity,
+                                  static_cast<dds_entity_t>(this->ddsc_entity),
                                   &sample,
                                   instance,
                                   dds::core::Time::invalid());
@@ -577,7 +577,7 @@ dds::pub::detail::DataWriter<T>::writedispose(
 {
     this->check();
     AnyDataWriterDelegate::writedispose(
-                                  (dds_entity_t)this->ddsc_entity,
+                                  static_cast<dds_entity_t>(this->ddsc_entity),
                                   &sample,
                                   instance,
                                   timestamp);
@@ -589,7 +589,7 @@ dds::pub::detail::DataWriter<T>::writedispose(const dds::topic::TopicInstance<T>
 {
     this->check();
     AnyDataWriterDelegate::writedispose(
-                                  (dds_entity_t)this->ddsc_entity,
+                                  static_cast<dds_entity_t>(this->ddsc_entity),
                                   &i.sample(),
                                   i.handle(),
                                   dds::core::Time::invalid());
@@ -603,7 +603,7 @@ dds::pub::detail::DataWriter<T>::writedispose(
 {
     this->check();
     AnyDataWriterDelegate::writedispose(
-                                  (dds_entity_t)this->ddsc_entity,
+                                  static_cast<dds_entity_t>(this->ddsc_entity),
                                   &i.sample(),
                                   i.handle(),
                                   timestamp);
@@ -684,7 +684,7 @@ dds::pub::detail::DataWriter<T>::register_instance(const T& key,
 {
     org::eclipse::cyclonedds::core::ScopedObjectLock scopedLock(*this);
     this->check();
-    dds::core::InstanceHandle handle(AnyDataWriterDelegate::register_instance((dds_entity_t)this->ddsc_entity, &key, timestamp));
+    dds::core::InstanceHandle handle(AnyDataWriterDelegate::register_instance(static_cast<dds_entity_t>(this->ddsc_entity), &key, timestamp));
     return handle;
 }
 
@@ -695,7 +695,7 @@ dds::pub::detail::DataWriter<T>::unregister_instance(const ::dds::core::Instance
 {
     org::eclipse::cyclonedds::core::ScopedObjectLock scopedLock(*this);
     this->check();
-    AnyDataWriterDelegate::unregister_instance((dds_entity_t)this->ddsc_entity, handle, timestamp);
+    AnyDataWriterDelegate::unregister_instance(static_cast<dds_entity_t>(this->ddsc_entity), handle, timestamp);
 }
 
 template <typename T>
@@ -705,7 +705,7 @@ dds::pub::detail::DataWriter<T>::unregister_instance(const T& sample,
 {
     org::eclipse::cyclonedds::core::ScopedObjectLock scopedLock(*this);
     this->check();
-    AnyDataWriterDelegate::unregister_instance((dds_entity_t)this->ddsc_entity, &sample, timestamp);
+    AnyDataWriterDelegate::unregister_instance(static_cast<dds_entity_t>(this->ddsc_entity), &sample, timestamp);
 }
 
 template <typename T>
@@ -715,7 +715,7 @@ dds::pub::detail::DataWriter<T>::dispose_instance(const ::dds::core::InstanceHan
 {
     org::eclipse::cyclonedds::core::ScopedObjectLock scopedLock(*this);
     this->check();
-    AnyDataWriterDelegate::dispose_instance((dds_entity_t)this->ddsc_entity, handle, timestamp);
+    AnyDataWriterDelegate::dispose_instance(static_cast<dds_entity_t>(this->ddsc_entity), handle, timestamp);
 }
 
 template <typename T>
@@ -725,7 +725,7 @@ dds::pub::detail::DataWriter<T>::dispose_instance(const T& sample,
 {
     org::eclipse::cyclonedds::core::ScopedObjectLock scopedLock(*this);
     this->check();
-    AnyDataWriterDelegate::dispose_instance((dds_entity_t)this->ddsc_entity, &sample, timestamp);
+    AnyDataWriterDelegate::dispose_instance(static_cast<dds_entity_t>(this->ddsc_entity), &sample, timestamp);
 }
 
 
@@ -737,7 +737,7 @@ dds::pub::detail::DataWriter<T>::key_value(dds::topic::TopicInstance<T>& i,
     org::eclipse::cyclonedds::core::ScopedObjectLock scopedLock(*this);
     this->check();
     T sample;
-    AnyDataWriterDelegate::get_key_value((dds_entity_t)this->ddsc_entity, &sample, h);
+    AnyDataWriterDelegate::get_key_value(static_cast<dds_entity_t>(this->ddsc_entity), &sample, h);
     i.handle(h);
     i.sample(sample);
     return i;
@@ -749,7 +749,7 @@ dds::pub::detail::DataWriter<T>::key_value(T& sample, const ::dds::core::Instanc
 {
     org::eclipse::cyclonedds::core::ScopedObjectLock scopedLock(*this);
     this->check();
-    AnyDataWriterDelegate::get_key_value((dds_entity_t)this->ddsc_entity, &sample, h);
+    AnyDataWriterDelegate::get_key_value(static_cast<dds_entity_t>(this->ddsc_entity), &sample, h);
     return sample;
 }
 
@@ -759,7 +759,7 @@ dds::pub::detail::DataWriter<T>::lookup_instance(const T& key)
 {
     org::eclipse::cyclonedds::core::ScopedObjectLock scopedLock(*this);
     this->check();
-    dds::core::InstanceHandle handle(AnyDataWriterDelegate::lookup_instance((dds_entity_t)this->ddsc_entity, &key));
+    dds::core::InstanceHandle handle(AnyDataWriterDelegate::lookup_instance(static_cast<dds_entity_t>(this->ddsc_entity), &key));
     return handle;
 }
 
