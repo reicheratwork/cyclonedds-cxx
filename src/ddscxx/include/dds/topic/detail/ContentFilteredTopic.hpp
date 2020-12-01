@@ -20,7 +20,7 @@
  */
 
 #include <string>
-#include <vector>
+#include <functional>
 
 #include <dds/core/detail/conformance.hpp>
 #include <dds/core/types.hpp>
@@ -32,225 +32,9 @@
 
 #ifdef OMG_DDS_CONTENT_SUBSCRIPTION_SUPPORT
 
-// Required for C++11
-#if __cplusplus == 201103L
-namespace std
-{
-template<bool cond, class T = void>
-using enable_if_t = typename std::enable_if<cond, T>::type;
-
-template<class T = void>
-using decay_t = typename std::decay<T>::type;
-}  // namespace std
-#endif
-
-// meta-programming helpers
-namespace detail
-{
-template<typename T>
-struct remove_first_from_tuple;
-
-template<typename T, typename ... Ts>
-struct remove_first_from_tuple<std::tuple<T, Ts...>>
-{
-  using type = std::tuple<Ts...>;
-};
-
-template<typename T>
-using remove_first_from_tuple_t = typename remove_first_from_tuple<T>::type;
-
-template<class F>
-struct callable_traits;
-
-template<class R, class ... Args>
-struct callable_traits<R(Args...)>
-{
-  using return_type = R;
-
-  static constexpr std::size_t Arity = sizeof...(Args);
-
-  template < std::size_t N, std::enable_if_t<N<Arity> * = nullptr>
-  struct argument
-  {
-    using type = typename std::tuple_element<N, std::tuple<Args...>>::type;
-  };
-
-  using argument_tuple = std::tuple<Args...>;
-};
-
-// function pointer
-template<class R, class ... Args>
-struct callable_traits<R (*)(Args...)>
-  : public callable_traits<R(Args...)> {};
-
-// member function pointer
-template<class C, class R, class ... Args>
-struct callable_traits<R (C::*)(Args...)>
-  : public callable_traits<R(C &, Args...)> {};
-
-// const member function pointer
-template<class C, class R, class ... Args>
-struct callable_traits<R (C::*)(Args...) const>
-  : public callable_traits<R(C &, Args...)> {};
-
-// member object pointer
-template<class C, class R>
-struct callable_traits<R(C::*)>
-  : public callable_traits<R(C &)> {};
-
-// functor
-template<class F>
-struct callable_traits
-{
-private:
-  using call_type = callable_traits<decltype(&F::operator())>;
-
-public:
-  using return_type = typename call_type::return_type;
-
-  static constexpr std::size_t Arity = call_type::Arity - 1;
-
-  template < std::size_t N, std::enable_if_t<N<Arity> * = nullptr>
-  struct argument
-  {
-    using type = typename call_type::template argument<N + 1>::type;
-  };
-
-  using argument_tuple = remove_first_from_tuple_t<typename call_type::argument_tuple>;
-};
-
-template<class F>
-struct callable_traits<F &>
-  : public callable_traits<F> {};
-
-template<class F>
-struct callable_traits<F &&>
-  : public callable_traits<F> {};
-
-// Concepts of possible callbacks
-template<class F, class T>
-using sample_only_t = std::enable_if_t<callable_traits<std::decay_t<F>>::Arity == 1 &&
-    std::is_same<typename callable_traits<std::decay_t<F>>::template argument<0>::type,
-    const T &>::value &&
-    std::is_same<typename callable_traits<std::decay_t<F>>::return_type, bool>::value
->;
-
-template<class F>
-using sample_info_only_t = std::enable_if_t<callable_traits<std::decay_t<F>>::Arity == 1 &&
-    std::is_same<typename callable_traits<std::decay_t<F>>::template argument<0>::type,
-    const dds::sub::SampleInfo &>::value &&
-    std::is_same<typename callable_traits<std::decay_t<F>>::return_type, bool>::value
->;
-
-template<class F, class T>
-using sample_and_sample_info_t = std::enable_if_t<callable_traits<std::decay_t<F>>::Arity == 2 &&
-    std::is_same<typename callable_traits<std::decay_t<F>>::template argument<0>::type,
-    const T &>::value &&
-    std::is_same<typename callable_traits<std::decay_t<F>>::template argument<1>::type,
-    const dds::sub::SampleInfo &>::value &&
-    std::is_same<typename callable_traits<std::decay_t<F>>::return_type, bool>::value
->;
-
-} // namespace detail
-
-
 namespace dds {
 namespace topic {
 namespace detail {
-
-class FunctorHolderBase
-{
-public:
-    FunctorHolderBase() = default;
-    virtual ~FunctorHolderBase() = default;
-    FunctorHolderBase(const FunctorHolderBase &) = default;
-    FunctorHolderBase & operator=(const FunctorHolderBase &) = default;
-    FunctorHolderBase(FunctorHolderBase &&) = default;
-    FunctorHolderBase & operator=(FunctorHolderBase &&) = default;
-
-    virtual bool check_sample(const void * sample, const dds_sample_info_t * sample_info) = 0;
-
-    static bool c99_check_sample(const void *sample, void *arg)
-    {
-        auto funcHolder = static_cast<FunctorHolderBase *>(arg);
-        return funcHolder->check_sample(sample, nullptr);
-    }
-
-    static bool c99_check_sample_info(const dds_sample_info_t * sampleinfo, void * arg)
-    {
-        auto funcHolder = static_cast<FunctorHolderBase *>(arg);
-        return funcHolder->check_sample(nullptr, sampleinfo);
-    }
-
-    static bool c99_check_sample_and_sample_info(
-      const void * sample,
-      const dds_sample_info_t * sampleinfo, void * arg)
-    {
-        auto funcHolder = static_cast<FunctorHolderBase *>(arg);
-        return funcHolder->check_sample(sample, sampleinfo);
-    }
-};
-
-template<typename FUN, typename T, class = void>
-class FunctorHolder;
-
-template <typename FUN, typename T>
-class FunctorHolder<FUN, T, ::detail::sample_only_t<FUN, T>>: public FunctorHolderBase
-{
-public:
-    /* Remove const to be able to call non-const functors. */
-    FunctorHolder(FUN functor)
-    : myFunctor(std::move(functor)) {}
-
-    bool check_sample(const void * sample, const dds_sample_info_t *) override
-    {
-        return myFunctor(*(reinterpret_cast<const T*>(sample)));
-    }
-
-private:
-    FUN myFunctor;
-};
-
-template<typename FUN, typename T>
-class FunctorHolder<FUN, T, ::detail::sample_info_only_t<FUN>>: public FunctorHolderBase
-{
-public:
-    /* Remove const to be able to call non-const functors. */
-    FunctorHolder(FUN functor)
-    : myFunctor(std::move(functor)) {}
-
-    bool check_sample(const void *, const dds_sample_info_t * sampleinfo) override
-    {
-      dds::sub::SampleInfo cxxSampleInfo;
-      org::eclipse::cyclonedds::sub::AnyDataReaderDelegate::copy_sample_infos(
-        *sampleinfo,
-        cxxSampleInfo);
-      return myFunctor(cxxSampleInfo);
-    }
-
-private:
-    FUN myFunctor;
-};
-
-template<typename FUN, typename T>
-class FunctorHolder<FUN, T, ::detail::sample_and_sample_info_t<FUN, T>>: public FunctorHolderBase
-{
-public:
-    /* Remove const to be able to call non-const functors. */
-    FunctorHolder(FUN functor)
-    : myFunctor(std::move(functor)) {}
-
-    bool check_sample(const void * sample, const dds_sample_info_t * sampleinfo) override
-    {
-      dds::sub::SampleInfo cxxSampleInfo;
-      org::eclipse::cyclonedds::sub::AnyDataReaderDelegate::copy_sample_infos(*sampleinfo,
-        cxxSampleInfo);
-      return myFunctor(*(reinterpret_cast<const T*>(sample)), cxxSampleInfo);
-    }
-
-private:
-    FUN myFunctor;
-};
 
 template <typename T>
 class ContentFilteredTopic  :
@@ -266,7 +50,7 @@ public:
           org::eclipse::cyclonedds::topic::TopicDescriptionDelegate(topic.domain_participant(), name, topic.type_name()),
           myTopic(topic),
           myFilter(filter),
-          myFunctor(nullptr)
+          mFunc()
     {
         topic.delegate()->incrNrDependents();
         this->myParticipant.delegate()->add_cfTopic(*this);
@@ -411,36 +195,68 @@ public:
     }
 #endif
 
-    template<class Functor, ::detail::sample_only_t<Functor, T> * = nullptr>
-    void filter_function(Functor && func)
+    typedef std::function<bool(const T*, const dds::sub::SampleInfo*)> contentfilterfunction;
+
+    static bool invoke_sample(const void* sample, void* arg)
     {
-        dds_topic_filter flt;
-        flt.mode = DDS_TOPIC_FILTER_SAMPLE_ARG;
-        flt.f.sample_arg = &FunctorHolderBase::c99_check_sample;
-        filter_function_internal(std::forward<Functor>(func), &flt);
+      auto func = static_cast<contentfilterfunction*>(arg);
+      auto sam = static_cast<const T*>(sample);
+      return (*func)(sam, nullptr);
     }
 
-    template<class Functor, ::detail::sample_info_only_t<Functor> * = nullptr>
-    void filter_function(Functor && func)
+    static bool invoke_sample_info(const dds_sample_info_t* sampleinfo, void* arg)
     {
-        dds_topic_filter flt;
-        flt.mode = DDS_TOPIC_FILTER_SAMPLEINFO_ARG;
-        flt.f.sampleinfo_arg = &FunctorHolderBase::c99_check_sample_info;
-        filter_function_internal(std::forward<Functor>(func), &flt);
-     }
+      auto func = static_cast<contentfilterfunction*>(arg);
+      dds::sub::SampleInfo cxxSampleInfo;
+      org::eclipse::cyclonedds::sub::AnyDataReaderDelegate::copy_sample_infos(*sampleinfo,
+        cxxSampleInfo);
+      return (*func)(nullptr, &cxxSampleInfo);
+    }
 
-    template<class Functor, ::detail::sample_and_sample_info_t<Functor, T> * = nullptr>
-    void filter_function(Functor && func)
+    static bool invoke_sample_and_sample_info(
+      const void* sample,
+      const dds_sample_info_t* sampleinfo, void* arg)
     {
-        dds_topic_filter flt;
-        flt.mode = DDS_TOPIC_FILTER_SAMPLE_SAMPLEINFO_ARG;
-        flt.f.sample_sampleinfo_arg = &FunctorHolderBase::c99_check_sample_and_sample_info;
-        filter_function_internal(std::forward<Functor>(func), &flt);
+      auto func = static_cast<contentfilterfunction*>(arg);
+      auto sam = static_cast<const T*>(sample);
+      dds::sub::SampleInfo cxxSampleInfo;
+      org::eclipse::cyclonedds::sub::AnyDataReaderDelegate::copy_sample_infos(*sampleinfo,
+        cxxSampleInfo);
+      return (*func)(sam, &cxxSampleInfo);
+    }
+
+    void filter_function(const std::function<bool(const T&)>& func)
+    {
+      dds_topic_filter flt;
+      flt.mode = DDS_TOPIC_FILTER_SAMPLE_ARG;
+
+      mFunc = [func](const T* _t, const dds::sub::SampleInfo* _si) { (void)_si; return func(*_t); };
+
+      filter_function_internal(&flt);
+    }
+
+    void filter_function(const std::function<bool(const dds::sub::SampleInfo&)>& func)
+    {
+      dds_topic_filter flt;
+      flt.mode = DDS_TOPIC_FILTER_SAMPLEINFO_ARG;
+
+      mFunc = [func](const T* _t, const dds::sub::SampleInfo* _si) { (void)_t; return func(*_si); };
+
+      filter_function_internal(&flt);
+    }
+
+    void filter_function(const std::function<bool(const T&, const dds::sub::SampleInfo&)>& func)
+    {
+      dds_topic_filter flt;
+      flt.mode = DDS_TOPIC_FILTER_SAMPLE_SAMPLEINFO_ARG;
+
+      mFunc = [func](const T* _t, const dds::sub::SampleInfo* _si) {return func(*_t, *_si); };
+
+      filter_function_internal(&flt);
     }
 
 private:
-    template <typename Functor>
-    void filter_function_internal(Functor && func, dds_topic_filter * flt)
+    void filter_function_internal(dds_topic_filter * flt)
     {
         /* Make a private copy of the topic so my filter doesn't bother the original topic. */
         dds_qos_t* ddsc_qos = myTopic.qos()->ddsc_qos();
@@ -451,18 +267,27 @@ private:
         this->set_ddsc_entity(cfTopic);
 
         org::eclipse::cyclonedds::core::ScopedObjectLock scopedLock(*this);
-        if (this->myFunctor)
+        switch (flt->mode)
         {
-            delete this->myFunctor;
+        case DDS_TOPIC_FILTER_SAMPLE_ARG:
+          flt->f.sample_arg = &invoke_sample;
+          break;
+        case DDS_TOPIC_FILTER_SAMPLEINFO_ARG:
+          flt->f.sampleinfo_arg = &invoke_sample_info;
+          break;
+        case DDS_TOPIC_FILTER_SAMPLE_SAMPLEINFO_ARG:
+          flt->f.sample_sampleinfo_arg = &invoke_sample_and_sample_info;
+          break;
+        default:
+          assert(0);
         }
-        myFunctor = new FunctorHolder<Functor, T>(std::forward<Functor>(func));
-        flt->arg = myFunctor;
+        flt->arg = &mFunc;
         dds_set_topic_filter_extended(cfTopic, flt);
     }
 
     dds::topic::Topic<T> myTopic;
     dds::topic::Filter myFilter;
-    FunctorHolderBase *myFunctor;
+    contentfilterfunction mFunc;
 };
 
 }
