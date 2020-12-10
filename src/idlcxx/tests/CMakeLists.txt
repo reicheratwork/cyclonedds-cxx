@@ -23,22 +23,26 @@ set(sources
 add_cunit_executable(cunit_idlcxx ${sources})
 
 set(xxd_input
-  ${generator_dir}/bounded_sequence_impl.cpp.in
-  ${generator_dir}/bounded_sequence_of_structs_impl.cpp.in
-  ${generator_dir}/bounded_string_impl.cpp.in
-  ${generator_dir}/cross_call_impl.cpp.in
-  ${generator_dir}/keys_base_impl.cpp.in
-  ${generator_dir}/keys_struct_explicit_impl.cpp.in
-  ${generator_dir}/keys_struct_implicit_impl.cpp.in
-  ${generator_dir}/keys_typedef_impl.cpp.in
-  ${generator_dir}/keys_typedef_header.cpp.in
-  ${generator_dir}/keys_union_implicit_impl.cpp.in
-  ${generator_dir}/re_alignment_impl.cpp.in
-  ${generator_dir}/sequence_recursive_header.cpp.in
-  ${generator_dir}/sequence_recursive_impl.cpp.in
-  ${generator_dir}/struct_inheritance_impl.cpp.in
-  ${generator_dir}/typedef_resolution_header.cpp.in
-  ${generator_dir}/typedef_resolution_impl.cpp.in)
+  ${generator_dir}/base_head.cpp.in
+  ${generator_dir}/instance_head.cpp.in
+  ${generator_dir}/string_head.cpp.in
+  ${generator_dir}/sequence_base_head.cpp.in
+  ${generator_dir}/union_head.cpp.in
+  ${generator_dir}/enum_head.cpp.in
+  ${generator_dir}/array_base_head.cpp.in
+  ${generator_dir}/array_instance_head.cpp.in
+  ${generator_dir}/bounded_sequence_head.cpp.in
+  ${generator_dir}/bounded_sequence_of_structs_head.cpp.in
+  ${generator_dir}/bounded_string_head.cpp.in
+  ${generator_dir}/cross_call_head.cpp.in
+  ${generator_dir}/keys_base_head.cpp.in
+  ${generator_dir}/keys_struct_explicit_head.cpp.in
+  ${generator_dir}/keys_struct_implicit_head.cpp.in
+  ${generator_dir}/keys_typedef_head.cpp.in
+  ${generator_dir}/keys_union_implicit_head.cpp.in
+  ${generator_dir}/sequence_recursive_head.cpp.in
+  ${generator_dir}/struct_inheritance_head.cpp.in
+  ${generator_dir}/typedef_resolution_head.cpp.in)
 
 foreach(input ${xxd_input})
   get_filename_component(name ${input} NAME_WE)

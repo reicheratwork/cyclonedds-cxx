@@ -55,17 +55,6 @@
 "  typedef " typedef_type " " typedef_name ";\n"\
 "};\n\n"
 
-#define IDL_OUTPUT_STREAMER_INTERFACES ""\
-"  size_t write_struct(void* data, size_t position) const;\n"\
-"  size_t write_size(size_t offset) const;\n"\
-"  size_t max_size(size_t offset) const;\n"\
-"  size_t read_struct(const void* data, size_t position);\n"\
-"  size_t key_size(size_t position) const;\n"\
-"  size_t key_max_size(size_t position) const;\n"\
-"  size_t key_write(void* data, size_t position) const;\n"\
-"  size_t key_read(const void* data, size_t position);\n"\
-"  bool key(ddsi_keyhash_t& hash) const;\n"
-
 #define IDL_OUTPUT_STRUCT_PRIM(struct_name,member_type,default_value,member_name) "" \
 "class " struct_name "\n{\n" \
 "private:\n" \
@@ -82,7 +71,6 @@
 "  " member_type "& " member_name "() { return this->" member_name "_; }\n" \
 "  void " member_name "(" member_type " _val_) { this->" member_name "_ = _val_; }\n" \
 "\n" \
-IDL_OUTPUT_STREAMER_INTERFACES\
 "};\n\n"
 
 #define IDL_OUTPUT_STRUCT_PRIM_ARR(struct_name,member_type,member_name) "" \
@@ -102,7 +90,6 @@ IDL_OUTPUT_STREAMER_INTERFACES\
 "  void " member_name "(const " member_type "& _val_) { this->" member_name "_ = _val_; }\n" \
 "  void " member_name "(" member_type "&& _val_) { this->" member_name "_ = _val_; }\n" \
 "\n" \
-IDL_OUTPUT_STREAMER_INTERFACES\
 "};\n\n"
 
 #define IDL_OUTPUT_STRUCT_NO_PRIM(struct_name,member_type,member_name) "" \
@@ -122,7 +109,6 @@ IDL_OUTPUT_STREAMER_INTERFACES\
 "  void " member_name "(const " member_type "& _val_) { this->" member_name "_ = _val_; }\n" \
 "  void " member_name "(" member_type "&& _val_) { this->" member_name "_ = _val_; }\n" \
 "\n" \
-IDL_OUTPUT_STREAMER_INTERFACES\
 "};\n\n"
 
 #define IDL_OUTPUT_ENUM(enum_name,label1,label2,label3) "" \
@@ -222,7 +208,6 @@ discr_setter_tp(label1)\
 "\n"\
 default_case_tp(discr_type,default_discr_val)\
 "\n" \
-IDL_OUTPUT_STREAMER_INTERFACES\
 "};"
 
 #define IDL_OUTPUT_TYPEDEF(module_name,typedef_type,typedef_name) ""\

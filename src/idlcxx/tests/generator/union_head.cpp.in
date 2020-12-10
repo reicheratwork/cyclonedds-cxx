@@ -1,0 +1,182 @@
+#include <algorithm>
+#include <vector>
+#include <cstring>
+#include "org/eclipse/cyclonedds/topic/hash.hpp"
+
+template<typename T> size_t write(const s &obj, T &stream) {
+  (void)obj;
+  size_t pos = stream.position();
+  stream.write_primitive(_d());
+  switch (obj._d()) {
+    case 0:
+    case 1:
+    {
+    stream.write_primitive(obj.o());
+    }
+    break;
+    case 2:
+    case 3:
+    {
+    stream.write_primitive(obj.l());
+    }
+    break;
+    case 4:
+    case 5:
+    {
+    stream.write_string(obj.str(),0);
+    }
+    break;
+    default:
+    {
+    stream.write_primitive(obj.f());
+    }
+    break;
+  }
+  return stream.position() - pos;
+}
+
+template<typename T> size_t write_size(const s &obj, T &stream) {
+  (void)obj;
+  size_t pos = stream.position();
+  stream.incr_primitive(_d());
+  switch (obj._d()) {
+    case 0:
+    case 1:
+    {
+    stream.incr_primitive(obj.o());
+    }
+    break;
+    case 2:
+    case 3:
+    {
+    stream.incr_primitive(obj.l());
+    }
+    break;
+    case 4:
+    case 5:
+    {
+    stream.incr_string(obj.str(),0);
+    }
+    break;
+    default:
+    {
+    stream.incr_primitive(obj.f());
+    }
+    break;
+  }
+  return stream.position() - pos;
+}
+
+template<typename T> size_t write_size_max(const s &obj, T &stream) {
+  (void)obj;
+  size_t pos = stream.position();
+  stream.incr_primitive(_d());
+  size_t union_max = stream.position();
+  T stream_copy(stream);
+  {
+    stream.incr_primitive(obj.o());
+    union_max = std::max(stream.position(),union_max);
+    stream = stream_copy;
+  }
+  {
+    stream.incr_primitive(obj.l());
+    union_max = std::max(stream.position(),union_max);
+    stream = stream_copy;
+  }
+  {
+    stream.max_size_string(obj.str(),0);
+    union_max = std::max(stream.position(),union_max);
+    stream = stream_copy;
+  }
+  {
+    stream.incr_primitive(obj.f());
+    union_max = std::max(stream.position(),union_max);
+    stream = stream_copy;
+  }
+  return union_max;
+}
+
+template<typename T> size_t key_write_size(const s &obj, T &stream) {
+  (void)obj;
+  size_t pos = stream.position();
+  return stream.position() - pos;
+}
+
+template<typename T> size_t key_write_size_max(const s &obj, T &stream) {
+  (void)obj;
+}
+
+template<typename T> size_t key_write(const s &obj, T &stream) {
+  (void)obj;
+  size_t pos = stream.position();
+  return stream.position() - pos;
+}
+
+template<typename T> bool key_generate(const s &obj, T &stream, ddsi_keyhash_t &hash) {
+  (void)obj;
+  T stream_copy(stream);
+  stream_copy.set_buffer(NULL);
+  size_t sz = key_write_size(obj,stream_copy);
+  size_t padding = 16 - sz%16;
+  if (sz != 0 && padding == 16) padding = 0;
+  std::vector<unsigned char> buffer(sz+padding);
+  std::memset(buffer.data()+sz,0x0,padding);
+  stream_copy.set_buffer(const_cast<unsigned char*>(buffer.data()));
+  key_write(obj,stream_copy);
+  static bool (*fptr)(const std::vector<unsigned char>&, ddsi_keyhash_t &) = NULL;
+  if (fptr == NULL)
+  {
+    if (key_write_size_max(obj,stream_copy) <= 16)
+    {
+      //bind to unmodified function which just copies buffer into the keyhash
+      fptr = &org::eclipse::cyclonedds::topic::simple_key;
+    }
+    else
+    {
+      //bind to MD5 hash function
+      fptr = &org::eclipse::cyclonedds::topic::complex_key;
+    }
+  }
+  return (*fptr)(buffer,hash);
+}
+
+template<typename T> size_t key_read(s &obj, T &stream) {
+  (void)obj;
+  size_t pos = stream.position();
+  obj.clear();
+  return stream.position() - pos;
+}
+
+template<typename T> size_t read(s &obj, T &stream) {
+  (void)obj;
+  size_t pos = stream.position();
+  obj.clear();
+  stream.read_primitive(_d());
+  switch (obj._d()) {
+    case 0:
+    case 1:
+    {
+    stream.read_primitive(obj.o());
+    }
+    break;
+    case 2:
+    case 3:
+    {
+    stream.read_primitive(obj.l());
+    }
+    break;
+    case 4:
+    case 5:
+    {
+    stream.read_string(obj.str(),0);
+    }
+    break;
+    default:
+    {
+    stream.read_primitive(obj.f());
+    }
+    break;
+  }
+  return stream.position() - pos;
+}
+

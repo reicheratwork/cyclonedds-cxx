@@ -17,21 +17,13 @@
 #include <cstring>
 #include <vector>
 
-#include "dds/ddsrt/endian.h"
 #include "dds/ddsrt/md5.h"
 #include "dds/ddsi/q_radmin.h"
 #include "dds/ddsi/ddsi_serdata.h"
 #include "dds/ddsi/ddsi_sertopic.h"
+#include "basic_cdr_ser.hpp"
 
 typedef struct ddsi_serdata ddsi_serdata_t;
-
-enum class endianness
-{
-  little_endian = DDSRT_LITTLE_ENDIAN,
-  big_endian = DDSRT_BIG_ENDIAN
-};
-
-constexpr endianness native_endianness() { return endianness(DDSRT_ENDIAN); }
 
 static inline void* calc_offset(void* ptr, ptrdiff_t n)
 {
@@ -81,7 +73,8 @@ void ddscxx_serdata<T>::populate_hash()
   if (hash_populated)
     return;
 
-  key_md5_hashed() = getT().key(key());
+  basic_cdr_stream cdr;
+  key_md5_hashed() = key_generate(getT(),cdr,key());
   if (!key_md5_hashed())
   {
     ddsi_keyhash_t buf;
@@ -144,18 +137,21 @@ ddsi_serdata_t *serdata_from_ser(
     fragchain = fragchain->nextfrag;
   }
 
+  basic_cdr_stream cdr;
+  cdr.set_buffer(const_cast<void*>(calc_offset(d->data(), 4)));
+
   switch (kind)
   {
   case SDK_KEY:
-    d->getT().key_read(calc_offset(d->data(), 4), 0);
+    key_read(d->getT(),cdr);
     break;
   case SDK_DATA:
-    d->getT().read_struct(calc_offset(d->data(), 4), 0);
+    read(d->getT(),cdr);
     break;
   case SDK_EMPTY:
     assert(0);
   }
-  d->key_md5_hashed() = d->getT().key(d->key());
+  d->key_md5_hashed() = key_generate(d->getT(),cdr,d->key());
   d->populate_hash();
 
   return d;
@@ -184,18 +180,21 @@ ddsi_serdata_t *serdata_from_ser_iov(
     off += n_bytes;
   }
 
+  basic_cdr_stream cdr;
+  cdr.set_buffer(const_cast<void*>(calc_offset(d->data(), 4)));
+
   switch (kind)
   {
   case SDK_KEY:
-    d->getT().key_read(calc_offset(d->data(), 4), 0);
+    key_read(d->getT(),cdr);
     break;
   case SDK_DATA:
-    d->getT().read_struct(calc_offset(d->data(), 4), 0);
+    read(d->getT(),cdr);
     break;
   case SDK_EMPTY:
     assert(0);
   }
-  d->key_md5_hashed() = d->getT().key(d->key());
+  d->key_md5_hashed() = key_generate(d->getT(),cdr,d->key());
   d->populate_hash();
 
   return d;
@@ -243,26 +242,29 @@ ddsi_serdata_t *serdata_from_sample(
     auto topic = static_cast<const ddscxx_sertopic<T>*>(topiccmn);
     auto d = new ddscxx_serdata<T>(topic, kind);
 
+    basic_cdr_stream cdr;
+
     auto msg = static_cast<const T*>(sample);
-    size_t sz = 4 + (kind == SDK_KEY ? msg->key_size(0) : msg->write_size(0));  //4 bytes extra to also include the header
+    size_t sz = 4 + (kind == SDK_KEY ? key_write_size(*msg,cdr) : write_size(*msg,cdr));  //4 bytes extra to also include the header
     d->resize(sz);
     auto ptr = static_cast<unsigned char*>(d->data());
     memset(ptr, 0x0, 4);
     if (native_endianness() == endianness::little_endian)
       *(ptr + 1) = 0x1;
 
+    cdr.set_buffer(const_cast<void*>(calc_offset(d->data(), 4)));
     switch (kind)
     {
     case SDK_KEY:
-      msg->key_write(calc_offset(d->data(), 4), 0);
+      key_write(*msg,cdr);
       break;
     case SDK_DATA:
-      msg->write_struct(calc_offset(d->data(), 4), 0);
+      write(*msg,cdr);
       break;
     case SDK_EMPTY:
       assert(0);
     }
-    d->key_md5_hashed() = msg->key(d->key());
+    d->key_md5_hashed() = key_generate(*msg,cdr,d->key());
     d->getT() = *msg;
     d->populate_hash();
 
@@ -306,7 +308,10 @@ bool serdata_to_sample(
   (void)bufptr;
   (void)buflim;
   auto ptr = static_cast<const ddscxx_serdata<T>*>(dcmn);
-  (static_cast<T*>(sample))->read_struct(static_cast<char*>(ptr->data()) + 4, 0);
+
+  basic_cdr_stream cdr;
+  cdr.set_buffer(const_cast<void*>(calc_offset(ptr->data(), 4)));
+  read(*static_cast<T*>(sample),cdr);
 
   return false;
 }
@@ -318,16 +323,20 @@ ddsi_serdata_t *serdata_to_topicless(const struct ddsi_serdata* dcmn)
   auto d1 = new ddscxx_serdata<T>(d->topic, SDK_KEY);
   d1->topic = nullptr;
 
+  basic_cdr_stream cdr;
+
   auto t = d->getT();
-  d1->resize(4 + t.key_size(0));
+  d1->resize(4+key_write_size(t,cdr));
 
   auto ptr = static_cast<unsigned char*>(d1->data());
   memset(ptr, 0x0, 4);
   if (native_endianness() == endianness::little_endian)
     *(ptr + 1) = 0x1;
 
-  t.key_write(calc_offset(d1->data(), 4), 0);  //4 offset due to header field
-  d1->key_md5_hashed() = t.key(d1->key());
+  cdr.set_buffer(const_cast<void*>(calc_offset(d1->data(), 4)));
+
+  key_write(t,cdr);
+  d1->key_md5_hashed() = key_generate(t,cdr,d1->key());
   d1->hash = d->hash;
   d1->hash_populated = true;
 
@@ -346,8 +355,11 @@ bool serdata_topicless_to_sample(
 
   auto d = static_cast<const ddscxx_serdata<T>*>(dcmn);
 
+  basic_cdr_stream cdr;
+  cdr.set_buffer(const_cast<void*>(calc_offset(d->data(), 4)));
+
   T* ptr = static_cast<T*>(sample);
-  ptr->key_read(calc_offset(d->data(), 4), 0);  //4 offset due to header field
+  key_read(*ptr,cdr);
 
   return true;
 }
