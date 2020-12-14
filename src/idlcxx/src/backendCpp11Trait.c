@@ -21,8 +21,8 @@ find_key_fields(idl_backend_ctx ctx, const idl_node_t *node)
 {
   bool *has_no_keys = idl_get_custom_context(ctx);
 
-  assert(node->mask & IDL_MEMBER);
-  if (node->mask & IDL_KEY) *has_no_keys = false;
+  assert(idl_mask(node) & IDL_MEMBER);
+  if (idl_mask(node) & IDL_KEY) *has_no_keys = false;
   return IDL_RETCODE_OK;
 }
 
@@ -33,7 +33,7 @@ struct_has_no_keys(idl_backend_ctx ctx, const idl_node_t *node)
   bool has_no_keys = true;
   void *prev_context = idl_get_custom_context(ctx);
 
-  assert(node->mask & IDL_STRUCT);
+  assert(idl_mask(node) & IDL_STRUCT);
 
   idl_reset_custom_context(ctx);
   idl_set_custom_context(ctx, &has_no_keys);
@@ -46,7 +46,7 @@ struct_has_no_keys(idl_backend_ctx ctx, const idl_node_t *node)
 static idl_retcode_t
 generate_traits(idl_backend_ctx ctx, const idl_node_t *node)
 {
-  assert(node->mask & IDL_STRUCT);
+  assert(idl_mask(node) & IDL_STRUCT);
 
   char *struct_name = get_cpp11_fully_scoped_name(node);
   bool is_keyless = struct_has_no_keys(ctx, node);
@@ -115,7 +115,7 @@ generate_traits(idl_backend_ctx ctx, const idl_node_t *node)
 static idl_retcode_t
 generate_macro_call(idl_backend_ctx ctx, const idl_node_t *node)
 {
-  if (node->mask & IDL_STRUCT)
+  if (idl_mask(node) & IDL_STRUCT)
   {
     char *struct_name = get_cpp11_fully_scoped_name(node);
     idl_file_out_printf(ctx, "REGISTER_TOPIC_TYPE(%s)\n", struct_name);
@@ -130,7 +130,7 @@ find_topic_types(idl_backend_ctx ctx, const idl_node_t *node)
 {
   idl_walkAction *action = idl_get_walk_function(ctx);
 
-  switch (node->mask & (IDL_MODULE | IDL_STRUCT))
+  switch (idl_mask(node) & (IDL_MODULE | IDL_STRUCT))
   {
   case IDL_MODULE:
     idl_walk_node_list(ctx, ((const idl_module_t *) node)->definitions, find_topic_types, IDL_MODULE | IDL_STRUCT);
@@ -145,7 +145,7 @@ find_topic_types(idl_backend_ctx ctx, const idl_node_t *node)
 }
 
 idl_retcode_t
-idl_backendGenerateTrait(idl_backend_ctx ctx, const idl_tree_t *parse_tree)
+idl_backendGenerateTrait(idl_backend_ctx ctx, const idl_pstate_t *parse_tree)
 {
   idl_retcode_t result;
 

@@ -249,14 +249,18 @@ static void
 test_base_type(const char *input, uint32_t flags, int32_t retcode, const char *output)
 {
   int32_t ret;
-  idl_tree_t *tree;
+  idl_pstate_t *tree;
   idl_node_t *node;
   idl_backend_ctx ctx;
   bool expected_output;
   const char *mem_buf;
 
-  ret = idl_parse_string(input, flags, &tree);
-  CU_ASSERT(ret == retcode);
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(flags, &annots, &tree);
+
+  ret = idl_parse_string(tree, input);
+  if (ret != retcode)
+    CU_ASSERT(ret == retcode);
   if (ret != 0)
     return;
   node = tree->root;
@@ -270,8 +274,11 @@ test_base_type(const char *input, uint32_t flags, int32_t retcode, const char *o
   mem_buf = get_ostream_buffer(idl_get_output_stream(ctx));
   expected_output = (strncmp(mem_buf, output, strlen(output)) == 0);
   if (!expected_output) {
+    printf("================generated===============\n");
     printf("%s\n", mem_buf);
+    printf("================expected================\n");
     printf("%s\n", output);
+    printf("=============================================\n");
     for (size_t i = 0; i < strlen(output); ++i) {
       if (mem_buf[i] != output[i]) {
         printf("Diff starts here.....\n%s\n", &output[i]);
@@ -281,7 +288,7 @@ test_base_type(const char *input, uint32_t flags, int32_t retcode, const char *o
   }
   CU_ASSERT(expected_output);
   idl_backend_context_free(ctx);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 CU_TheoryDataPoints(cpp11Backend, Struct) =

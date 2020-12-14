@@ -71,7 +71,7 @@ get_cpp11_base_type(const idl_node_t *node)
 {
   static const idl_mask_t mask = (IDL_BASE_TYPE|(IDL_BASE_TYPE-1));
 
-  switch (node->mask & mask)
+  switch (idl_mask(node) & mask)
   {
   case IDL_CHAR:
     return idl_strdup("char");
@@ -84,16 +84,22 @@ get_cpp11_base_type(const idl_node_t *node)
   case IDL_UINT8:
   case IDL_OCTET:
     return idl_strdup("uint8_t");
+  case IDL_SHORT:
   case IDL_INT16:
     return idl_strdup("int16_t");
+  case IDL_USHORT:
   case IDL_UINT16:
     return idl_strdup("uint16_t");
+  case IDL_LONG:
   case IDL_INT32:
     return idl_strdup("int32_t");
+  case IDL_ULONG:
   case IDL_UINT32:
     return idl_strdup("uint32_t");
+  case IDL_LLONG:
   case IDL_INT64:
     return idl_strdup("int64_t");
+  case IDL_ULLONG:
   case IDL_UINT64:
     return idl_strdup("uint64_t");
   case IDL_FLOAT:
@@ -114,7 +120,7 @@ get_cpp11_templ_type(const idl_node_t *node)
 {
   char *cpp11Type = NULL;
 
-  switch (node->mask & IDL_TEMPL_TYPE_MASK)
+  switch (idl_mask(node) & IDL_TEMPL_TYPE_MASK)
   {
   case IDL_SEQUENCE:
     {
@@ -155,7 +161,7 @@ get_cpp11_templ_type(const idl_node_t *node)
 char *
 get_cpp11_type(const idl_node_t *node)
 {
-  assert(node->mask & (IDL_BASE_TYPE|IDL_TEMPL_TYPE|IDL_CONSTR_TYPE|IDL_TYPEDEF));
+  assert(idl_mask(node) & (IDL_BASE_TYPE|IDL_TEMPL_TYPE|IDL_CONSTR_TYPE|IDL_TYPEDEF));
   if (idl_is_base_type(node))
     return get_cpp11_base_type(node);
   else if (idl_is_templ_type(node))
@@ -182,7 +188,7 @@ get_cpp11_fully_scoped_name(const idl_node_t *node)
   current_node = node;
   for (uint32_t i = 0; i < nr_scopes; ++i)
   {
-    scope_type = current_node->mask & (IDL_MODULE | IDL_ENUMERATOR | IDL_ENUM | IDL_STRUCT | IDL_UNION | IDL_TYPEDEF);
+    scope_type = idl_mask(current_node) & (IDL_MODULE | IDL_ENUMERATOR | IDL_ENUM | IDL_STRUCT | IDL_UNION | IDL_TYPEDEF);
     assert(scope_type);
     switch (scope_type)
     {
@@ -232,7 +238,7 @@ get_default_value(idl_backend_ctx ctx, const idl_node_t *node)
   if (idl_is_enum(unwinded_node))
     return get_cpp11_fully_scoped_name((idl_node_t*)((idl_enum_t*)unwinded_node)->enumerators);
 
-  switch (unwinded_node->mask & mask)
+  switch (idl_mask(unwinded_node) & mask)
   {
   case IDL_BOOL:
     return idl_strdup("false");
@@ -249,10 +255,16 @@ get_default_value(idl_backend_ctx ctx, const idl_node_t *node)
   case IDL_UINT8:
   case IDL_INT16:
   case IDL_UINT16:
+  case IDL_SHORT:
+  case IDL_USHORT:
   case IDL_INT32:
   case IDL_UINT32:
+  case IDL_LONG:
+  case IDL_ULONG:
   case IDL_INT64:
   case IDL_UINT64:
+  case IDL_LLONG:
+  case IDL_ULLONG:
     return idl_strdup("0");
   default:
     return NULL;
@@ -266,35 +278,39 @@ get_cpp11_base_type_const_value(const idl_constval_t *constval)
   char *str = NULL;
   static const idl_mask_t mask = (IDL_BASE_TYPE_MASK|(IDL_BASE_TYPE_MASK-1));
 
-  switch (constval->node.mask & mask)
+  switch (idl_mask(&constval->node) & mask)
   {
   case IDL_BOOL:
     return idl_strdup(constval->value.bln ? "true" : "false");
-  case IDL_OCTET:
-    cnt = idl_asprintf(&str, "%" PRIu8, constval->value.oct);
-    break;
   case IDL_INT8:
     cnt = idl_asprintf(&str, "%" PRId8, constval->value.int8);
     break;
   case IDL_UINT8:
+  case IDL_OCTET:
     cnt = idl_asprintf(&str, "%" PRIu8, constval->value.uint8);
     break;
   case IDL_INT16:
+  case IDL_SHORT:
     cnt = idl_asprintf(&str, "%" PRId16, constval->value.int16);
     break;
   case IDL_UINT16:
+  case IDL_USHORT:
     cnt = idl_asprintf(&str, "%" PRIu16, constval->value.uint16);
     break;
   case IDL_INT32:
+  case IDL_LONG:
     cnt = idl_asprintf(&str, "%" PRId32, constval->value.int32);
     break;
   case IDL_UINT32:
+  case IDL_ULONG:
     cnt = idl_asprintf(&str, "%" PRIu32, constval->value.uint32);
     break;
   case IDL_INT64:
+  case IDL_LLONG:
     cnt = idl_asprintf(&str, "%" PRId64, constval->value.int64);
     break;
   case IDL_UINT64:
+  case IDL_ULLONG:
     cnt = idl_asprintf(&str, "%" PRIu64, constval->value.uint64);
     break;
   case IDL_FLOAT:
@@ -305,6 +321,12 @@ get_cpp11_base_type_const_value(const idl_constval_t *constval)
     break;
   case IDL_LDOUBLE:
     cnt = idl_asprintf(&str, "%Lf", constval->value.ldbl);
+    break;
+  case IDL_CHAR:
+    cnt = idl_asprintf(&str, "\'%c\'", constval->value.chr);
+    break;
+  case IDL_STRING:
+    cnt = idl_asprintf(&str, "\"%s\"", constval->value.str);
     break;
   default:
     assert(0);
@@ -338,7 +360,7 @@ get_cpp11_const_value(const idl_constval_t *constval)
 {
   static const idl_mask_t mask = IDL_BASE_TYPE | IDL_TEMPL_TYPE | IDL_ENUMERATOR;
 
-  switch (constval->node.mask & mask) {
+  switch (idl_mask(&constval->node) & mask) {
   case IDL_BASE_TYPE:
     return get_cpp11_base_type_const_value(constval);
   case IDL_TEMPL_TYPE:

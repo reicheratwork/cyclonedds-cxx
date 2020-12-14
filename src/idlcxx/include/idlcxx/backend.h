@@ -15,7 +15,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include "idl/tree.h"
+#include "idl/processor.h"
 #include "idl/retcode.h"
 #include "idl/export.h"
 #include "idlcxx/idl_ostream.h"
@@ -103,7 +103,7 @@ IDLCXX_EXPORT idl_declarator_is_array(const idl_declarator_t *node);
 bool
 IDLCXX_EXPORT idl_declarator_is_primitive(const idl_declarator_t *declarator);
 
-#define IDL_MASK_ALL 0xffffffff
+#define IDL_MASK_ALL 0xffffffffffffffff
 
 typedef uint32_t idl_walkResult;
 
@@ -133,11 +133,11 @@ struct idl_include {
 };
 
 IDLCXX_EXPORT idl_include_t *
-idl_get_include_list(idl_backend_ctx ctx, const idl_tree_t *tree);
+idl_get_include_list(idl_backend_ctx ctx, const idl_pstate_t *tree);
 
 #if 0
 idl_retcode_t
-IDLCXX_EXPORT idl_backendGenerate(idl_backend_ctx ctx, const idl_tree_t *parse_tree);
+IDLCXX_EXPORT idl_backendGenerate(idl_backend_ctx ctx, const idl_pstate_t *parse_tree);
 #endif
 
 #endif /* IDL_BACKEND_H */

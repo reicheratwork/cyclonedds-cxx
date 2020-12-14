@@ -36,7 +36,7 @@ extern const unsigned char re_alignment_impl_cpp_in[];
 
 #include "CUnit/Theory.h"
 
-static const char* idl_type[] = {
+static const char* _idl_type[] = {
   "char",
   "octet",
   "boolean",
@@ -1232,7 +1232,7 @@ void test_base(size_t n, bool ns)
       "%s mem;\n"\
       "};\n"\
       "};\n",
-      idl_type[n]);
+      _idl_type[n]);
   }
   else
   {
@@ -1240,10 +1240,14 @@ void test_base(size_t n, bool ns)
       "struct s {\n"\
       "%s mem;\n"\
       "};\n",
-      idl_type[n]);
+      _idl_type[n]);
   }
-  idl_tree_t* tree = NULL;
-  idl_parse_string(buffer, 0u, &tree);
+
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, buffer);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1257,7 +1261,7 @@ void test_base(size_t n, bool ns)
 
   destruct_idl_ostream(impl);
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_instance(bool ns)
@@ -1285,8 +1289,11 @@ void test_instance(bool ns)
       "I mem;\n"\
       "};\n");
   }
-  idl_tree_t* tree = NULL;
-  idl_parse_string(buffer, 0u, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, buffer);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1300,7 +1307,7 @@ void test_instance(bool ns)
 
   destruct_idl_ostream(impl);
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_string(bool ns)
@@ -1322,8 +1329,11 @@ void test_string(bool ns)
       "string str;\n"\
       "};\n");
   }
-  idl_tree_t* tree = NULL;
-  idl_parse_string(buffer, 0u, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, buffer);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1337,7 +1347,7 @@ void test_string(bool ns)
 
   destruct_idl_ostream(impl);
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_sequence(size_t n, bool ns)
@@ -1351,7 +1361,7 @@ void test_sequence(size_t n, bool ns)
       "sequence<%s> mem;\n"\
       "};\n"\
       "};\n",
-      idl_type[n]);
+      _idl_type[n]);
   }
   else
   {
@@ -1359,10 +1369,13 @@ void test_sequence(size_t n, bool ns)
       "struct s {\n"\
       "sequence<%s> mem;\n"\
       "};\n",
-      idl_type[n]);
+      _idl_type[n]);
   }
-  idl_tree_t* tree = NULL;
-  idl_parse_string(buffer, 0u, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, buffer);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1376,7 +1389,7 @@ void test_sequence(size_t n, bool ns)
 
   destruct_idl_ostream(impl);
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_union(bool ns)
@@ -1410,8 +1423,11 @@ void test_union(bool ns)
       "default: float f;\n"\
       "};\n");
   }
-  idl_tree_t* tree = NULL;
-  idl_parse_string(buffer, 0u, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, buffer);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1424,7 +1440,7 @@ void test_union(bool ns)
 
   destruct_idl_ostream(impl);
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_enum(bool ns)
@@ -1448,8 +1464,11 @@ void test_enum(bool ns)
       "E mem;\n"\
       "};\n");
   }
-  idl_tree_t* tree = NULL;
-  idl_parse_string(buffer, 0u, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, buffer);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1462,7 +1481,7 @@ void test_enum(bool ns)
 
   destruct_idl_ostream(impl);
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_array_base(bool ns)
@@ -1485,8 +1504,11 @@ void test_array_base(bool ns)
       "};\n");
   }
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(buffer, 0u, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, buffer);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1499,7 +1521,7 @@ void test_array_base(bool ns)
 
   destruct_idl_ostream(impl);
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_array_instance(bool ns)
@@ -1528,8 +1550,11 @@ void test_array_instance(bool ns)
       "};\n");
   }
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(buffer, 0u, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, buffer);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1542,7 +1567,7 @@ void test_array_instance(bool ns)
 
   destruct_idl_ostream(impl);
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_namespace_cross_call()
@@ -1550,8 +1575,11 @@ void test_namespace_cross_call()
   char* str = "module A_1 { module A_2 { struct s_1 { long m_1; }; }; };\n"\
               "module B_1 { module B_2 { struct s_2 { A_1::A_2::s_1 m_2; }; }; };\n";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, 0u, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1560,7 +1588,7 @@ void test_namespace_cross_call()
   CU_ASSERT_STRING_EQUAL("", get_ostream_buffer(get_idl_streamer_head_buf(generated)));
 
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_struct_inheritance()
@@ -1572,8 +1600,11 @@ void test_struct_inheritance()
   "  long new_member; \n"\
   "};\n";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, IDL_FLAG_EXTENDED_DATA_TYPES, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(IDL_FLAG_EXTENDED_DATA_TYPES, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1582,7 +1613,7 @@ void test_struct_inheritance()
   CU_ASSERT_STRING_EQUAL("", get_ostream_buffer(get_idl_streamer_head_buf(generated)));
 
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_bounded_sequence()
@@ -1592,8 +1623,11 @@ void test_bounded_sequence()
     "sequence<long,20> mem;\n"\
     "};\n";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, 0u, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1602,7 +1636,7 @@ void test_bounded_sequence()
   CU_ASSERT_STRING_EQUAL("", get_ostream_buffer(get_idl_streamer_head_buf(generated)));
 
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_bounded_sequence_of_structs()
@@ -1612,12 +1646,14 @@ void test_bounded_sequence_of_structs()
     "long l;\n"\
     "};\n"\
     "struct s {\n"\
-    "sequence<s_sub,20> mem;\n"\
-    "};\n"\
-    "#pragma keylist s mem";
+    "@key sequence<s_sub,20> mem;\n"\
+    "};\n";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, 0u, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1626,7 +1662,7 @@ void test_bounded_sequence_of_structs()
   CU_ASSERT_STRING_EQUAL("", get_ostream_buffer(get_idl_streamer_head_buf(generated)));
 
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_bounded_string()
@@ -1636,8 +1672,11 @@ void test_bounded_string()
     "string<20> mem;\n"\
     "};\n";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, 0u, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1646,7 +1685,7 @@ void test_bounded_string()
   CU_ASSERT_STRING_EQUAL("", get_ostream_buffer(get_idl_streamer_head_buf(generated)));
 
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_typedef_resolution()
@@ -1668,8 +1707,11 @@ void test_typedef_resolution()
     "};\n"\
     "};\n";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, 0u, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1678,7 +1720,7 @@ void test_typedef_resolution()
   CU_ASSERT_STRING_EQUAL(typedef_resolution_header_cpp_in, get_ostream_buffer(get_idl_streamer_head_buf(generated)));
 
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_keys_base()
@@ -1689,8 +1731,11 @@ void test_keys_base()
     "@key long _l;\n"\
     "};\n";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, IDL_FLAG_ANNOTATIONS, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(0u, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1699,7 +1744,7 @@ void test_keys_base()
   CU_ASSERT_STRING_EQUAL("", get_ostream_buffer(get_idl_streamer_head_buf(generated)));
 
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_keys_union_implicit()
@@ -1721,8 +1766,11 @@ void test_keys_union_implicit()
     "@key long _l;\n"\
     "};\n";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, IDL_FLAG_ANNOTATIONS, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(IDL_FLAG_ANNOTATIONS, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1731,7 +1779,7 @@ void test_keys_union_implicit()
   CU_ASSERT_STRING_EQUAL("", get_ostream_buffer(get_idl_streamer_head_buf(generated)));
 
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_keys_struct_explicit()
@@ -1747,8 +1795,11 @@ void test_keys_struct_explicit()
     "@key long _l;\n"\
     "};\n";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, IDL_FLAG_ANNOTATIONS, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(IDL_FLAG_ANNOTATIONS, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1757,7 +1808,7 @@ void test_keys_struct_explicit()
   CU_ASSERT_STRING_EQUAL("", get_ostream_buffer(get_idl_streamer_head_buf(generated)));
 
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_keys_struct_implicit()
@@ -1773,8 +1824,11 @@ void test_keys_struct_implicit()
     "@key long _l;\n"\
     "};\n";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, IDL_FLAG_ANNOTATIONS, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(IDL_FLAG_ANNOTATIONS, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1783,7 +1837,7 @@ void test_keys_struct_implicit()
   CU_ASSERT_STRING_EQUAL("", get_ostream_buffer(get_idl_streamer_head_buf(generated)));
 
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_keys_typedef()
@@ -1795,8 +1849,11 @@ void test_keys_typedef()
     "@key td_1 _t;\n"\
     "};\n";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, IDL_FLAG_ANNOTATIONS, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(IDL_FLAG_ANNOTATIONS, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1805,7 +1862,7 @@ void test_keys_typedef()
   CU_ASSERT_STRING_EQUAL(keys_typedef_header_cpp_in, get_ostream_buffer(get_idl_streamer_head_buf(generated)));
   
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_sequence_recursive()
@@ -1813,8 +1870,11 @@ void test_sequence_recursive()
   const char* str =
     "typedef sequence<sequence<sequence<string> > > recseq;";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, IDL_FLAG_ANNOTATIONS, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(IDL_FLAG_ANNOTATIONS, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1823,7 +1883,7 @@ void test_sequence_recursive()
   CU_ASSERT_STRING_EQUAL(sequence_recursive_header_cpp_in, get_ostream_buffer(get_idl_streamer_head_buf(generated)));
 
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 void test_re_alignment()
@@ -1834,8 +1894,11 @@ void test_re_alignment()
     "long l;\n"\
     "};\n";
 
-  idl_tree_t* tree = NULL;
-  idl_parse_string(str, IDL_FLAG_ANNOTATIONS, &tree);
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(IDL_FLAG_ANNOTATIONS, &annots, &tree);
+
+  idl_parse_string(tree, str);
 
   idl_streamer_output_t* generated = create_idl_streamer_output();
   idl_streamers_generate(tree, generated);
@@ -1844,7 +1907,7 @@ void test_re_alignment()
   CU_ASSERT_STRING_EQUAL("", get_ostream_buffer(get_idl_streamer_head_buf(generated)));
 
   destruct_idl_streamer_output(generated);
-  idl_delete_tree(tree);
+  idl_delete_pstate(tree);
 }
 
 CU_Test(streamer_generator, base_types_namespace_absent)

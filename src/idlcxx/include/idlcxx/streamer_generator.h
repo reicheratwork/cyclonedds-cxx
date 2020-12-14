@@ -15,7 +15,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "idl/tree.h"
+#include "idl/processor.h"
 #include "idl/retcode.h"
 #include "idlcxx/idl_ostream.h"
 #include "idlcxx/export.h"
@@ -30,6 +30,6 @@ IDLCXX_EXPORT idl_ostream_t* get_idl_streamer_head_buf(const idl_streamer_output
 
 IDLCXX_EXPORT void destruct_idl_streamer_output(idl_streamer_output_t* str);
 
-IDLCXX_EXPORT void idl_streamers_generate(const idl_tree_t* tree, idl_streamer_output_t* str);
+IDLCXX_EXPORT void idl_streamers_generate(const idl_pstate_t* tree, idl_streamer_output_t* str);
 
 #endif
