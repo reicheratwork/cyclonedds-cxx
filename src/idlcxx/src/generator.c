@@ -78,7 +78,7 @@ print_footer(FILE *fh, const char *inc)
 
 static idl_retcode_t
 generate_types(
-  const idl_tree_t *tree,
+  const idl_pstate_t *tree,
   const char *idl,
   const char *dir,
   const char *basename)
@@ -117,7 +117,7 @@ generate_types(
       assert(stm);
       len = get_ostream_buffer_position(stm);
       if (fwrite(get_ostream_buffer(stm), 1, len, fh) != len && ferror(fh)) {
-        ret = IDL_RETCODE_CANNOT_OPEN_FILE;
+        ret = IDL_RETCODE_NO_ENTRY;
       }
     }
   }
@@ -134,7 +134,7 @@ err:
 
 static idl_retcode_t
 generate_streamers(
-  const idl_tree_t *tree,
+  const idl_pstate_t *tree,
   const char *idl,
   const char *dir,
   const char *basename)
@@ -157,10 +157,10 @@ generate_streamers(
     ret = IDL_RETCODE_NO_MEMORY;
     goto err_guard;
   } else if ((srcfh = fopen(src, "wb")) == NULL) {
-    ret = IDL_RETCODE_CANNOT_OPEN_FILE;
+    ret = IDL_RETCODE_NO_ENTRY;
     goto err_src_fopen;
   } else if ((hdrfh = fopen(hdr, "ab")) == NULL) {
-    ret = IDL_RETCODE_CANNOT_OPEN_FILE;
+    ret = IDL_RETCODE_NO_ENTRY;
     goto err_hdr_fopen;
   } else if ((generated = create_idl_streamer_output()) == NULL) {
     ret = IDL_RETCODE_NO_MEMORY;
@@ -174,7 +174,7 @@ generate_streamers(
   fprintf(srcfh, "\n#include \"%s\"\n", hdr);
   len = get_ostream_buffer_position(stm);
   if (fwrite(get_ostream_buffer(stm), 1, len, srcfh) != len && ferror(srcfh)) {
-    ret = IDL_RETCODE_CANNOT_OPEN_FILE;
+    ret = IDL_RETCODE_NO_ENTRY;
     goto err_write_impl_buf;
   }
 
@@ -182,7 +182,7 @@ generate_streamers(
   assert(stm);
   len = get_ostream_buffer_position(stm);
   if (fwrite(get_ostream_buffer(stm), 1, len, hdrfh) != len && ferror(hdrfh)) {
-    ret = IDL_RETCODE_CANNOT_OPEN_FILE;
+    ret = IDL_RETCODE_NO_ENTRY;
     goto err_write_head_buf;
   }
 
@@ -210,12 +210,13 @@ err_src:
 __declspec(dllexport)
 #endif
 idl_retcode_t
-generate(const idl_tree_t *tree, const char *path)
+generate(const idl_pstate_t *tree)
 {
   bool abs = false;
-  const char *sep, *ext, *file;
+  const char *sep, *ext, *file, *path = tree->files ? tree->files->name : NULL;
   char *dir = NULL, *basename = NULL;
 
+  assert(path);
   if (!tree || !path)
     return IDL_RETCODE_SEMANTIC_ERROR; // not really, actually BAD_PARAMETER;
 

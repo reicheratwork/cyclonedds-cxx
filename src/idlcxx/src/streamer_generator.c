@@ -21,6 +21,8 @@
 #include "idl/scope.h"
 #include "idl/string.h"
 
+#define BASE_TYPE_MASK ((IDL_BASE_TYPE << 1) -1)
+
 static void format_ostream_indented(size_t depth, idl_ostream_t* ostr, const char *fmt, ...)
 {
   if (depth > 0) format_ostream(ostr, "%*c", depth, ' ');
@@ -320,7 +322,7 @@ int determine_byte_width(idl_node_t* typespec)
   else if (idl_is_string(typespec))
     return 1;
 
-  switch (typespec->mask % (IDL_BASE_TYPE * 2))
+  switch (idl_mask(typespec) & BASE_TYPE_MASK)
   {
   case IDL_INT8:
   case IDL_UINT8:
@@ -328,15 +330,21 @@ int determine_byte_width(idl_node_t* typespec)
   case IDL_BOOL:
   case IDL_OCTET:
     return 1;
-  case IDL_INT16: // is equal to IDL_SHORT
-  case IDL_UINT16: // is equal to IDL_USHORT
+  case IDL_SHORT:
+  case IDL_USHORT:
+  case IDL_INT16:
+  case IDL_UINT16:
     return 2;
-  case IDL_INT32: //is equal to IDL_LONG
-  case IDL_UINT32: //is equal to IDL_ULONG
+  case IDL_LONG:
+  case IDL_ULONG:
+  case IDL_INT32:
+  case IDL_UINT32:
   case IDL_FLOAT:
     return 4;
-  case IDL_INT64: //is equal to IDL_LLONG
-  case IDL_UINT64: //is equal to IDL_ULLONG
+  case IDL_LLONG:
+  case IDL_ULLONG:
+  case IDL_INT64:
+  case IDL_UINT64:
   case IDL_DOUBLE:
     return 8;
   }
@@ -575,7 +583,7 @@ bool has_keys(idl_type_spec_t* spec)
     idl_member_t* mem = ((idl_struct_t*)spec)->members;
     while (mem)
     {
-      if (idl_is_masked(mem, IDL_KEY)) return true;
+      if (mem->key) return true;
       mem = (idl_member_t*)(mem->node.next);
     }
   }
@@ -601,7 +609,7 @@ idl_retcode_t process_node(context_t* ctx, idl_node_t* node)
     process_module(ctx, (idl_module_t*)node);  //module entries are not filtered on which file they are defined in, since their first occurance may be in another (previous) file
   }
   else if (ctx->parsed_file == NULL ||
-           0 == strcmp(node->location.first.file, ctx->parsed_file))
+           0 == strcmp(node->symbol.location.first.file->name, ctx->parsed_file))
   {
     if (idl_is_struct(node) || idl_is_union(node))
       process_constructed(ctx, node);
@@ -620,8 +628,7 @@ idl_retcode_t process_member(context_t* ctx, idl_member_t* mem)
   assert(ctx);
   assert(mem);
 
-  bool is_key = idl_is_masked(mem, IDL_KEY);
-  process_instance(ctx, mem->declarators, mem->type_spec, is_key);
+  process_instance(ctx, mem->declarators, mem->type_spec, mem->key);
 
   if (mem->node.next)
     process_member(ctx, (idl_member_t*)(mem->node.next));
@@ -661,34 +668,38 @@ uint64_t array_entries(idl_declarator_t* decl)
   uint64_t entries = 0;
   while (ce)
   {
-    if ((ce->mask & IDL_CONST) == IDL_CONST)
+    if ((idl_mask(ce) & IDL_CONST) == IDL_CONST)
     {
       idl_constval_t* var = (idl_constval_t*)ce;
-      idl_mask_t mask = var->node.mask;
-      if ((mask & IDL_UINT8) == IDL_UINT8)
+      uint64_t cv = 0;
+      switch (idl_mask(&var->node) & ~IDL_CONST)
       {
-        if (entries)
-          entries *= var->value.oct;
-        else
-          entries = var->value.oct;
+      case IDL_UINT8:
+        cv = var->value.uint8;
+        break;
+      case IDL_USHORT:
+      case IDL_UINT16:
+        cv = var->value.uint16;
+        break;
+      case IDL_ULONG:
+      case IDL_UINT32:
+        cv = var->value.uint32;
+        break;
+      case IDL_ULLONG:
+      case IDL_UINT64:
+        cv = var->value.uint64;
+        break;
       }
-      else if ((mask & IDL_UINT32) == IDL_UINT32)
+      if (cv)
       {
         if (entries)
-          entries *= var->value.ulng;
+          entries *= cv;
         else
-          entries = var->value.ulng;
-      }
-      else if ((mask & IDL_UINT64) == IDL_UINT64)
-      {
-        if (entries)
-          entries *= var->value.ullng;
-        else
-          entries = var->value.ullng;
+          entries = cv;
       }
     }
 
-    ce = ce->next;
+    ce = ((idl_node_t*)ce)->next;
   }
   return entries;
 }
@@ -926,9 +937,7 @@ char* determine_cast(idl_node_t* typespec)
     return idl_strdup(char_cast);
   }
 
-  idl_mask_t mask = typespec->mask;
-  mask %= IDL_BASE_TYPE * 2;
-  switch (mask)
+  switch (idl_mask(typespec) & BASE_TYPE_MASK)
   {
   case IDL_CHAR:
     return idl_strdup(char_cast);
@@ -944,27 +953,27 @@ char* determine_cast(idl_node_t* typespec)
     return idl_strdup(uint8_cast);
     break;
   case IDL_INT16:
-    //case IDL_SHORT:
+  case IDL_SHORT:
     return idl_strdup(int16_cast);
     break;
   case IDL_UINT16:
-    //case IDL_USHORT:
+  case IDL_USHORT:
     return idl_strdup(uint16_cast);
     break;
   case IDL_INT32:
-    //case IDL_LONG:
+  case IDL_LONG:
     return idl_strdup(int32_cast);
     break;
   case IDL_UINT32:
-    //case IDL_ULONG:
+  case IDL_ULONG:
     return idl_strdup(uint32_cast);
     break;
   case IDL_INT64:
-    //case IDL_LLONG:
+  case IDL_LLONG:
     return idl_strdup(int64_cast);
     break;
   case IDL_UINT64:
-    //case IDL_ULLONG:
+  case IDL_ULLONG:
     return idl_strdup(uint64_cast);
     break;
   case IDL_FLOAT:
@@ -1165,12 +1174,12 @@ idl_retcode_t process_constructed(context_t* ctx, idl_node_t* node)
     if (idl_is_struct(node))
     {
       idl_struct_t* _struct = (idl_struct_t*)node;
-      if (_struct->base_type)
+      if (_struct->inherit_spec)
       {
-        char* base_cpp11name = get_cpp11_name(idl_identifier(_struct->base_type));
+        char* base_cpp11name = get_cpp11_name(idl_identifier(_struct->inherit_spec->base));
         char* ns = NULL;
         assert(base_cpp11name);
-        resolve_namespace((idl_node_t*)_struct->base_type, &ns);
+        resolve_namespace((idl_node_t*)_struct->inherit_spec->base, &ns);
         assert(ns);
         char* write_accessor = NULL, *read_accessor = NULL;
         if (idl_asprintf(&write_accessor, const_ref_cast, ns, base_cpp11name) != -1 &&
@@ -1199,7 +1208,7 @@ idl_retcode_t process_constructed(context_t* ctx, idl_node_t* node)
       bool disc_is_key = idl_is_masked(st, IDL_KEY);
 
       format_read_stream(1, ctx, true, union_clear_func);
-      process_known_width(ctx, "_d()", st, disc_is_key);
+      process_known_width(ctx, "_d()", st->type_spec, disc_is_key);
       format_write_size_stream(1, ctx, false, union_switch);
       format_write_size_stream(1, ctx, false, "  {\n");
       format_write_stream(1, ctx, false, union_switch);
@@ -1504,8 +1513,7 @@ idl_retcode_t process_case_label(context_t* ctx, idl_case_label_t* label)
   {
     char* buffer = NULL;
     idl_constval_t* cv = (idl_constval_t*)ce;
-
-    switch (ce->mask % (IDL_BASE_TYPE * 2))
+    switch (idl_mask(ce) % (IDL_BASE_TYPE * 2))
     {
     case IDL_INT8:
       if (idl_asprintf(&buffer, "%" PRId8, cv->value.int8) == -1)
@@ -1516,26 +1524,32 @@ idl_retcode_t process_case_label(context_t* ctx, idl_case_label_t* label)
       if (idl_asprintf(&buffer, "%" PRIu8, cv->value.uint8) == -1)
         return IDL_RETCODE_NO_MEMORY;
       break;
+    case IDL_SHORT:
     case IDL_INT16:
       if (idl_asprintf(&buffer, "%" PRId16, cv->value.int16) == -1)
         return IDL_RETCODE_NO_MEMORY;
       break;
+    case IDL_USHORT:
     case IDL_UINT16:
       if (idl_asprintf(&buffer, "%" PRIu16, cv->value.uint16) == -1)
         return IDL_RETCODE_NO_MEMORY;
       break;
+    case IDL_LONG:
     case IDL_INT32:
       if (idl_asprintf(&buffer, "%" PRId32, cv->value.int32) == -1)
         return IDL_RETCODE_NO_MEMORY;
       break;
+    case IDL_ULONG:
     case IDL_UINT32:
       if (idl_asprintf(&buffer, "%" PRIu32, cv->value.uint32) == -1)
         return IDL_RETCODE_NO_MEMORY;
       break;
+    case IDL_LLONG:
     case IDL_INT64:
       if (idl_asprintf(&buffer, "%" PRId64, cv->value.int64) == -1)
         return IDL_RETCODE_NO_MEMORY;
       break;
+    case IDL_ULLONG:
     case IDL_UINT64:
       if (idl_asprintf(&buffer, "%" PRIu64, cv->value.uint64) == -1)
         return IDL_RETCODE_NO_MEMORY;
@@ -1829,7 +1843,7 @@ idl_retcode_t process_sequence_impl(context_t* ctx, const char* accessor, idl_se
   return IDL_RETCODE_OK;
 }
 
-void idl_streamers_generate(const idl_tree_t* tree, idl_streamer_output_t* str)
+void idl_streamers_generate(const idl_pstate_t* tree, idl_streamer_output_t* str)
 {
   context_t* ctx = create_context("");
 
