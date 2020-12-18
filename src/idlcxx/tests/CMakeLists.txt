@@ -18,7 +18,8 @@ set(generator_dir "${source_dir}/generator")
 set(sources
   cpp11Backend.c
   idl_ostream.c
-  streamer_generator.c)
+  streamer_generator.c
+  token_replace.c)
 
 add_cunit_executable(cunit_idlcxx ${sources})
 

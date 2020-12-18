@@ -9,21 +9,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR BSD-3-Clause
  */
-#include <inttypes.h>
-#include "idlcxx/backend.h"
+#ifndef IDL_TOKEN_REPLACE_H
+#define IDL_TOKEN_REPLACE_H
 
-char*
-get_cpp11_name(const char* name);
+int idl_replace_tokens_with_indices(char** output, const char* input, const char** token_names, const char **token_flags);
 
-char *
-get_cpp11_type(const idl_node_t *node);
+int idl_replace_tokens_default(char** output, const char* input);
 
-char *
-get_cpp11_fully_scoped_name(const idl_node_t *node);
+int idl_replace_indices_with_values(char** output, const char* fmt, ...);
 
-char *
-get_default_value(idl_backend_ctx ctx, const idl_node_t *node);
-
-char *
-get_cpp11_const_value(const idl_constval_t *literal);
-
+#endif

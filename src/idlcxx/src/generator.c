@@ -20,6 +20,8 @@
 #include "idlcxx/backendCpp11Type.h"
 #include "idlcxx/backendCpp11Trait.h"
 #include "idlcxx/streamer_generator.h"
+#include "idlcxx/processor_options.h"
+#include "idlcxx/token_replace.h"
 
 #ifdef _WIN32
 #pragma warning(disable : 4996)
@@ -266,3 +268,237 @@ generate(const idl_pstate_t *tree, const char *path)
   free(basename);
   return IDL_RETCODE_OK;
 }
+/*
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_seq_tem(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  sequence_template = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_seq_incl(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  sequence_include = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_arr_temp(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  array_template = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_arr_incl(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  array_include = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_bseq_temp(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  bounded_sequence_template = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_bseq_incl(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  bounded_sequence_include = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_str_temp(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  string_template = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_str_incl(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  string_include = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_bstr_temp(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  bounded_string_template = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_bstr_incl(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  bounded_string_include = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_uni_temp(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  union_template = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_uni_get(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  union_getter_template = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+int set_uni_incl(const idlc_option_t* option, const char* value)
+{
+  char *output = NULL;
+  if (idl_replace_tokens_default(&output, value) <= 0)
+    return -1;
+  //further validation?
+  union_include = output;
+  return 0;
+}
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+const idlc_option_t** generator_options(void)
+{
+  return opts;
+}
+
+static const idlc_option_t* opts[] = {
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_seq_temp}, 'f', "sequence_template", "",
+    ""
+ },
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_seq_incl}, 'f', "sequence_include", "",
+    ""
+ },
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_arr_temp}, 'f', "array_template", "",
+    ""
+ },
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_arr_incl}, 'f', "array_include", "",
+    ""
+ },
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_bseq_temp}, 'f', "bounded_sequence_template", "",
+    ""
+ },
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_bseq_incl}, 'f', "bounded_sequence_include", "",
+    ""
+ },
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_str_temp}, 'f', "string_template", "",
+    ""
+ },
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_str_incl}, 'f', "string_include", "",
+    ""
+ },
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_bstr_temp}, 'f', "bounded_string_template", "",
+    ""
+ },
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_bstr_incl}, 'f', "bounded_string_include", "",
+    ""
+ },
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_uni_temp}, 'f', "union_template", "",
+    ""
+ },
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_uni_get}, 'f', "union_getter_template", "",
+    ""
+ },
+  &(idlc_option_t) {
+    IDLC_FUNCTION, {.function = &set_uni_incl}, 'f', "union_include", "",
+    ""
+ },
+NULL
+};
+*/
