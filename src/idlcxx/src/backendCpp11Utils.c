@@ -15,8 +15,10 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <inttypes.h>
+#include "idlcxx/processor_options.h"
 #include "idl/string.h"
 #include "idlcxx/backendCpp11Utils.h"
+#include "idlcxx/token_replace.h"
 
 #ifdef _WIN32
 #pragma warning(disable : 4996)
@@ -118,28 +120,33 @@ get_cpp11_base_type(const idl_node_t *node)
 static char *
 get_cpp11_templ_type(const idl_node_t *node)
 {
-  char *cpp11Type = NULL;
+  char* cpp11Type = NULL;
 
   switch (idl_mask(node) & IDL_TEMPL_TYPE_MASK)
   {
   case IDL_SEQUENCE:
     {
+      char *typeval = get_cpp11_type(((const idl_sequence_t*)node)->type_spec);
+
       uint64_t bound = ((const idl_sequence_t*)node)->maximum;
-      char* vector_element = get_cpp11_type(((const idl_sequence_t*)node)->type_spec);
-      if (bound)
-        idl_asprintf(&cpp11Type, CPP11_BOUNDED_SEQUENCE_TEMPLATE(vector_element, bound));
-      else
-        idl_asprintf(&cpp11Type, CPP11_SEQUENCE_TEMPLATE(vector_element));
-      free(vector_element);
+      char* boundval = NULL;
+      idl_asprintf(&boundval, "%"PRIu64, bound);
+      
+      idl_replace_indices_with_values(&cpp11Type, bound ? bounded_sequence_template : sequence_template, typeval, boundval);
+
+      free(typeval);
+      free(boundval);
     }
     break;
   case IDL_STRING:
     {
-      uint64_t bound = ((const idl_string_t*)node)->maximum;
-      if (bound)
-        idl_asprintf(&cpp11Type, CPP11_BOUNDED_STRING_TEMPLATE(bound));
-      else
-        idl_asprintf(&cpp11Type, CPP11_STRING_TEMPLATE());
+      uint64_t bound = ((const idl_sequence_t*)node)->maximum;
+      char* boundval = NULL;
+      idl_asprintf(&boundval, "%"PRIu64, bound);
+
+      idl_replace_indices_with_values(&cpp11Type, bound ? bounded_string_template : string_template, boundval);
+
+      free(boundval);
     }
     break;
   case IDL_WSTRING:

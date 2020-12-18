@@ -19,7 +19,9 @@ add_library(
     src/backendCpp11Trait.c
     src/streamer_generator.c
     src/idl_ostream.c
-    src/generator.c)
+    src/generator.c
+    src/token_replace.c
+    src/processor_options.c)
 
 target_include_directories(
   idlcxx
