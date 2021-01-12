@@ -1351,11 +1351,14 @@ void dds::sub::detail::DataReader<T>::on_requested_deadline_missed(dds_entity_t,
     dds::core::status::RequestedDeadlineMissedStatus s;
     s.delegate() = sd;
 
-    dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
+    auto sr = this->get_strong_ref();
+    if (sr) {
+        dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
 
-    dds::sub::DataReaderListener<T> *l =
-        reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_requested_deadline_missed(dr, s);
+        dds::sub::DataReaderListener<T> *l =
+            reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
+        l->on_requested_deadline_missed(dr, s);
+    }
 }
 
 template <typename T>
@@ -1365,11 +1368,14 @@ void dds::sub::detail::DataReader<T>::on_requested_incompatible_qos(dds_entity_t
     dds::core::status::RequestedIncompatibleQosStatus s;
     s.delegate() = sd;
 
-    dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
+    auto sr = this->get_strong_ref();
+    if (sr) {
+        dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
 
-    dds::sub::DataReaderListener<T> *l =
-        reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_requested_incompatible_qos(dr, s);
+        dds::sub::DataReaderListener<T> *l =
+            reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
+        l->on_requested_incompatible_qos(dr, s);
+    }
 }
 
 template <typename T>
@@ -1379,11 +1385,14 @@ void dds::sub::detail::DataReader<T>::on_sample_rejected(dds_entity_t,
     dds::core::status::SampleRejectedStatus s;
     s.delegate() = sd;
 
-    dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
+    auto sr = this->get_strong_ref();
+    if (sr) {
+        dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
 
-    dds::sub::DataReaderListener<T> *l =
+        dds::sub::DataReaderListener<T>* l =
             reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_sample_rejected(dr, s);
+        l->on_sample_rejected(dr, s);
+    }
 }
 
 
@@ -1394,21 +1403,27 @@ void dds::sub::detail::DataReader<T>::on_liveliness_changed(dds_entity_t,
     dds::core::status::LivelinessChangedStatus s;
     s.delegate() = sd;
 
-    dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
+    auto sr = this->get_strong_ref();
+    if (sr) {
+        dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
 
-    dds::sub::DataReaderListener<T> *l =
+        dds::sub::DataReaderListener<T>* l =
             reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_liveliness_changed(dr, s);
+        l->on_liveliness_changed(dr, s);
+    }
 }
 
 template <typename T>
 void dds::sub::detail::DataReader<T>::on_data_available(dds_entity_t)
 {
-    dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
+    auto sr = this->get_strong_ref();
+    if (sr) {
+        dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
 
-    dds::sub::DataReaderListener<T> *l =
-        reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_data_available(dr);
+        dds::sub::DataReaderListener<T>* l =
+            reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
+        l->on_data_available(dr);
+    }
 }
 
 template <typename T>
@@ -1418,11 +1433,14 @@ void dds::sub::detail::DataReader<T>::on_subscription_matched(dds_entity_t,
     dds::core::status::SubscriptionMatchedStatus s;
     s.delegate() = sd;
 
-    dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
+    auto sr = this->get_strong_ref();
+    if (sr) {
+        dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
 
-    dds::sub::DataReaderListener<T> *l =
-        reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_subscription_matched(dr, s);
+        dds::sub::DataReaderListener<T>* l =
+            reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
+        l->on_subscription_matched(dr, s);
+    }
 }
 
 template <typename T>
@@ -1432,11 +1450,14 @@ void dds::sub::detail::DataReader<T>::on_sample_lost(dds_entity_t,
     dds::core::status::SampleLostStatus s;
     s.delegate() = sd;
 
-    dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
+    auto sr = this->get_strong_ref();
+    if (sr) {
+        dds::sub::DataReader<T, dds::sub::detail::DataReader> dr = wrapper();
 
-    dds::sub::DataReaderListener<T> *l =
-        reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_sample_lost(dr, s);
+        dds::sub::DataReaderListener<T> *l =
+            reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
+        l->on_sample_lost(dr, s);
+    }
 }
 
 // End of implementation
