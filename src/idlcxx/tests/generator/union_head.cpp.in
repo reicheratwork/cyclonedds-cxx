@@ -23,7 +23,7 @@ template<typename T> size_t write(const s &obj, T &stream) {
     case 4:
     case 5:
     {
-    stream.write_string(obj.str(),0);
+    stream.write_string(obj.str());
     }
     break;
     default:
@@ -55,7 +55,7 @@ template<typename T> size_t write_size(const s &obj, T &stream) {
     case 4:
     case 5:
     {
-    stream.incr_string(obj.str(),0);
+    stream.incr_string(obj.str());
     }
     break;
     default:
@@ -84,7 +84,7 @@ template<typename T> size_t write_size_max(const s &obj, T &stream) {
     stream = stream_copy;
   }
   {
-    stream.max_size_string(obj.str(),0);
+    stream.max_size_string(obj.str());
     union_max = std::max(stream.position(),union_max);
     stream = stream_copy;
   }
@@ -168,7 +168,7 @@ template<typename T> size_t read(s &obj, T &stream) {
     case 4:
     case 5:
     {
-    stream.read_string(obj.str(),0);
+    stream.read_string(obj.str());
     }
     break;
     default:

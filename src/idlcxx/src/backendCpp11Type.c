@@ -68,7 +68,7 @@ get_cpp11_declarator_array_expr(idl_backend_ctx ctx, const idl_node_t *node, con
     element_expr = idl_strdup(member_type);
   }
   const_expr = get_cpp11_const_value((const idl_constval_t *)node);
-  idl_asprintf(&array_expr, CPP11_ARRAY_TEMPLATE(element_expr, const_expr));
+  idl_asprintf(&array_expr, ARRAY_TEMPLATE(element_expr, const_expr));
   free(const_expr);
   free(element_expr);
   return array_expr;
@@ -1352,6 +1352,7 @@ idl_generate_include_statements(idl_backend_ctx ctx, const idl_tree_t *parse_tre
     idl_file_out_printf(ctx, "#include <cstdint>\n\n");
     idl_file_out_printf(ctx, "#include \"dds/ddsi/ddsi_keyhash.h\"\n");
   }
+  idl_file_out_printf(ctx, "#include \"org/eclipse/cyclonedds/topic/cdr_dummys.hpp\"\n");
   idl_file_out_printf(ctx, "\n");
 
   /* Next determine if we need to include any utility libraries... */
@@ -1359,42 +1360,10 @@ idl_generate_include_statements(idl_backend_ctx ctx, const idl_tree_t *parse_tre
   idl_walk_tree(ctx, parse_tree->root, get_util_dependencies, IDL_MASK_ALL);
   idl_reset_custom_context(ctx);
   if (util_depencencies) {
-    if (strcmp(CPP11_BOUNDED_SEQUENCE_INCLUDE, CPP11_SEQUENCE_INCLUDE))
-    {
-      if (util_depencencies & idl_vector_bounded_dep) {
-        idl_file_out_printf(ctx, "#include " CPP11_BOUNDED_SEQUENCE_INCLUDE "\n");
-      }
-      if (util_depencencies & idl_vector_unbounded_dep) {
-        idl_file_out_printf(ctx, "#include " CPP11_SEQUENCE_INCLUDE "\n");
-      }
-    }
-    else
-    {
-      if (util_depencencies & (idl_vector_bounded_dep | idl_vector_unbounded_dep)) {
-        idl_file_out_printf(ctx, "#include " CPP11_SEQUENCE_INCLUDE "\n");
-      }
-    }
-    if (strcmp(CPP11_BOUNDED_STRING_INCLUDE, CPP11_STRING_INCLUDE))
-    {
-      if (util_depencencies & idl_string_bounded_dep) {
-        idl_file_out_printf(ctx, "#include " CPP11_BOUNDED_STRING_INCLUDE "\n");
-      }
-      if (util_depencencies & idl_string_unbounded_dep) {
-        idl_file_out_printf(ctx, "#include " CPP11_STRING_INCLUDE "\n");
-      }
-    }
-    else
-    {
-      if (util_depencencies & (idl_string_bounded_dep | idl_string_unbounded_dep)) {
-        idl_file_out_printf(ctx, "#include " CPP11_STRING_INCLUDE "\n");
-      }
-    }
     if (util_depencencies & idl_variant_dep) {
       idl_file_out_printf(ctx, "#include " CPP11_UNION_INCLUDE "\n");
     }
-    if (util_depencencies & idl_array_dep) {
-      idl_file_out_printf(ctx, "#include " CPP11_ARRAY_INCLUDE "\n");
-    }
+    //include van cdr_ templates
     idl_file_out_printf(ctx, "\n");
   }
 }

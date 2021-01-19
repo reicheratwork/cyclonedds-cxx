@@ -13,7 +13,7 @@ template<typename T> size_t write(const s_sub &obj, T &stream) {
 template<typename T> size_t write(const s &obj, T &stream) {
   (void)obj;
   size_t pos = stream.position();
-  stream.write_sequence(obj.mem(),20);
+  stream.write_sequence(obj.mem());
   return stream.position() - pos;
 }
 
@@ -27,7 +27,7 @@ template<typename T> size_t write_size(const s_sub &obj, T &stream) {
 template<typename T> size_t write_size(const s &obj, T &stream) {
   (void)obj;
   size_t pos = stream.position();
-  stream.incr_sequence(obj.mem(),20);
+  stream.incr_sequence(obj.mem());
   return stream.position() - pos;
 }
 
@@ -41,7 +41,7 @@ template<typename T> size_t write_size_max(const s_sub &obj, T &stream) {
 template<typename T> size_t write_size_max(const s &obj, T &stream) {
   (void)obj;
   size_t pos = stream.position();
-  stream.max_size_sequence(obj.mem(),20);
+  stream.max_size_sequence(obj.mem());
   return stream.position() - pos;
 }
 
@@ -54,7 +54,7 @@ template<typename T> size_t key_write_size(const s_sub &obj, T &stream) {
 template<typename T> size_t key_write_size(const s &obj, T &stream) {
   (void)obj;
   size_t pos = stream.position();
-  stream.incr_sequence(obj.mem(),20);
+  stream.incr_sequence(obj.mem());
   return stream.position() - pos;
 }
 
@@ -67,7 +67,7 @@ template<typename T> size_t key_write_size_max(const s_sub &obj, T &stream) {
 template<typename T> size_t key_write_size_max(const s &obj, T &stream) {
   (void)obj;
   size_t pos = stream.position();
-  stream.max_size_sequence(obj.mem(),20);
+  stream.max_size_sequence(obj.mem());
   return stream.position() - pos;
 }
 
@@ -108,7 +108,7 @@ template<typename T> bool key_generate(const s_sub &obj, T &stream, ddsi_keyhash
 template<typename T> size_t key_write(const s &obj, T &stream) {
   (void)obj;
   size_t pos = stream.position();
-  stream.write_sequence(obj.mem(),20);
+  stream.write_sequence(obj.mem());
   return stream.position() - pos;
 }
 
@@ -149,7 +149,7 @@ template<typename T> size_t key_read(s_sub &obj, T &stream) {
 template<typename T> size_t key_read(s &obj, T &stream) {
   (void)obj;
   size_t pos = stream.position();
-  stream.read_sequence(obj.mem(),20);
+  stream.read_sequence(obj.mem());
   return stream.position() - pos;
 }
 
@@ -163,7 +163,7 @@ template<typename T> size_t read(s_sub &obj, T &stream) {
 template<typename T> size_t read(s &obj, T &stream) {
   (void)obj;
   size_t pos = stream.position();
-  stream.read_sequence(obj.mem(),20);
+  stream.read_sequence(obj.mem());
   return stream.position() - pos;
 }
 

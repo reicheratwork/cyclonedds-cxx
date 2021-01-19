@@ -86,31 +86,32 @@ public:
     incr_primitive(length);
   }
 
-  template<typename T>
-  void read_vec_resize(std::vector<T>& toread, uint32_t& seq_length, size_t bound) {
+  template<typename T, size_t N>
+  void read_vec_resize(idl_bounded_sequence<T,N>& toread, uint32_t& seq_length) {
     read_length(seq_length);
 
-    auto read_length = std::min<size_t>(seq_length, bound ? bound : SIZE_MAX);
+    auto read_length = std::min<size_t>(seq_length, N ? N : SIZE_MAX);
 
     toread.resize(read_length);
   }
 
   //string functions
-
-  void read_string(std::string& toread, size_t bound) {
+  template<size_t N>
+  void read_string(idl_bounded_string<N>& toread) {
     uint32_t string_length = 0;
 
     read_length(string_length);
 
-    toread.assign(m_buffer + m_position, m_buffer + m_position + std::min<size_t>(string_length - 1, bound ? bound : SIZE_MAX));  //remove 1 for terminating NULL
+    toread.assign(m_buffer + m_position, m_buffer + m_position + std::min<size_t>(string_length - 1, N ? N : SIZE_MAX));  //remove 1 for terminating NULL
 
     m_position += string_length;
   }
 
-  void write_string(const std::string& towrite, size_t bound) {
+  template<size_t N>
+  void write_string(const idl_bounded_string<N>& towrite) {
     size_t string_length = towrite.length() + 1;  //add 1 extra for terminating NULL
 
-    write_length(string_length, bound);
+    write_length(string_length, N);
 
     //no check on string length necessary after this since it is already checked in write_length
 
@@ -119,37 +120,39 @@ public:
     m_position += string_length;
   }
 
-  void incr_string(const std::string& toincr, size_t bound) {
+  template<size_t N>
+  void incr_string(const idl_bounded_string<N>& toincr) {
     size_t string_length = toincr.length() + 1;  //add 1 extra for terminating NULL
 
-    incr_length(string_length, bound);
+    incr_length(string_length, N);
 
     //no check on string length necessary after this since it is already checked in incr_length
 
     m_position += string_length;
   }
 
-  void max_size_string(const std::string& max_sz, size_t bound) {
+  template<size_t N>
+  void max_size_string(const idl_bounded_string<N>& max_sz) {
     (void)max_sz;
 
     if (m_position == SIZE_MAX)
       return;
 
-    if (bound == 0) {
+    if (N == 0) {
       m_position = SIZE_MAX;
       return;
     }
 
     max_size_primitive(uint32_t(0));
 
-    m_position += bound + 1;  //add 1 extra for terminating NULL
+    m_position += N + 1;  //add 1 extra for terminating NULL
   }
 
   //array functions
 
   //T is a primitive
   template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-  void read_array(std::array<T, N>& toread) {
+  void read_array(idl_array<T, N>& toread) {
     align(sizeof(T), false);
 
     memcpy(toread.data(), m_buffer + m_position, sizeof(T) * N);
@@ -163,7 +166,7 @@ public:
   }
 
   template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-  void write_array(const std::array<T, N>& towrite) {
+  void write_array(const idl_array<T, N>& towrite) {
     align(sizeof(T), true);
 
     memcpy(m_buffer + m_position, towrite.data(), sizeof(T) * N);
@@ -177,7 +180,7 @@ public:
   }
 
   template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-  void incr_array(const std::array<T, N>& toincr) {
+  void incr_array(const idl_array<T, N>& toincr) {
     (void)toincr;
 
     align(sizeof(T), false);
@@ -186,7 +189,7 @@ public:
   }
 
   template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-  void max_size_array(const std::array<T, N>& max_sz) {
+  void max_size_array(const idl_array<T, N>& max_sz) {
     if (m_position == SIZE_MAX)
       return;
 
@@ -195,25 +198,25 @@ public:
 
   //T is an enum
   template<typename T, size_t N, std::enable_if_t<std::is_enum<T>::value, int> = 1>
-  void read_array(std::array<T, N>& toread) {
+  void read_array(idl_array<T, N>& toread) {
     for (auto& e : toread)
       read_enum(e);
   }
 
   template<typename T, size_t N, std::enable_if_t<std::is_enum<T>::value, int> = 1>
-  void write_array(const std::array<T, N>& towrite) {
+  void write_array(const idl_array<T, N>& towrite) {
     for (const auto& e : towrite)
       write_enum(e);
   }
 
   template<typename T, size_t N, std::enable_if_t<std::is_enum<T>::value, int> = 1>
-  void incr_array(const std::array<T, N>& toincr) {
+  void incr_array(const idl_array<T, N>& toincr) {
     for (const auto& e : toincr)
       incr_enum(e);
   }
 
   template<typename T, size_t N, std::enable_if_t<std::is_enum<T>::value, int> = 1>
-  void max_size_array(const std::array<T, N>& max_sz) {
+  void max_size_array(const idl_array<T, N>& max_sz) {
     if (m_position == SIZE_MAX)
       return;
 
@@ -222,25 +225,25 @@ public:
 
   //T is an IDL struct
   template<typename T, size_t N, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, int> = 0>
-  void read_array(std::array<T, N>& toread) {
+  void read_array(idl_array<T, N>& toread) {
     for (auto& e : toread)
       read(e,*this);
   }
 
   template<typename T, size_t N, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, int> = 0>
-  void write_array(const std::array<T, N>& towrite) {
+  void write_array(const idl_array<T, N>& towrite) {
     for (const auto& e : towrite)
       write(e,*this);
   }
 
   template<typename T, size_t N, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, int> = 0>
-  void incr_array(const std::array<T, N>& toincr) {
+  void incr_array(const idl_array<T, N>& toincr) {
     for (const auto& e : toincr)
       write_size(e,*this);
   }
 
   template<typename T, size_t N, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, int> = 0>
-  void max_size_array(const std::array<T, N>& max_sz) {
+  void max_size_array(const idl_array<T, N>& max_sz) {
     if (m_position == SIZE_MAX)
       return;
 
@@ -249,54 +252,54 @@ public:
   }
 
   //T is a string
-  template<size_t N>
-  void read_array(std::array<std::string, N>& toread) {
+  template<size_t N, size_t M>
+  void read_array(idl_array<idl_bounded_string<M>, N>& toread) {
     for (auto& e : toread)
-      read_string(e, 0);
+      read_string(e);
   }
 
-  template<size_t N>
-  void write_array(const std::array<std::string, N>& towrite) {
+  template<size_t N, size_t M>
+  void write_array(const idl_array<idl_bounded_string<M>, N>& towrite) {
     for (const auto& e : towrite)
-      write_string(e, 0);
+      write_string(e);
   }
 
-  template<size_t N>
-  void incr_array(const std::array<std::string, N>& toincr) {
+  template<size_t N, size_t M>
+  void incr_array(const idl_array<idl_bounded_string<M>, N>& toincr) {
     for (const auto& e : toincr)
-      incr_string(e, 0);
+      incr_string(e);
   }
 
-  template<size_t N>
-  void max_size_array(const std::array<std::string, N>& max_sz) {
+  template<size_t N, size_t M>
+  void max_size_array(const idl_array<idl_bounded_string<M>, N>& max_sz) {
     if (m_position == SIZE_MAX)
       return;
 
     for (const auto& e : max_sz)
-      max_size_string(e, 0);
+      max_size_string(e);
   }
 
   //T is an array
   template<typename T, size_t N, size_t M>
-  void read_array(std::array<std::array<T, M>, N>& toread) {
+  void read_array(idl_array<idl_array<T, M>, N>& toread) {
     for (auto& e : toread)
       read_array(e);
   }
 
   template<typename T, size_t N, size_t M>
-  void write_array(const std::array<std::array<T, M>, N>& towrite) {
+  void write_array(const idl_array<idl_array<T, M>, N>& towrite) {
     for (const auto& e : towrite)
       write_array(e);
   }
 
   template<typename T, size_t N, size_t M>
-  void incr_array(const std::array<std::array<T, M>, N>& toincr) {
+  void incr_array(const idl_array<idl_array<T, M>, N>& toincr) {
     for (const auto& e : toincr)
       incr_array(e);
   }
 
   template<typename T, size_t N, size_t M>
-  void max_size_array(const std::array<std::array<T, M>, N>& max_sz) {
+  void max_size_array(const idl_array<idl_array<T, M>, N>& max_sz) {
     if (m_position == SIZE_MAX)
       return;
 
@@ -305,26 +308,26 @@ public:
   }
 
   //T is a vector
-  template<typename T, size_t N>
-  void read_array(std::array<std::vector<T>, N>& toread) {
+  template<typename T, size_t N, size_t M>
+  void read_array(idl_array<idl_bounded_sequence<T,M>, N>& toread) {
     for (const auto& e : toread)
       read_sequence(e);
   }
 
-  template<typename T, size_t N>
-  void write_array(const std::array<std::vector<T>, N>& towrite) {
+  template<typename T, size_t N, size_t M>
+  void write_array(const idl_array<idl_bounded_sequence<T,M>, N>& towrite) {
     for (const auto& e : towrite)
       write_sequence(e);
   }
 
-  template<typename T, size_t N>
-  void incr_array(const std::array<std::vector<T>, N>& toincr) {
+  template<typename T, size_t N, size_t M>
+  void incr_array(const idl_array<idl_bounded_sequence<T,M>, N>& toincr) {
     for (const auto& e : toincr)
       incr_sequence(e);
   }
 
-  template<typename T, size_t N>
-  void max_size_array(const std::array<std::vector<T>, N>& max_sz) {
+  template<typename T, size_t N, size_t M>
+  void max_size_array(const idl_array<idl_bounded_sequence<T,M>, N>& max_sz) {
     if (m_position == SIZE_MAX)
       return;
 
@@ -335,10 +338,10 @@ public:
   //sequence functions
 
   //T is a primitive
-  template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-  void read_sequence(std::vector<T>& toread, size_t bound) {
+  template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
+  void read_sequence(idl_bounded_sequence<T,N>& toread) {
     uint32_t seq_length = 0;  //this is the sequence length retrieved from the stream, not the number of entities to be written to the sequence object
-    read_vec_resize(toread, seq_length, bound);
+    read_vec_resize(toread, seq_length);
 
     align(sizeof(T), false);
 
@@ -352,9 +355,9 @@ public:
     m_position += sizeof(T) * seq_length;
   }
 
-  template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-  void write_sequence(const std::vector<T>& towrite, size_t bound) {
-    write_length(towrite.size(), bound);
+  template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
+  void write_sequence(const idl_bounded_sequence<T,N>& towrite) {
+    write_length(towrite.size(), N);
 
     //no check on length necessary after this point, it is done in the write_length function
 
@@ -370,9 +373,9 @@ public:
     m_position += sizeof(T) * towrite.size();
   }
 
-  template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-  void incr_sequence(const std::vector<T>& toincr, size_t bound) {
-    incr_length(toincr.size(), bound);
+  template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
+  void incr_sequence(const idl_bounded_sequence<T,N>& toincr) {
+    incr_length(toincr.size(), N);
 
     //no check on length necessary after this point, it is done in the incr_length function
 
@@ -381,14 +384,14 @@ public:
     m_position += sizeof(T) * toincr.size();
   }
 
-  template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-  void max_size_sequence(const std::vector<T>& max_sz, size_t bound) {
+  template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
+  void max_size_sequence(const idl_bounded_sequence<T,N>& max_sz) {
     (void)max_sz;
 
     if (m_position == SIZE_MAX)
       return;
 
-    if (0 == bound) {
+    if (0 == N) {
       m_position = SIZE_MAX;
       return;
     }
@@ -397,30 +400,30 @@ public:
 
     align(sizeof(T), false);
 
-    m_position += sizeof(T) * bound;
+    m_position += sizeof(T) * N;
   }
 
   //T is an enum
-  template<typename T, std::enable_if_t<std::is_enum<T>::value, int> = 1>
-  void read_sequence(std::vector<T>& toread, size_t bound) {
+  template<typename T, size_t N, std::enable_if_t<std::is_enum<T>::value, int> = 1>
+  void read_sequence(idl_bounded_sequence<T,N>& toread) {
     uint32_t seq_length = 0;  //this is the sequence length retrieved from the stream, not the number of entities to be written to the sequence object
-    read_vec_resize(toread, seq_length, bound);
+    read_vec_resize(toread, seq_length);
 
     for (auto& e : toread)
       read_enum(e);
 
     //dummy reads to move the position indicator
-    if (bound &&
-      seq_length > bound) {
+    if (N &&
+      seq_length > N) {
       T temp;
-      for (size_t i = bound; i < seq_length; i++)
+      for (size_t i = N; i < seq_length; i++)
         read_enum(temp);
     }
   }
 
-  template<typename T, std::enable_if_t<std::is_enum<T>::value, int> = 1>
-  void write_sequence(const std::vector<T>& towrite, size_t bound) {
-    write_length(towrite.size(), bound);
+  template<typename T, size_t N, std::enable_if_t<std::is_enum<T>::value, int> = 1>
+  void write_sequence(const idl_bounded_sequence<T,N>& towrite) {
+    write_length(towrite.size(), N);
 
     //no check on length necessary after this point, it is done in the write_length function
 
@@ -428,9 +431,9 @@ public:
       write_enum(e);
   }
 
-  template<typename T, std::enable_if_t<std::is_enum<T>::value, int> = 1>
-  void incr_sequence(const std::vector<T>& toincr, size_t bound) {
-    incr_length(toincr.size(), bound);
+  template<typename T, size_t N, std::enable_if_t<std::is_enum<T>::value, int> = 1>
+  void incr_sequence(const idl_bounded_sequence<T,N>& toincr) {
+    incr_length(toincr.size(), N);
 
     //no check on length necessary after this point, it is done in the incr_length function
 
@@ -438,12 +441,12 @@ public:
       incr_enum(e);
   }
 
-  template<typename T, std::enable_if_t<std::is_enum<T>::value, int> = 1>
-  void max_size_sequence(const std::vector<T>& max_sz, size_t bound) {
+  template<typename T, size_t N, std::enable_if_t<std::is_enum<T>::value, int> = 1>
+  void max_size_sequence(const idl_bounded_sequence<T,N>& max_sz) {
     if (m_position == SIZE_MAX)
       return;
 
-    if (0 == bound) {
+    if (0 == N) {
       m_position = SIZE_MAX;
       return;
     }
@@ -453,16 +456,20 @@ public:
   }
 
   //T is a bool
-  void read_sequence(std::vector<bool>& toread, size_t bound) {
+  template<size_t N>
+  void read_sequence(idl_bounded_sequence<bool, N>& toread) {
     uint32_t seq_length = 0;  //this is the sequence length retrieved from the stream, not the number of entities to be written to the sequence object
-    read_vec_resize(toread, seq_length, bound);
+    read_vec_resize(toread, seq_length);
 
     for (size_t i = 0; i < toread.size(); i++)
       toread[i] = (*(m_buffer + i) ? true : false);  //only 0x0 is false?
+
+    m_position += seq_length + toread.size();
   }
 
-  void write_sequence(const std::vector<bool>& towrite, size_t bound) {
-    write_length(towrite.size(), bound);
+  template<size_t N>
+  void write_sequence(const idl_bounded_sequence<bool, N>& towrite) {
+    write_length(towrite.size(), N);
 
     //no check on length necessary after this point, it is done in the write_length function
 
@@ -471,26 +478,26 @@ public:
   }
 
   //T is an IDL struct
-  template<typename T, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, int> = 0>
-  void read_sequence(std::vector<T>& toread, size_t bound) {
+  template<typename T, size_t N, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, int> = 0>
+  void read_sequence(idl_bounded_sequence<T,N>& toread) {
     uint32_t seq_length = 0;  //this is the sequence length retrieved from the stream, not the number of entities to be written to the sequence object
-    read_vec_resize(toread, seq_length, bound);
+    read_vec_resize(toread, seq_length);
 
     for (auto& e : toread)
       read(e,*this);
 
     //dummy reads to move the position indicator
-    if (bound &&
-      seq_length > bound) {
+    if (N &&
+      seq_length > N) {
       T temp;
-      for (size_t i = bound; i < seq_length; i++)
+      for (size_t i = N; i < seq_length; i++)
         read(temp,*this);
     }
   }
 
-  template<typename T, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, int> = 0>
-  void write_sequence(const std::vector<T>& towrite, size_t bound) {
-    write_length(towrite.size(), bound);
+  template<typename T, size_t N, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, int> = 0>
+  void write_sequence(const idl_bounded_sequence<T,N>& towrite) {
+    write_length(towrite.size(), N);
 
     //no check on length necessary after this point, it is done in the write_length function
 
@@ -498,9 +505,9 @@ public:
       write(e,*this);
   }
 
-  template<typename T, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, int> = 0>
-  void incr_sequence(const std::vector<T>& toincr, size_t bound) {
-    incr_length(toincr.size(), bound);
+  template<typename T, size_t N, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, int> = 0>
+  void incr_sequence(const idl_bounded_sequence<T,N>& toincr) {
+    incr_length(toincr.size(), N);
 
     //no check on length necessary after this point, it is done in the incr_length function
 
@@ -508,12 +515,12 @@ public:
       write_size(e,*this);
   }
 
-  template<typename T, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, int> = 0>
-  void max_size_sequence(const std::vector<T>& max_sz, size_t bound) {
+  template<typename T, size_t N, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, int> = 0>
+  void max_size_sequence(const idl_bounded_sequence<T,N>& max_sz) {
     if (m_position == SIZE_MAX)
       return;
 
-    if (0 == bound) {
+    if (0 == N) {
       m_position = SIZE_MAX;
       return;
     }
@@ -525,45 +532,49 @@ public:
   }
 
   //T is a string
-  void read_sequence(std::vector<std::string>& toread, size_t bound) {
+  template<size_t N, size_t M>
+  void read_sequence(idl_bounded_sequence<idl_bounded_string<M>, N>& toread) {
     uint32_t seq_length = 0;  //this is the sequence length retrieved from the stream, not the number of entities to be written to the sequence object
-    read_vec_resize(toread, seq_length, bound);
+    read_vec_resize(toread, seq_length);
 
     for (auto& e : toread)
       read_string(e, 0);
 
     //dummy reads to move the position indicator
-    if (bound &&
-      seq_length > bound) {
-      std::string temp;
-      for (size_t i = bound; i < seq_length; i++)
-        read_string(temp, bound);
+    if (N &&
+      seq_length > N) {
+      idl_bounded_string<M>  temp;
+      for (size_t i = N; i < seq_length; i++)
+        read_string(temp);
     }
   }
 
-  void write_sequence(const std::vector<std::string>& towrite, size_t bound) {
-    write_length(towrite.size(), bound);
+  template<size_t N, size_t M>
+  void write_sequence(const idl_bounded_sequence<idl_bounded_string<M>, N>& towrite) {
+    write_length(towrite.size(), N);
 
     //no check on length necessary after this point, it is done in the write_length function
 
     for (auto& e : towrite)
-      write_string(e, 0);
+      write_string(e);
   }
 
-  void incr_sequence(const std::vector<std::string>& toincr, size_t bound) {
-    incr_length(toincr.size(), bound);
+  template<size_t N, size_t M>
+  void incr_sequence(const idl_bounded_sequence<idl_bounded_string<M>, N>& toincr) {
+    incr_length(toincr.size(), N);
 
     //no check on length necessary after this point, it is done in the incr_length function
 
     for (auto& e : toincr)
-      incr_string(e, bound);
+      incr_string(e);
   }
 
-  void max_size_sequence(const std::vector<std::string>& max_sz, size_t bound) {
+  template<size_t N, size_t M>
+  void max_size_sequence(const idl_bounded_sequence<idl_bounded_string<M>, N>& max_sz) {
     if (m_position == SIZE_MAX)
       return;
 
-    if (0 == bound) {
+    if (0 == N) {
       m_position = SIZE_MAX;
       return;
     }
@@ -571,53 +582,53 @@ public:
     max_size_primitive(uint32_t(0));
 
     for (auto& e : max_sz)
-      max_size_string(e, bound);
+      max_size_string(e);
   }
 
   //T is a vector
-  template<typename T>
-  void read_sequence(std::vector<std::vector<T> >& toread, size_t bound) {
+  template<typename T, size_t N, size_t M>
+  void read_sequence(idl_bounded_sequence<idl_bounded_sequence<T, M>, N>& toread) {
     uint32_t seq_length = 0;  //this is the sequence length retrieved from the stream, not the number of entities to be written to the sequence object
-    read_vec_resize(toread, seq_length, bound);
+    read_vec_resize(toread, seq_length);
 
     for (auto& e : toread)
-      read_sequence(e, 0);
+      read_sequence(e);
 
     //dummy reads to move the position indicator
-    if (bound &&
-      seq_length > bound) {
-      std::vector<T> temp;
-      for (size_t i = bound; i < seq_length; i++)
-        read_sequence(temp, 0);
+    if (N &&
+      seq_length > N) {
+      idl_bounded_sequence<T, M> temp;
+      for (size_t i = N; i < seq_length; i++)
+        read_sequence(temp);
     }
   }
 
-  template<typename T>
-  void write_sequence(const std::vector<std::vector<T> >& towrite, size_t bound) {
-    write_length(towrite.size(), bound);
+  template<typename T, size_t N, size_t M>
+  void write_sequence(const idl_bounded_sequence<idl_bounded_sequence<T, M>, N>& towrite) {
+    write_length(towrite.size(), N);
 
     //no check on length necessary after this point, it is done in the write_length function
 
     for (auto& e : towrite)
-      write_sequence(e, 0);
+      write_sequence(e);
   }
 
-  template<typename T>
-  void incr_sequence(const std::vector<std::vector<T> >& toincr, size_t bound) {
-    incr_length(toincr.size(), bound);
+  template<typename T, size_t N, size_t M>
+  void incr_sequence(const idl_bounded_sequence<idl_bounded_sequence<T, M>, N>& toincr) {
+    incr_length(toincr.size(), N);
 
     //no check on length necessary after this point, it is done in the incr_length function
 
     for (auto& e : toincr)
-      incr_sequence(e, 0);
+      incr_sequence(e);
   }
 
-  template<typename T>
-  void max_size_sequence(const std::vector<std::vector<T> >& max_sz, size_t bound) {
+  template<typename T, size_t N, size_t M>
+  void max_size_sequence(const idl_bounded_sequence<idl_bounded_sequence<T, M>, N>& max_sz) {
     if (m_position == SIZE_MAX)
       return;
 
-    if (0 == bound) {
+    if (0 == N) {
       m_position = SIZE_MAX;
       return;
     }
@@ -625,31 +636,31 @@ public:
     max_size_primitive(uint32_t(0));
 
     for (auto& e : max_sz)
-      max_size_sequence(e, 0);
+      max_size_sequence(e);
   }
 
   //T is an array
-  template<typename T, size_t N>
-  void read_sequence(std::vector<std::array<T, N> >& toread, size_t bound) {
+  template<typename T, size_t N, size_t M>
+  void read_sequence(idl_bounded_sequence<idl_array<T, M>, N>& toread) {
     uint32_t seq_length = 0;  //this is the sequence length retrieved from the stream, not the number of entities to be written to the sequence object
-    read_vec_resize(toread, seq_length, bound);
+    read_vec_resize(toread, seq_length);
 
     for (const auto& e : toread)
       read_array(e);
 
     //dummy reads to move the position indicator
-    if (bound &&
-      seq_length > bound) {
-      std::array<T, N> temp;
-      for (size_t i = bound; i < seq_length; i++)
+    if (N &&
+      seq_length > N) {
+      idl_array<T, M> temp;
+      for (size_t i = N; i < seq_length; i++)
         read_array(temp);
     }
   }
 
   //T is an array
-  template<typename T, size_t N>
-  void write_sequence(const std::vector<std::array<T, N> >& towrite, size_t bound) {
-    write_length(towrite.size(), bound);
+  template<typename T, size_t N, size_t M>
+  void write_sequence(const idl_bounded_sequence<idl_array<T, M>, N>& towrite) {
+    write_length(towrite.size(), N);
 
     //no check on length necessary after this point, it is done in the write_length function
 
@@ -657,9 +668,9 @@ public:
       write_array(e);
   }
 
-  template<typename T, size_t N>
-  void incr_sequence(const std::vector<std::array<T, N> >& toincr, size_t bound) {
-    incr_length(toincr.size(), bound);
+  template<typename T, size_t N, size_t M>
+  void incr_sequence(const idl_bounded_sequence<idl_array<T, M>, N>& toincr) {
+    incr_length(toincr.size(), N);
 
     //no check on length necessary after this point, it is done in the incr_length function
 
@@ -667,12 +678,12 @@ public:
       incr_array(e);
   }
 
-  template<typename T, size_t N>
-  void max_size_sequence(const std::vector<std::array<T, N> >& max_sz, size_t bound) {
+  template<typename T, size_t N, size_t M>
+  void max_size_sequence(const idl_bounded_sequence<idl_array<T, M>, N>& max_sz) {
     if (m_position == SIZE_MAX)
       return;
 
-    if (0 == bound) {
+    if (0 == N) {
       m_position = SIZE_MAX;
       return;
     }

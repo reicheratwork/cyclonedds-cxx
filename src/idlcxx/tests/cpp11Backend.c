@@ -307,15 +307,15 @@ CU_TheoryDataPoints(cpp11Backend, Struct) =
                               IDL_OUTPUT_STRUCT_PRIM("AttrHolder","wchar","0","w_c"),
                               IDL_OUTPUT_STRUCT_PRIM("_cxx_try","float","0.0f","f"),
                               IDL_OUTPUT_STRUCT_PRIM("AttrHolder","double","0.0","d"),
-                              IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","std::string","_cxx_catch"),
+                              IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","idl_bounded_string<0>","_cxx_catch"),
                               /*IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","std::wstring","wname"),*/
-                              IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","std::vector<uint8_t>","payload"),
-                              IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","std::vector<uint8_t>","b_payload"),
-                              IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","std::vector<std::string>","listBStr"),
-                              IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","std::vector<std::string>","bListBStr"),
-                              IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","std::vector<std::vector<std::string>>","strSeqSeq"),
-                              IDL_OUTPUT_STRUCT_PRIM_ARR("AttrHolder","std::array<float, 3>","coordinate"),
-                              IDL_OUTPUT_STRUCT_PRIM_ARR("AttrHolder","std::array<std::array<float, 3>, 2>","LineCoordinates"),
+                              IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","idl_bounded_sequence<uint8_t, 0>","payload"),
+                              IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","idl_bounded_sequence<uint8_t, 100>","b_payload"),
+                              IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","idl_bounded_sequence<idl_bounded_string<8>, 0>","listBStr"),
+                              IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","idl_bounded_sequence<idl_bounded_string<8>, 5>","bListBStr"),
+                              IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","idl_bounded_sequence<idl_bounded_sequence<idl_bounded_string<0>, 0>, 0>","strSeqSeq"),
+                              IDL_OUTPUT_STRUCT_PRIM_ARR("AttrHolder","idl_array<float, 3>","coordinate"),
+                              IDL_OUTPUT_STRUCT_PRIM_ARR("AttrHolder","idl_array<idl_array<float, 3>, 2>","LineCoordinates"),
                               IDL_OUTPUT_STRUCT_PRIM("EmbeddedStr","int32_t","0","x") IDL_OUTPUT_STRUCT_NO_PRIM("AttrHolder","::EmbeddedStr","emb_str"),
                               IDL_OUTPUT_ENUM("Color","Red","Yellow","Blue") IDL_OUTPUT_STRUCT_PRIM("AttrHolder","::Color","::Color::Red","col")
                               )
@@ -350,7 +350,7 @@ CU_TheoryDataPoints(cpp11Backend, Typedef) =
                                   IDL_INPUT_STRUCT("s","::m::sl","l")
                              ),
   /* Series of corresponding C++ output */
-  CU_DataPoints(const char *, IDL_OUTPUT_TYPEDEF("m","std::vector<int32_t>","sl")
+  CU_DataPoints(const char *, IDL_OUTPUT_TYPEDEF("m","idl_bounded_sequence<int32_t, 0>","sl")
                                   IDL_OUTPUT_STRUCT_NO_PRIM("s","::m::sl","l")
                               )
 };
@@ -372,12 +372,12 @@ CU_TheoryDataPoints(cpp11Backend, Union) =
                               IDL_INPUT_ENUM("Color","Red","Yellow","Blue") IDL_INPUT_UNION_1_BRANCH("CaseHolder5","Color","Yellow","string","name")
                               ),
   /* Series of corresponding C++ output */
-  CU_DataPoints(const char *, IDL_OUTPUT_UNION_1_BRANCH("CaseHolder1","int32_t","-2147483648",DEFAULT_DISCR_TP,MULTI_DEFAULT,"1","std::string","name"),
-                              IDL_OUTPUT_UNION_1_BRANCH("_cxx_try","int16_t","-32768",DEFAULT_DISCR_TP,MULTI_DEFAULT,"0","std::string","module"),
-                              IDL_OUTPUT_UNION_1_BRANCH("CaseHolder2","bool","false",BOOL_DISCR_TP,SINGLE_DEFAULT,"true","std::string","name"),
-                              IDL_OUTPUT_UNION_1_BRANCH("CaseHolder3","bool","true",BOOL_DISCR_TP,SINGLE_DEFAULT,"false","std::vector<std::string>","names"),
-                              IDL_OUTPUT_ENUM("Color","Red","Yellow","Blue") IDL_OUTPUT_UNION_1_BRANCH("CaseHolder4","::Color","::Color::Yellow",DEFAULT_DISCR_TP,MULTI_DEFAULT,"::Color::Red","std::string","name"),
-                              IDL_OUTPUT_ENUM("Color","Red","Yellow","Blue") IDL_OUTPUT_UNION_1_BRANCH("CaseHolder5","::Color","::Color::Red",DEFAULT_DISCR_TP,MULTI_DEFAULT,"::Color::Yellow","std::string","name")
+  CU_DataPoints(const char *, IDL_OUTPUT_UNION_1_BRANCH("CaseHolder1","int32_t","-2147483648",DEFAULT_DISCR_TP,MULTI_DEFAULT,"1","idl_bounded_string<0>","name"),
+                              IDL_OUTPUT_UNION_1_BRANCH("_cxx_try","int16_t","-32768",DEFAULT_DISCR_TP,MULTI_DEFAULT,"0","idl_bounded_string<0>","module"),
+                              IDL_OUTPUT_UNION_1_BRANCH("CaseHolder2","bool","false",BOOL_DISCR_TP,SINGLE_DEFAULT,"true","idl_bounded_string<0>","name"),
+                              IDL_OUTPUT_UNION_1_BRANCH("CaseHolder3","bool","true",BOOL_DISCR_TP,SINGLE_DEFAULT,"false","idl_bounded_sequence<idl_bounded_string<0>, 0>","names"),
+                              IDL_OUTPUT_ENUM("Color","Red","Yellow","Blue") IDL_OUTPUT_UNION_1_BRANCH("CaseHolder4","::Color","::Color::Yellow",DEFAULT_DISCR_TP,MULTI_DEFAULT,"::Color::Red","idl_bounded_string<0>","name"),
+                              IDL_OUTPUT_ENUM("Color","Red","Yellow","Blue") IDL_OUTPUT_UNION_1_BRANCH("CaseHolder5","::Color","::Color::Red",DEFAULT_DISCR_TP,MULTI_DEFAULT,"::Color::Yellow","idl_bounded_string<0>","name")
                               )
 };
 

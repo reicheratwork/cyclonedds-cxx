@@ -120,20 +120,14 @@ get_cpp11_templ_type(const idl_node_t *node)
     {
       uint64_t bound = ((const idl_sequence_t*)node)->maximum;
       char* vector_element = get_cpp11_type(((const idl_sequence_t*)node)->type_spec);
-      if (bound)
-        idl_asprintf(&cpp11Type, CPP11_BOUNDED_SEQUENCE_TEMPLATE(vector_element, bound));
-      else
-        idl_asprintf(&cpp11Type, CPP11_SEQUENCE_TEMPLATE(vector_element));
+      idl_asprintf(&cpp11Type, SEQUENCE_TEMPLATE(vector_element, bound));
       free(vector_element);
     }
     break;
   case IDL_STRING:
     {
       uint64_t bound = ((const idl_string_t*)node)->maximum;
-      if (bound)
-        idl_asprintf(&cpp11Type, CPP11_BOUNDED_STRING_TEMPLATE(bound));
-      else
-        idl_asprintf(&cpp11Type, CPP11_STRING_TEMPLATE());
+      idl_asprintf(&cpp11Type, STRING_TEMPLATE(bound));
     }
     break;
   case IDL_WSTRING:

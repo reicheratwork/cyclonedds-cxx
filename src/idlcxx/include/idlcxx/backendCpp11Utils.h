@@ -14,33 +14,14 @@
 
 // replace the definitions below (CPP11_...) with your own custom classes and includes.
 
-#define CPP11_SEQUENCE_TEMPLATE(type)                 "std::vector<%s>", type
-#define CPP11_SEQUENCE_INCLUDE                        "<vector>"
-
-// default (C++ STL) container definitions
-// bounded sequences require a template class taking a single typename and a single size
-// E.G. custom_bounded_vector<custom_class,255>
-//#define CPP11_BOUNDED_SEQUENCE_TEMPLATE(type, bound)  "non_std::vector<%s, %" PRIu64 ">", type, bound
-#define CPP11_BOUNDED_SEQUENCE_TEMPLATE(type, bound)  "std::vector<%s>", type
-#define CPP11_BOUNDED_SEQUENCE_INCLUDE                "<vector>"
+//sequence templates
+#define SEQUENCE_TEMPLATE(type, bound)                 "idl_bounded_sequence<%s, %"PRIu64">", type, bound
 
 // array templates
-// arrays require a template class taking a with a single typename and a single size
-// E.G. custom_array<custom_class,16>
-#define CPP11_ARRAY_TEMPLATE(element, const_expr)     "std::array<%s, %s>", element, const_expr
-#define CPP11_ARRAY_INCLUDE                           "<array>"
+#define ARRAY_TEMPLATE(element, const_expr)     "idl_array<%s, %s>", element, const_expr
 
 // string templates
-// unbounded strings require just a class name
-// E.G. std::string
-#define CPP11_STRING_TEMPLATE()                       "std::string"
-#define CPP11_STRING_INCLUDE                          "<string>"
-
-// bounded strings require a template class with a single size
-// E.G. custom_bounded_string<127>
-//#define CPP11_BOUNDED_STRING_TEMPLATE(bound)          "non_std::string<%" PRIu64 ">", bound
-#define CPP11_BOUNDED_STRING_TEMPLATE(bound)          "std::string"
-#define CPP11_BOUNDED_STRING_INCLUDE                  "<string>"
+#define STRING_TEMPLATE(bound)                  "idl_bounded_string<%"PRIu64">", bound
 
 #define CPP11_UNION_TEMPLATE                          "std::variant"
 #define CPP11_UNION_GETTER_TEMPLATE                   "std::get"

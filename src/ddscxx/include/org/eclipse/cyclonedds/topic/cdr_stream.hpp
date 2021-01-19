@@ -12,6 +12,7 @@
 #ifndef CDR_STREAM_HPP_
 #define CDR_STREAM_HPP_
 
+#include "cdr_dummys.hpp"
 #include "dds/ddsrt/endian.h"
 #include <org/eclipse/cyclonedds/core/type_helpers.hpp>
 #include <stdint.h>

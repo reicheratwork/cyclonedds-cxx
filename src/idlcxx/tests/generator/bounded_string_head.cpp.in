@@ -6,21 +6,21 @@
 template<typename T> size_t write(const s &obj, T &stream) {
   (void)obj;
   size_t pos = stream.position();
-  stream.write_string(obj.mem(),20);
+  stream.write_string(obj.mem());
   return stream.position() - pos;
 }
 
 template<typename T> size_t write_size(const s &obj, T &stream) {
   (void)obj;
   size_t pos = stream.position();
-  stream.incr_string(obj.mem(),20);
+  stream.incr_string(obj.mem());
   return stream.position() - pos;
 }
 
 template<typename T> size_t write_size_max(const s &obj, T &stream) {
   (void)obj;
   size_t pos = stream.position();
-  stream.max_size_string(obj.mem(),20);
+  stream.max_size_string(obj.mem());
   return stream.position() - pos;
 }
 
@@ -79,7 +79,7 @@ template<typename T> size_t key_read(s &obj, T &stream) {
 template<typename T> size_t read(s &obj, T &stream) {
   (void)obj;
   size_t pos = stream.position();
-  stream.read_string(obj.mem(),20);
+  stream.read_string(obj.mem());
   return stream.position() - pos;
 }
 

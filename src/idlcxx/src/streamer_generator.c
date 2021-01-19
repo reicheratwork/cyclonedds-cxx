@@ -104,18 +104,18 @@ if (key) {format_key_read_stream(indent,ctx, __VA_ARGS__);}
 #define read_primitive_call "stream.read_primitive(%s);\n"
 #define write_primitive_call "stream.write_primitive(%s);\n"
 #define incr_primitive_call "stream.incr_primitive(%s);\n"
-#define read_string_call "stream.read_string(%s,%"PRIu64");\n"
-#define write_string_call "stream.write_string(%s,%"PRIu64");\n"
-#define incr_string_call "stream.incr_string(%s,%"PRIu64");\n"
-#define max_size_string_call "stream.max_size_string(%s,%"PRIu64");\n"
+#define read_string_call "stream.read_string(%s);\n"
+#define write_string_call "stream.write_string(%s);\n"
+#define incr_string_call "stream.incr_string(%s);\n"
+#define max_size_string_call "stream.max_size_string(%s);\n"
 #define read_array_call "stream.read_array(%s);\n"
 #define write_array_call "stream.write_array(%s);\n"
 #define incr_array_call "stream.incr_array(%s);\n"
 #define max_size_array_call "stream.max_size_array(%s);\n"
-#define read_sequence_call "stream.read_sequence(%s,%"PRIu64");\n"
-#define write_sequence_call "stream.write_sequence(%s,%"PRIu64");\n"
-#define incr_sequence_call "stream.incr_sequence(%s,%"PRIu64");\n"
-#define max_size_sequence_call "stream.max_size_sequence(%s,%"PRIu64");\n"
+#define read_sequence_call "stream.read_sequence(%s);\n"
+#define write_sequence_call "stream.write_sequence(%s);\n"
+#define incr_sequence_call "stream.incr_sequence(%s);\n"
+#define max_size_sequence_call "stream.max_size_sequence(%s);\n"
 #define read_enum_call "stream.read_enum(%s);\n"
 #define write_enum_call "stream.write_enum(%s);\n"
 #define incr_enum_call "stream.incr_enum(%s);\n"
@@ -920,12 +920,10 @@ idl_retcode_t process_string_decl(context_t* ctx, idl_declarator_t* decl, idl_st
 
 idl_retcode_t process_string_impl(context_t* ctx, const char* accessor, idl_string_t* spec, bool is_key)
 {
-  uint64_t bound = spec->maximum;
-
-  format_write_stream(1, ctx, is_key, write_string_call, accessor, bound);
-  format_write_size_stream(1, ctx, is_key, incr_string_call, accessor, bound);
-  format_read_stream(1, ctx, is_key, read_string_call, accessor, bound);
-  format_max_size_stream(1, ctx, is_key, max_size_string_call, accessor, bound);
+  format_write_stream(1, ctx, is_key, write_string_call, accessor);
+  format_write_size_stream(1, ctx, is_key, incr_string_call, accessor);
+  format_read_stream(1, ctx, is_key, read_string_call, accessor);
+  format_max_size_stream(1, ctx, is_key, max_size_string_call, accessor);
 
   return IDL_RETCODE_OK;
 }
@@ -972,13 +970,10 @@ idl_retcode_t process_sequence_impl(context_t* ctx, const char* accessor, idl_se
       ispec = temp;
   }
 
-  //max sequence entries
-  uint64_t bound = spec->maximum;
-
-  format_write_stream(1, ctx, is_key, write_sequence_call, accessor, bound);
-  format_write_size_stream(1, ctx, is_key, incr_sequence_call, accessor, bound);
-  format_read_stream(1, ctx, is_key, read_sequence_call, accessor, bound);
-  format_max_size_stream(1, ctx, is_key, max_size_sequence_call, accessor, bound);
+  format_write_stream(1, ctx, is_key, write_sequence_call, accessor);
+  format_write_size_stream(1, ctx, is_key, incr_sequence_call, accessor);
+  format_read_stream(1, ctx, is_key, read_sequence_call, accessor);
+  format_max_size_stream(1, ctx, is_key, max_size_sequence_call, accessor);
 
   return IDL_RETCODE_OK;
 }
