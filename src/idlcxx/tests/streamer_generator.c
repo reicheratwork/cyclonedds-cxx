@@ -673,6 +673,7 @@ void generate_union_funcs(idl_ostream_t* ostr, bool ns)
   format_ostream_indented(ns * 2, ostr, "  position += 4;  //moving position indicator\n");
   format_ostream_indented(ns * 2, ostr, "  switch (_d())\n");
   format_ostream_indented(ns * 2, ostr, "  {\n");
+  format_ostream_indented(ns * 2, ostr, "    case -12345:\n");
   format_ostream_indented(ns * 2, ostr, "    case 0:\n");
   format_ostream_indented(ns * 2, ostr, "    case 1:\n");
   format_ostream_indented(ns * 2, ostr, "    {\n");
@@ -713,6 +714,7 @@ void generate_union_funcs(idl_ostream_t* ostr, bool ns)
   format_ostream_indented(ns * 2, ostr, "  position += 4;  //bytes for member: _d()\n");
   format_ostream_indented(ns * 2, ostr, "  switch (_d())\n");
   format_ostream_indented(ns * 2, ostr, "  {\n");
+  format_ostream_indented(ns * 2, ostr, "    case -12345:\n");
   format_ostream_indented(ns * 2, ostr, "    case 0:\n");
   format_ostream_indented(ns * 2, ostr, "    case 1:\n");
   format_ostream_indented(ns * 2, ostr, "    {\n");
@@ -804,6 +806,7 @@ void generate_union_funcs(idl_ostream_t* ostr, bool ns)
   format_ostream_indented(ns * 2, ostr, "  position += 4;  //moving position indicator\n");
   format_ostream_indented(ns * 2, ostr, "  switch (_d())\n");
   format_ostream_indented(ns * 2, ostr, "  {\n");
+  format_ostream_indented(ns * 2, ostr, "    case -12345:\n");
   format_ostream_indented(ns * 2, ostr, "    case 0:\n");
   format_ostream_indented(ns * 2, ostr, "    case 1:\n");
   format_ostream_indented(ns * 2, ostr, "    {\n");
@@ -954,8 +957,12 @@ void generate_array_base_funcs(idl_ostream_t* ostr, bool ns)
   format_ostream_indented(ns * 2, ostr, "  size_t %s = (4 - (position&0x3))&0x3;  //alignment\n", al);
   format_ostream_indented(ns * 2, ostr, "  memset(static_cast<char*>(data)+position,0x0,%s);  //setting alignment bytes to 0x0\n", al);
   format_ostream_indented(ns * 2, ostr, "  position += %s;  //moving position indicator\n", al);
-  format_ostream_indented(ns * 2, ostr, "  memcpy(static_cast<char*>(data)+position,mem().data(),24);  //writing bytes for member: mem()\n");
-  format_ostream_indented(ns * 2, ostr, "  position += 24;  //moving position indicator\n");
+  format_ostream_indented(ns * 2, ostr, "  for (size_t %s = 0; %s < 3; %s++) {\n", is[ns], is[ns], is[ns]);
+  format_ostream_indented(ns * 2, ostr, "    for (size_t %s = 0; %s < 2; %s++) {\n", is[ns+1], is[ns+1], is[ns+1]);
+  format_ostream_indented(ns * 2, ostr, "      *reinterpret_cast<float*>(static_cast<char*>(data)+position) = mem()[%s][%s];  //writing bytes for member: mem()[%s][%s]\n", is[ns], is[ns+1], is[ns], is[ns+1]);
+  format_ostream_indented(ns * 2, ostr, "      position += 4;  //moving position indicator\n");
+  format_ostream_indented(ns * 2, ostr, "    }\n");
+  format_ostream_indented(ns * 2, ostr, "  }\n");
   format_ostream_indented(ns * 2, ostr, "  *reinterpret_cast<float*>(static_cast<char*>(data)+position) = mem2();  //writing bytes for member: mem2()\n");
   format_ostream_indented(ns * 2, ostr, "  position += 4;  //moving position indicator\n");
   format_ostream_indented(ns * 2, ostr, "  return position;\n");
@@ -964,7 +971,11 @@ void generate_array_base_funcs(idl_ostream_t* ostr, bool ns)
   format_ostream_indented(ns * 2, ostr, "size_t s::write_size(size_t position) const\n");
   format_ostream_indented(ns * 2, ostr, "{\n");
   format_ostream_indented(ns * 2, ostr, "  position += (4 - (position&0x3))&0x3;  //alignment\n");
-  format_ostream_indented(ns * 2, ostr, "  position += 24;  //bytes for member: mem()\n");
+  format_ostream_indented(ns * 2, ostr, "  for (size_t %s = 0; %s < 3; %s++) {\n", is[ns], is[ns], is[ns]);
+  format_ostream_indented(ns * 2, ostr, "    for (size_t %s = 0; %s < 2; %s++) {\n", is[ns+1], is[ns+1], is[ns+1]);
+  format_ostream_indented(ns * 2, ostr, "      position += 4;  //bytes for member: mem()[%s][%s]\n", is[ns], is[ns+1]);
+  format_ostream_indented(ns * 2, ostr, "    }\n");
+  format_ostream_indented(ns * 2, ostr, "  }\n");
   format_ostream_indented(ns * 2, ostr, "  position += 4;  //bytes for member: mem2()\n");
   format_ostream_indented(ns * 2, ostr, "  return position;\n");
   format_ostream_indented(ns * 2, ostr, "}\n\n");
@@ -972,7 +983,11 @@ void generate_array_base_funcs(idl_ostream_t* ostr, bool ns)
   format_ostream_indented(ns * 2, ostr, "size_t s::max_size(size_t position) const\n");
   format_ostream_indented(ns * 2, ostr, "{\n");
   format_ostream_indented(ns * 2, ostr, "  if (position != UINT_MAX)   position += (4 - (position&0x3))&0x3;  //alignment\n");
-  format_ostream_indented(ns * 2, ostr, "  if (position != UINT_MAX)   position += 24;  //bytes for member: mem()\n");
+  format_ostream_indented(ns * 2, ostr, "  for (size_t %s = 0; %s < 3; %s++) {\n", is[ns], is[ns], is[ns]);
+  format_ostream_indented(ns * 2, ostr, "    for (size_t %s = 0; %s < 2; %s++) {\n", is[ns + 1], is[ns + 1], is[ns + 1]);
+  format_ostream_indented(ns * 2, ostr, "      if (position != UINT_MAX)   position += 4;  //bytes for member: mem()[%s][%s]\n", is[ns], is[ns + 1]);
+  format_ostream_indented(ns * 2, ostr, "    }\n");
+  format_ostream_indented(ns * 2, ostr, "  }\n");
   format_ostream_indented(ns * 2, ostr, "  if (position != UINT_MAX)   position += 4;  //bytes for member: mem2()\n");
   format_ostream_indented(ns * 2, ostr, "  return position;\n");
   format_ostream_indented(ns * 2, ostr, "}\n\n");
@@ -1027,8 +1042,12 @@ void generate_array_base_funcs(idl_ostream_t* ostr, bool ns)
   format_ostream_indented(ns * 2, ostr, "size_t s::read_struct(const void *data, size_t position)\n");
   format_ostream_indented(ns * 2, ostr, "{\n");
   format_ostream_indented(ns * 2, ostr, "  position += (4 - (position&0x3))&0x3;  //alignment\n");
-  format_ostream_indented(ns * 2, ostr, "  memcpy(mem().data(),static_cast<const char*>(data)+position,24);  //reading bytes for member: mem()\n");
-  format_ostream_indented(ns * 2, ostr, "  position += 24;  //moving position indicator\n");
+  format_ostream_indented(ns * 2, ostr, "  for (size_t %s = 0; %s < 3; %s++) {\n", is[ns], is[ns], is[ns]);
+  format_ostream_indented(ns * 2, ostr, "    for (size_t %s = 0; %s < 2; %s++) {\n", is[ns + 1], is[ns + 1], is[ns + 1]);
+  format_ostream_indented(ns * 2, ostr, "      mem()[%s][%s] = *reinterpret_cast<const float*>(static_cast<const char*>(data)+position);  //reading bytes for member: mem()[%s][%s]\n", is[ns], is[ns+1], is[ns], is[ns+1]);
+  format_ostream_indented(ns * 2, ostr, "      position += 4;  //moving position indicator\n");
+  format_ostream_indented(ns * 2, ostr, "    }\n");
+  format_ostream_indented(ns * 2, ostr, "  }\n");
   format_ostream_indented(ns * 2, ostr, "  mem2() = *reinterpret_cast<const float*>(static_cast<const char*>(data)+position);  //reading bytes for member: mem2()\n");
   format_ostream_indented(ns * 2, ostr, "  position += 4;  //moving position indicator\n");
   format_ostream_indented(ns * 2, ostr, "  return position;\n");
@@ -1050,7 +1069,6 @@ void generate_array_instance_funcs(idl_ostream_t* ostr, bool ns)
     format_ostream_indented(0, ostr, "namespace N\n{\n\n");
   }
 
-  const char* it = is[ns + 1];
   const char* al = als[ns];
 
   format_ostream_indented(ns * 2, ostr, "size_t I::write_struct(void *data, size_t position) const\n");
@@ -1065,8 +1083,10 @@ void generate_array_instance_funcs(idl_ostream_t* ostr, bool ns)
 
   format_ostream_indented(ns * 2, ostr, "size_t s::write_struct(void *data, size_t position) const\n");
   format_ostream_indented(ns * 2, ostr, "{\n");
-  format_ostream_indented(ns * 2, ostr, "  for (size_t %s = 0; %s < 6; %s++)  {\n", it, it, it);
-  format_ostream_indented(ns * 2, ostr, "    position = mem()[%s].write_struct(data, position);\n", it);
+  format_ostream_indented(ns * 2, ostr, "  for (size_t %s = 0; %s < 3; %s++) {\n", is[ns], is[ns], is[ns]);
+  format_ostream_indented(ns * 2, ostr, "    for (size_t %s = 0; %s < 2; %s++) {\n", is[ns + 1], is[ns + 1], is[ns + 1]);
+  format_ostream_indented(ns * 2, ostr, "      position = mem()[%s][%s].write_struct(data, position);\n", is[ns], is[ns + 1]);
+  format_ostream_indented(ns * 2, ostr, "    }\n");
   format_ostream_indented(ns * 2, ostr, "  }\n");
   format_ostream_indented(ns * 2, ostr, "  position = mem2().write_struct(data, position);\n");
   format_ostream_indented(ns * 2, ostr, "  return position;\n");
@@ -1081,8 +1101,10 @@ void generate_array_instance_funcs(idl_ostream_t* ostr, bool ns)
 
   format_ostream_indented(ns * 2, ostr, "size_t s::write_size(size_t position) const\n");
   format_ostream_indented(ns * 2, ostr, "{\n");
-  format_ostream_indented(ns * 2, ostr, "  for (size_t %s = 0; %s < 6; %s++)  {\n", it, it, it);
-  format_ostream_indented(ns * 2, ostr, "    position = mem()[%s].write_size(position);\n", it);
+  format_ostream_indented(ns * 2, ostr, "  for (size_t %s = 0; %s < 3; %s++) {\n", is[ns], is[ns], is[ns]);
+  format_ostream_indented(ns * 2, ostr, "    for (size_t %s = 0; %s < 2; %s++) {\n", is[ns + 1], is[ns + 1], is[ns + 1]);
+  format_ostream_indented(ns * 2, ostr, "      position = mem()[%s][%s].write_size(position);\n", is[ns], is[ns + 1]);
+  format_ostream_indented(ns * 2, ostr, "    }\n");
   format_ostream_indented(ns * 2, ostr, "  }\n");
   format_ostream_indented(ns * 2, ostr, "  position = mem2().write_size(position);\n");
   format_ostream_indented(ns * 2, ostr, "  return position;\n");
@@ -1097,8 +1119,10 @@ void generate_array_instance_funcs(idl_ostream_t* ostr, bool ns)
 
   format_ostream_indented(ns * 2, ostr, "size_t s::max_size(size_t position) const\n");
   format_ostream_indented(ns * 2, ostr, "{\n");
-  format_ostream_indented(ns * 2, ostr, "  for (size_t %s = 0; %s < 6; %s++)  {\n", it, it, it);
-  format_ostream_indented(ns * 2, ostr, "    if (position != UINT_MAX)   position = mem()[%s].max_size(position);\n", it);
+  format_ostream_indented(ns * 2, ostr, "  for (size_t %s = 0; %s < 3; %s++) {\n", is[ns], is[ns], is[ns]);
+  format_ostream_indented(ns * 2, ostr, "    for (size_t %s = 0; %s < 2; %s++) {\n", is[ns + 1], is[ns + 1], is[ns + 1]);
+  format_ostream_indented(ns * 2, ostr, "      if (position != UINT_MAX)   position = mem()[%s][%s].max_size(position);\n", is[ns], is[ns + 1]);
+  format_ostream_indented(ns * 2, ostr, "    }\n");
   format_ostream_indented(ns * 2, ostr, "  }\n");
   format_ostream_indented(ns * 2, ostr, "  if (position != UINT_MAX)   position = mem2().max_size(position);\n");
   format_ostream_indented(ns * 2, ostr, "  return position;\n");
@@ -1208,8 +1232,10 @@ void generate_array_instance_funcs(idl_ostream_t* ostr, bool ns)
 
   format_ostream_indented(ns * 2, ostr, "size_t s::read_struct(const void *data, size_t position)\n");
   format_ostream_indented(ns * 2, ostr, "{\n");
-  format_ostream_indented(ns * 2, ostr, "  for (size_t %s = 0; %s < 6; %s++)  {\n", it, it, it);
-  format_ostream_indented(ns * 2, ostr, "    position = mem()[%s].read_struct(data, position);\n", it);
+  format_ostream_indented(ns * 2, ostr, "  for (size_t %s = 0; %s < 3; %s++) {\n", is[ns], is[ns], is[ns]);
+  format_ostream_indented(ns * 2, ostr, "    for (size_t %s = 0; %s < 2; %s++) {\n", is[ns + 1], is[ns + 1], is[ns + 1]);
+  format_ostream_indented(ns * 2, ostr, "      position = mem()[%s][%s].read_struct(data, position);\n", is[ns], is[ns + 1]);
+  format_ostream_indented(ns * 2, ostr, "    }\n");
   format_ostream_indented(ns * 2, ostr, "  }\n");
   format_ostream_indented(ns * 2, ostr, "  position = mem2().read_struct(data, position);\n");
   format_ostream_indented(ns * 2, ostr, "  return position;\n");
@@ -1400,6 +1426,7 @@ void test_union(bool ns)
     snprintf(buffer, sizeof(buffer),
       "module N {\n"\
       "union s switch (long) {\n"\
+      "case -12345:\n"\
       "case 0:\n"\
       "case 1: octet o;\n"\
       "case 2:\n"\
@@ -1414,6 +1441,7 @@ void test_union(bool ns)
   {
     snprintf(buffer, sizeof(buffer),
       "union s switch (long) {\n"\
+      "case -12345:\n"\
       "case 0:\n"\
       "case 1: octet o;\n"\
       "case 2:\n"\
