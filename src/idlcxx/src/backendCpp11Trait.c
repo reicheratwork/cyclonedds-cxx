@@ -10,46 +10,54 @@
  * SPDX-License-Identifier: EPL-2.0 OR BSD-3-Clause
  */
 
-#include <assert.h>
+#include <string.h>
 
 #include "idlcxx/backend.h"
 #include "idlcxx/backendCpp11Utils.h"
 #include "idl/export.h"
 
 static idl_retcode_t
-find_key_fields(idl_backend_ctx ctx, const idl_node_t *node)
+test_keyless(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
 {
-  bool *has_no_keys = idl_get_custom_context(ctx);
+  (void)visit;
+  (void)pstate;
 
-  assert(idl_mask(node) & IDL_MEMBER);
-  if (idl_mask(node) & IDL_KEY) *has_no_keys = false;
+  const idl_member_t* member_node = (const idl_member_t*)node;
+  bool* keyless = (bool*)user_data;
+
+  if (idl_mask(member_node) & IDL_KEY) *keyless = false;
   return IDL_RETCODE_OK;
 }
 
-static bool
-struct_has_no_keys(idl_backend_ctx ctx, const idl_node_t *node)
-{
-  const idl_struct_t *struct_node = (const idl_struct_t *) node;
-  bool has_no_keys = true;
-  void *prev_context = idl_get_custom_context(ctx);
-
-  assert(idl_mask(node) & IDL_STRUCT);
-
-  idl_reset_custom_context(ctx);
-  idl_set_custom_context(ctx, &has_no_keys);
-  idl_walk_node_list(ctx, (const idl_node_t *) struct_node->members, find_key_fields, IDL_MEMBER);
-  idl_reset_custom_context(ctx);
-  idl_set_custom_context(ctx, prev_context);
-  return has_no_keys;
-}
-
 static idl_retcode_t
-generate_traits(idl_backend_ctx ctx, const idl_node_t *node)
+generate_traits(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
 {
-  assert(idl_mask(node) & IDL_STRUCT);
+  (void)visit;
+  (void)pstate;
 
+  idl_backend_ctx ctx = (idl_backend_ctx)user_data;
+  const idl_struct_t* struct_node = (const idl_struct_t*)node;
   char *struct_name = get_cpp11_fully_scoped_name(node);
-  bool is_keyless = struct_has_no_keys(ctx, node);
+  bool is_keyless = true;
+
+  idl_visitor_t visitor;
+  memset(&visitor, 0, sizeof(visitor));
+  visitor.visit = IDL_MEMBER;
+  visitor.accept[IDL_ACCEPT_MEMBER] = &test_keyless;
+  if (pstate->sources)
+    visitor.glob = pstate->sources->path->name;
+
+  idl_retcode_t result = IDL_RETCODE_OK;
+  if ((result = idl_visit(pstate, struct_node->members, &visitor, &is_keyless)))
+    return result;
 
   idl_file_out_printf(ctx, "template <>\n");
   idl_file_out_printf(ctx, "class TopicTraits<%s>\n", struct_name);
@@ -109,58 +117,60 @@ generate_traits(idl_backend_ctx ctx, const idl_node_t *node)
   idl_file_out_printf(ctx, "};\n");
   free(struct_name);
 
-  return IDL_RETCODE_OK;
+  return result;
 }
 
 static idl_retcode_t
-generate_macro_call(idl_backend_ctx ctx, const idl_node_t *node)
+generate_macro_call(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
 {
-  if (idl_mask(node) & IDL_STRUCT)
-  {
-    char *struct_name = get_cpp11_fully_scoped_name(node);
-    idl_file_out_printf(ctx, "REGISTER_TOPIC_TYPE(%s)\n", struct_name);
-    free(struct_name);
-  }
+  (void)visit;
+  (void)pstate;
 
-  return IDL_RETCODE_OK;
-}
+  idl_backend_ctx ctx = (idl_backend_ctx)user_data;
+  char* struct_name = get_cpp11_fully_scoped_name(node);
 
-static idl_retcode_t
-find_topic_types(idl_backend_ctx ctx, const idl_node_t *node)
-{
-  idl_walkAction *action = idl_get_walk_function(ctx);
+  idl_file_out_printf(ctx, "REGISTER_TOPIC_TYPE(%s)\n", struct_name);
+  free(struct_name);
 
-  switch (idl_mask(node) & (IDL_MODULE | IDL_STRUCT))
-  {
-  case IDL_MODULE:
-    idl_walk_node_list(ctx, ((const idl_module_t *) node)->definitions, find_topic_types, IDL_MODULE | IDL_STRUCT);
-    break;
-  case IDL_STRUCT:
-    action(ctx, node);
-    break;
-  default:
-    break;
-  }
   return IDL_RETCODE_OK;
 }
 
 idl_retcode_t
 idl_backendGenerateTrait(idl_backend_ctx ctx, const idl_pstate_t *parse_tree)
 {
-  idl_retcode_t result;
+  idl_retcode_t result = IDL_RETCODE_OK;
 
   idl_file_out_printf(ctx, "#include \"dds/dds.hpp\"\n");
   idl_file_out_printf(ctx, "#include \"org/eclipse/cyclonedds/topic/TopicTraits.hpp\"\n");
   idl_file_out_printf(ctx, "#include \"org/eclipse/cyclonedds/topic/DataRepresentation.hpp\"\n");
   idl_file_out_printf(ctx, "#include \"org/eclipse/cyclonedds/topic/datatopic.hpp\"\n\n");
   idl_file_out_printf(ctx, "namespace org { namespace eclipse { namespace cyclonedds { namespace topic {\n");
-  idl_set_walk_function(ctx, generate_traits);
-  result = idl_walk_node_list(ctx, parse_tree->root, find_topic_types, IDL_STRUCT | IDL_MODULE);
-  idl_reset_walk_function(ctx);
-  idl_set_walk_function(ctx, generate_macro_call);
+
+  idl_visitor_t visitor;
+
+  memset(&visitor, 0, sizeof(visitor));
+  visitor.visit = IDL_STRUCT;
+  visitor.accept[IDL_ACCEPT_STRUCT] = &generate_traits;
+  if (parse_tree->sources)
+    visitor.glob = parse_tree->sources->path->name;
+  if ((result = idl_visit(parse_tree, parse_tree->root, &visitor, ctx)))
+    return result;
+
   idl_file_out_printf(ctx, "}}}}\n\n");
-  result = idl_walk_node_list(ctx, parse_tree->root, find_topic_types, IDL_MODULE | IDL_STRUCT);
-  idl_reset_walk_function(ctx);
+
+  memset(&visitor, 0, sizeof(visitor));
+  visitor.visit = IDL_STRUCT;
+  visitor.accept[IDL_ACCEPT_STRUCT] = &generate_macro_call;
+  if (parse_tree->sources)
+    visitor.glob = parse_tree->sources->path->name;
+
+  if ((result = idl_visit(parse_tree, parse_tree->root, &visitor, ctx)))
+    return result;
+
   idl_file_out_printf(ctx, "\n");
 
   return result;

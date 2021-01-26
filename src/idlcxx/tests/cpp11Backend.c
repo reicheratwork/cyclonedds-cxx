@@ -70,18 +70,18 @@
 "class " struct_name "\n{\n" \
 "private:\n" \
 "  " member_type " " member_name "_ = " default_value ";\n" \
-"\n" \
+"  \n" \
 "public:\n" \
 "  " struct_name "() = default;\n" \
 "\n" \
 "  explicit " struct_name "(\n" \
 "      " member_type " " member_name ") :\n" \
 "          " member_name "_(" member_name ") {}\n" \
-"\n" \
+"  \n" \
 "  " member_type " " member_name "() const { return this->" member_name "_; }\n" \
 "  " member_type "& " member_name "() { return this->" member_name "_; }\n" \
 "  void " member_name "(" member_type " _val_) { this->" member_name "_ = _val_; }\n" \
-"\n" \
+"  \n" \
 IDL_OUTPUT_STREAMER_INTERFACES\
 "};\n\n"
 
@@ -89,19 +89,19 @@ IDL_OUTPUT_STREAMER_INTERFACES\
 "class " struct_name "\n{\n" \
 "private:\n" \
 "  " member_type " " member_name "_ = { };\n" \
-"\n" \
+"  \n" \
 "public:\n" \
 "  " struct_name "() = default;\n" \
 "\n" \
 "  explicit " struct_name "(\n" \
 "      const " member_type "& " member_name ") :\n" \
 "          " member_name "_(" member_name ") {}\n" \
-"\n" \
+"  \n" \
 "  const " member_type "& " member_name "() const { return this->" member_name "_; }\n" \
 "  " member_type "& " member_name "() { return this->" member_name "_; }\n" \
 "  void " member_name "(const " member_type "& _val_) { this->" member_name "_ = _val_; }\n" \
 "  void " member_name "(" member_type "&& _val_) { this->" member_name "_ = _val_; }\n" \
-"\n" \
+"  \n" \
 IDL_OUTPUT_STREAMER_INTERFACES\
 "};\n\n"
 
@@ -109,19 +109,19 @@ IDL_OUTPUT_STREAMER_INTERFACES\
 "class " struct_name "\n{\n" \
 "private:\n" \
 "  " member_type " " member_name "_;\n" \
-"\n" \
+"  \n" \
 "public:\n" \
 "  " struct_name "() = default;\n" \
 "\n"\
 "  explicit " struct_name "(\n" \
 "      const " member_type "& " member_name ") :\n" \
 "          " member_name "_(" member_name ") {}\n" \
-"\n" \
+"  \n" \
 "  const " member_type "& " member_name "() const { return this->" member_name "_; }\n" \
 "  " member_type "& " member_name "() { return this->" member_name "_; }\n" \
 "  void " member_name "(const " member_type "& _val_) { this->" member_name "_ = _val_; }\n" \
 "  void " member_name "(" member_type "&& _val_) { this->" member_name "_ = _val_; }\n" \
-"\n" \
+"  \n" \
 IDL_OUTPUT_STREAMER_INTERFACES\
 "};\n\n"
 
@@ -129,7 +129,7 @@ IDL_OUTPUT_STREAMER_INTERFACES\
 "enum class " enum_name "\n{\n" \
 "  " label1 ",\n" \
 "  " label2 ",\n" \
-"  " label3 ",\n" \
+"  " label3 "\n" \
 "};\n\n"
 
 #define DEFAULT_DISCR_TP(label1) ""\

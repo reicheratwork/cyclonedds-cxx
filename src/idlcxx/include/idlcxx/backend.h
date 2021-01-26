@@ -105,36 +105,6 @@ IDLCXX_EXPORT idl_declarator_is_primitive(const idl_declarator_t *declarator);
 
 #define IDL_MASK_ALL 0xffffffffffffffff
 
-typedef uint32_t idl_walkResult;
-
-typedef idl_retcode_t
-(idl_walkAction)(idl_backend_ctx ctx, const idl_node_t *node);
-
-IDLCXX_EXPORT
-idl_walkAction* idl_get_walk_function(idl_backend_ctx ctx);
-
-idl_retcode_t
-IDLCXX_EXPORT idl_set_walk_function(idl_backend_ctx ctx, idl_walkAction* fctn);
-
-void
-IDLCXX_EXPORT idl_reset_walk_function(idl_backend_ctx ctx);
-
-idl_retcode_t
-IDLCXX_EXPORT idl_walk_node_list(idl_backend_ctx ctx, const idl_node_t *starting_node, idl_walkAction, idl_mask_t mask);
-
-idl_retcode_t
-IDLCXX_EXPORT idl_walk_tree(idl_backend_ctx ctx, const idl_node_t *starting_node, idl_walkAction, idl_mask_t mask);
-
-typedef struct idl_include idl_include_t;
-struct idl_include {
-  idl_include_t *next;
-  bool indirect;
-  idl_file_t *file;
-};
-
-IDLCXX_EXPORT idl_include_t *
-idl_get_include_list(idl_backend_ctx ctx, const idl_pstate_t *tree);
-
 #if 0
 idl_retcode_t
 IDLCXX_EXPORT idl_backendGenerate(idl_backend_ctx ctx, const idl_pstate_t *parse_tree);

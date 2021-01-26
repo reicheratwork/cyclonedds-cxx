@@ -20,207 +20,141 @@
 #include "idlcxx/backendCpp11Type.h"
 #include "idlcxx/processor_options.h"
 #include "idlcxx/token_replace.h"
-#include "idl/string.h"
+#include "idl/processor.h"
 
-typedef struct cpp11_member_state_s
+typedef struct cpp11_member_state cpp11_member_state_s;
+struct cpp11_member_state
 {
   const idl_node_t *member_type_node;
   const idl_declarator_t *declarator_node;
-  char *name;
-  char *type_name;
-} cpp11_member_state;
+  char* type_name;
+  char* member_name;
+  bool bare_base_type;
+  uint64_t array_entries;
 
-typedef struct cpp11_struct_context_s
+  cpp11_member_state_s* next;
+};
+
+cpp11_member_state_s* create_cpp11_member_state(const idl_node_t* member_type_node, const idl_declarator_t* declarator_node)
 {
-  cpp11_member_state *members;
-  uint32_t member_count;
-  char *name;
-  char *base_type;
-} cpp11_struct_context;
+  cpp11_member_state_s* newstate = malloc(sizeof(cpp11_member_state_s));
 
-static idl_retcode_t
-cpp11_scope_walk(idl_backend_ctx ctx, const idl_node_t *node);
+  assert(newstate);
 
-static idl_retcode_t
-count_declarators(idl_backend_ctx ctx, const idl_node_t *node)
-{
-  uint32_t *nr_members = (uint32_t *) idl_get_custom_context(ctx);
-  (void)node;
-  ++(*nr_members);
-  return IDL_RETCODE_OK;
+  newstate->member_type_node = member_type_node;
+  newstate->declarator_node = declarator_node;
+
+  newstate->type_name = get_cpp11_type(member_type_node);
+  newstate->array_entries = generate_array_expression(&newstate->type_name, declarator_node->const_expr);
+
+  newstate->bare_base_type = (newstate->array_entries == 0 && (idl_is_base_type(member_type_node) || idl_is_enum(member_type_node)));
+
+  newstate->member_name = get_cpp11_name(declarator_node->name->identifier);
+  newstate->next = NULL;
+
+  return newstate;
 }
 
-static idl_retcode_t
-count_members(idl_backend_ctx ctx, const idl_node_t *node)
+void cleanup_cpp11_member_state(cpp11_member_state_s* in)
 {
-  const idl_member_t *member = (const idl_member_t *) node;
-  const idl_node_t *declarators = (const idl_node_t *) member->declarators;
-  return idl_walk_node_list(ctx, declarators, count_declarators, IDL_DECLARATOR);
-}
-
-static char *
-get_cpp11_declarator_array_expr(idl_backend_ctx ctx, const idl_node_t *node, const char *member_type)
-{
-  idl_node_t *next_const_expr = node->next;
-
-  char* type_name = NULL;
-  if (next_const_expr) {
-    type_name = get_cpp11_declarator_array_expr(ctx, next_const_expr, member_type);
-  } else {
-    type_name = idl_strdup(member_type);
-  }
-
-  char *cv = get_cpp11_const_value((const idl_constval_t *)node);
-  char* array_expr = NULL;
-  idl_replace_indices_with_values(&array_expr, array_template, type_name, cv); //do something with the return value?
-
-  free(type_name);
-  free(cv);
-  return array_expr;
-}
-
-static idl_retcode_t
-get_cpp11_declarator_data(idl_backend_ctx ctx, const idl_node_t *node)
-{
-  cpp11_struct_context *struct_ctx = (cpp11_struct_context *) idl_get_custom_context(ctx);
-  cpp11_member_state *member_data = &struct_ctx->members[struct_ctx->member_count];
-  const idl_declarator_t *declarator = (const idl_declarator_t *) node;
-
-  member_data->member_type_node = ((const idl_member_t *) node->parent)->type_spec;
-  member_data->declarator_node = declarator;
-  member_data->name = get_cpp11_name(idl_identifier(declarator));
-  member_data->type_name = get_cpp11_type(member_data->member_type_node);
-  /* Check if the declarator contains also an array expression... */
-  if (idl_declarator_is_array(declarator))
+  if (in)
   {
-    char *array_expr = get_cpp11_declarator_array_expr(ctx, declarator->const_expr, member_data->type_name);
-    free(member_data->type_name);
-    member_data->type_name = array_expr;
+    if (in->type_name)
+      free(in->type_name);
+
+    free(in->member_name);
+
+    free(in);
   }
-  ++(struct_ctx->member_count);
-  return IDL_RETCODE_OK;
+}
+
+typedef struct cpp11_struct_state cpp11_struct_state_s;
+struct cpp11_struct_state
+{
+  char* type_name, * inherit_name;
+  cpp11_member_state_s* first, * last;
+};
+
+cpp11_struct_state_s* create_cpp11_struct_state(const idl_struct_t* struct_node)
+{
+  assert(struct_node);
+
+  cpp11_struct_state_s* newstate = malloc(sizeof(cpp11_struct_state_s));
+
+  assert(newstate);
+
+  newstate->type_name = get_cpp11_name(idl_identifier(struct_node));
+  if (struct_node->inherit_spec)
+  {
+    const idl_node_t* base_node = (const idl_node_t*)struct_node->inherit_spec->base;
+    newstate->inherit_name = get_cpp11_fully_scoped_name(base_node);
+  }
+  else
+  {
+    newstate->inherit_name = NULL;
+  }
+
+  newstate->first = NULL;
+  newstate->last = NULL;
+
+  return newstate;
+}
+
+void add_cpp11_member_state(cpp11_struct_state_s* in, cpp11_member_state_s* toadd)
+{
+  assert(in);
+  assert(toadd);
+
+  if (in->first)
+    in->last->next = toadd;
+  else
+    in->first = toadd;
+
+  in->last = toadd;
+}
+
+void cleanup_cpp11_struct_state(cpp11_struct_state_s* in)
+{
+  if (!in)
+    return;
+
+  cpp11_member_state_s* state = in->first;
+  while (state)
+  {
+    cpp11_member_state_s* nextstate = state->next;
+    cleanup_cpp11_member_state(state);
+    state = nextstate;
+  }
+
+  free(in->type_name);
+  if (in->inherit_name)
+    free(in->inherit_name);
+
+  free(in);
 }
 
 static idl_retcode_t
-get_cpp11_member_data(idl_backend_ctx ctx, const idl_node_t *node)
+emit_member(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
 {
-  const idl_member_t *member = (const idl_member_t *) node;
-  const idl_node_t *declarators = (const idl_node_t *) member->declarators;
-  return idl_walk_node_list(ctx, declarators, get_cpp11_declarator_data, IDL_DECLARATOR);
-}
+  (void)pstate;
+  (void)visit;
 
-static void
-struct_generate_attributes(idl_backend_ctx ctx)
-{
-  cpp11_struct_context *struct_ctx = (cpp11_struct_context *) idl_get_custom_context(ctx);
+  const idl_member_t* member_node = (const idl_member_t*)node;
+  cpp11_struct_state_s* customctx = (cpp11_struct_state_s*)user_data;
 
-  idl_file_out_printf(ctx, "private:\n");
-  /* Declare all the member attributes. */
-  idl_indent_incr(ctx);
-  for (uint32_t i = 0; i < struct_ctx->member_count; ++i)
+  idl_declarator_t* decl_node = member_node->declarators;
+  idl_node_t* type_node = member_node->type_spec;
+  while (decl_node)
   {
-    const idl_node_t *member_type_node = struct_ctx->members[i].member_type_node;
-    const idl_declarator_t *declarator_node = struct_ctx->members[i].declarator_node;
-
-    idl_file_out_printf(ctx, "%s %s_",
-      struct_ctx->members[i].type_name,
-      struct_ctx->members[i].name);
-
-    if (idl_declarator_is_array((const idl_declarator_t *) declarator_node))
-    {
-      idl_file_out_printf_no_indent(ctx, " = { }");
-    }
-    else
-    {
-      char *def_value = get_default_value(ctx, member_type_node);
-      if (def_value)
-      {
-        idl_file_out_printf_no_indent(ctx, " = %s", def_value);
-        free(def_value);
-      }
-    }
-    idl_file_out_printf_no_indent(ctx, ";\n");
+    add_cpp11_member_state(customctx, create_cpp11_member_state(type_node, decl_node));
+    decl_node = (idl_declarator_t*)decl_node->node.next;
   }
-  idl_indent_decr(ctx);
-  idl_file_out_printf(ctx, "\n");
-}
 
-static void
-struct_generate_constructors_and_operators(idl_backend_ctx ctx)
-{
-  cpp11_struct_context *struct_ctx = (cpp11_struct_context *) idl_get_custom_context(ctx);
-
-  /* Start building default (empty) constructor. */
-  idl_file_out_printf(ctx, "public:\n");
-  idl_indent_incr(ctx);
-  idl_file_out_printf(ctx, "%s() = default;\n\n", struct_ctx->name);
-
-  /* Check if the struct has members. A struct may extend from another but have no members of its own. */
-  if (struct_ctx->member_count > 0)
-  {
-    /* Start building constructor that inits all parameters explicitly. */
-    idl_file_out_printf(ctx, "explicit %s(\n", struct_ctx->name);
-    idl_indent_double_incr(ctx);
-    for (uint32_t i = 0; i < struct_ctx->member_count; ++i)
-    {
-      bool is_primitive = idl_declarator_is_primitive(struct_ctx->members[i].declarator_node);
-      idl_file_out_printf(ctx, "%s%s%s %s%s",
-          is_primitive ? "" : "const ",
-          struct_ctx->members[i].type_name,
-          is_primitive ? "" : "&",
-          struct_ctx->members[i].name,
-          (i == (struct_ctx->member_count - 1) ? ") :\n" : ",\n"));
-    }
-    idl_indent_double_incr(ctx);
-    for (uint32_t i = 0; i < struct_ctx->member_count; ++i)
-    {
-      idl_file_out_printf(ctx, "%s_(%s)%s",
-          struct_ctx->members[i].name,
-          struct_ctx->members[i].name,
-          (i == (struct_ctx->member_count - 1) ? " {}\n\n" : ",\n"));
-    }
-    idl_indent_double_decr(ctx);
-    idl_indent_double_decr(ctx);
-  }
-  idl_indent_decr(ctx);
-}
-
-static void
-struct_generate_getters_setters(idl_backend_ctx ctx)
-{
-  cpp11_struct_context *struct_ctx = (cpp11_struct_context *) idl_get_custom_context(ctx);
-
-  /* Start building the getter/setter methods for each attribute. */
-  idl_indent_incr(ctx);
-  for (uint32_t i = 0; i < struct_ctx->member_count; ++i)
-  {
-    const cpp11_member_state *member = &struct_ctx->members[i];
-    bool is_primitive = idl_declarator_is_primitive(member->declarator_node);
-    idl_file_out_printf(ctx, "%s%s%s %s() const { return this->%s_; }\n",
-        is_primitive ? "" : "const ",
-        member->type_name,
-        is_primitive ? "" : "&",
-        member->name,
-        member->name);
-    idl_file_out_printf(ctx, "%s& %s() { return this->%s_; }\n",
-        member->type_name,
-        member->name,
-        member->name);
-    idl_file_out_printf(ctx, "void %s(%s%s%s _val_) { this->%s_ = _val_; }\n",
-        member->name,
-        is_primitive ? "": "const ",
-        member->type_name,
-        is_primitive ? "" : "&",
-        member->name);
-    if (!is_primitive) {
-      idl_file_out_printf(ctx, "void %s(%s&& _val_) { this->%s_ = _val_; }\n",
-          member->name,
-          member->type_name,
-          member->name);
-    }
-  }
-  idl_indent_decr(ctx);
-  idl_file_out_printf_no_indent(ctx, "\n");
+  return IDL_VISIT_DONT_RECURSE;
 }
 
 static idl_retcode_t
@@ -241,67 +175,322 @@ generate_streamer_interfaces(idl_backend_ctx ctx)
 }
 
 static idl_retcode_t
-struct_generate_body(idl_backend_ctx ctx, const idl_struct_t *struct_node)
+emit_struct(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
 {
-  idl_retcode_t result = IDL_RETCODE_OK;
+  (void)pstate;
+  (void)visit;
 
-  uint32_t nr_members = 0;
-  cpp11_struct_context struct_ctx;
-  const idl_node_t *members = (const idl_node_t *) struct_node->members;
-  result = idl_set_custom_context(ctx, &nr_members);
-  if (result) return result;
-  idl_walk_node_list(ctx, members, count_members, IDL_MEMBER);
-  idl_reset_custom_context(ctx);
+  const idl_struct_t* struct_node = (const idl_struct_t*)node;
+  idl_backend_ctx ctx = (idl_backend_ctx)user_data;
+  idl_retcode_t ret = IDL_RETCODE_OK;
 
-  struct_ctx.members = malloc(sizeof(cpp11_member_state) * nr_members);
-  struct_ctx.member_count = 0;
-  struct_ctx.name = get_cpp11_name(idl_identifier(struct_node));
-  if (struct_node->inherit_spec)
-  {
-    const idl_node_t *base_node = (const idl_node_t *) struct_node->inherit_spec->base;
-    struct_ctx.base_type = get_cpp11_fully_scoped_name(base_node);
-  }
-  else
-  {
-    struct_ctx.base_type = NULL;
-  }
-  result = idl_set_custom_context(ctx, &struct_ctx);
-  if (result) return result;
-  idl_walk_node_list(ctx, members, get_cpp11_member_data, IDL_MEMBER);
+  cpp11_struct_state_s* strctx = create_cpp11_struct_state(struct_node);
+
+  /*visit all the members of the struct*/
+  idl_visitor_t visitor;
+  memset(&visitor, 0, sizeof(visitor));
+  visitor.visit = IDL_MEMBER;
+  visitor.accept[IDL_ACCEPT_MEMBER] = &emit_member;
+  if (pstate->sources)
+    visitor.glob = pstate->sources->path->name;
+  if ((ret = idl_visit(pstate, struct_node->members, &visitor, strctx)))
+    return ret;
 
   /* Create class declaration. */
-  if (struct_ctx.base_type) {
-    idl_file_out_printf(ctx, "class %s : public %s\n", struct_ctx.name, struct_ctx.base_type);
-  } else {
-    idl_file_out_printf(ctx, "class %s\n", struct_ctx.name);
-  }
+  if (strctx->inherit_name)
+    idl_file_out_printf(ctx, "class %s : public %s\n", strctx->type_name, strctx->inherit_name);
+  else
+    idl_file_out_printf(ctx, "class %s\n", strctx->type_name);
+
   idl_file_out_printf(ctx, "{\n");
 
-  /* Create (private) struct attributes. */
-  struct_generate_attributes(ctx);
+  idl_file_out_printf(ctx, "private:\n");
 
-  /* Create constructors and operators. */
-  struct_generate_constructors_and_operators(ctx);
+  idl_indent_incr(ctx);
 
-  /* Create the getters and setters. */
-  struct_generate_getters_setters(ctx);
+  /*members*/
+  cpp11_member_state_s* ms = strctx->first;
+  while (ms)
+  {
+    if (ms->bare_base_type)
+    {
+      char* def_val = get_default_value(ctx, ms->member_type_node);
+      idl_file_out_printf(ctx, "%s %s_ = %s;\n", ms->type_name, ms->member_name, def_val);
+      free(def_val);
+    }
+    else
+    {
+      idl_file_out_printf(ctx, "%s %s_%s;\n", ms->type_name, ms->member_name, ms->array_entries ? " = { }" : "");
+    }
 
-  /* Generate the streamer interfaces. */
+    ms = ms->next;
+  }
+  idl_file_out_printf(ctx, "\n");
+
+  idl_indent_decr(ctx);
+
+  idl_file_out_printf(ctx, "public:\n");
+
+  idl_indent_incr(ctx);
+
+  /*constructors*/
+  idl_file_out_printf(ctx, "%s() = default;\n\n", strctx->type_name);
+  idl_file_out_printf(ctx, "explicit %s(\n", strctx->type_name);
+
+  idl_indent_double_incr(ctx);
+
+  /*constructor arguments*/
+  ms = strctx->first;
+  while (ms)
+  {
+    if (ms->bare_base_type)
+      idl_file_out_printf(ctx, "%s %s%s\n", ms->type_name, ms->member_name, strctx->last != ms ? "," : ") :");
+    else
+      idl_file_out_printf(ctx, "const %s& %s%s\n", ms->type_name, ms->member_name, strctx->last != ms ? "," : ") :");
+
+    ms = ms->next;
+  }
+  idl_indent_double_incr(ctx);
+
+  /*constructor member initialization*/
+  ms = strctx->first;
+  while (ms)
+  {
+    idl_file_out_printf(ctx, "%s_(%s)%s\n", ms->member_name, ms->member_name, strctx->last != ms ? "," : " {}");
+
+    ms = ms->next;
+  }
+  idl_indent_double_decr(ctx);
+  idl_indent_double_decr(ctx);
+  idl_file_out_printf(ctx, "\n");
+
+  /*accessors*/
+  ms = strctx->first;
+  while (ms)
+  {
+    if (ms->bare_base_type)
+    {
+      idl_file_out_printf(ctx, "%s %s() const { return this->%s_; }\n", ms->type_name, ms->member_name, ms->member_name);
+      idl_file_out_printf(ctx, "%s& %s() { return this->%s_; }\n", ms->type_name, ms->member_name, ms->member_name);
+      idl_file_out_printf(ctx, "void %s(%s _val_) { this->%s_ = _val_; }\n", ms->member_name, ms->type_name, ms->member_name);
+    }
+    else
+    {
+      idl_file_out_printf(ctx, "const %s& %s() const { return this->%s_; }\n", ms->type_name, ms->member_name, ms->member_name);
+      idl_file_out_printf(ctx, "%s& %s() { return this->%s_; }\n", ms->type_name, ms->member_name, ms->member_name);
+      idl_file_out_printf(ctx, "void %s(const %s& _val_) { this->%s_ = _val_; }\n", ms->member_name, ms->type_name, ms->member_name);
+      idl_file_out_printf(ctx, "void %s(%s&& _val_) { this->%s_ = _val_; }\n", ms->member_name, ms->type_name, ms->member_name);
+    }
+
+    ms = ms->next;
+  }
+  idl_file_out_printf(ctx, "\n");
+
+  idl_indent_decr(ctx);
+
+  /*streamer interfaces*/
   generate_streamer_interfaces(ctx);
 
   idl_file_out_printf(ctx, "};\n\n");
 
-  idl_reset_custom_context(ctx);
-  for (uint32_t i = 0; i < nr_members; ++i)
-  {
-    free(struct_ctx.members[i].name);
-    free(struct_ctx.members[i].type_name);
-  }
-  free(struct_ctx.members);
-  if (struct_ctx.base_type) free(struct_ctx.base_type);
-  free(struct_ctx.name);
+  cleanup_cpp11_struct_state(strctx);
 
-  return result;
+  return ret;
+}
+
+static idl_retcode_t
+emit_enum(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
+{
+  (void)visit;
+
+  const idl_enum_t* enum_node = (const idl_enum_t*)node;
+  idl_backend_ctx ctx = (idl_backend_ctx)user_data;
+
+  char* cpp11Name = get_cpp11_name(idl_identifier(enum_node));
+  idl_file_out_printf(ctx, "enum class %s\n", cpp11Name);
+  idl_file_out_printf(ctx, "{\n");
+  idl_indent_incr(ctx);
+
+  uint32_t skip = 0;
+  for (const idl_enumerator_t* enumerator = enum_node->enumerators; enumerator; )
+  {
+    const idl_enumerator_t* next = idl_next(enumerator);
+
+    /* IDL3.5 did not support fixed enumerator values */
+    uint32_t value = enumerator->value;
+    if (value == skip || (pstate->flags & IDL_FLAG_VERSION_35))
+      idl_file_out_printf(ctx, "%s%s\n", enumerator->name->identifier, next ? "," : "");
+    else
+      idl_file_out_printf(ctx, "%s = %" PRIu32"%s\n", enumerator->name->identifier, value, next ? "," : "");
+
+    skip = value + 1;
+    enumerator = next;
+  }
+
+  idl_indent_decr(ctx);
+  idl_file_out_printf(ctx, "};\n\n");
+  free(cpp11Name);
+  return IDL_VISIT_DONT_RECURSE;
+}
+
+static idl_retcode_t
+emit_typedef(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
+{
+  (void)pstate;
+  (void)visit;
+
+  const idl_typedef_t* typedef_node = (const idl_typedef_t*)node;
+  idl_backend_ctx ctx = (idl_backend_ctx)user_data;
+
+  char *cpp11Name = get_cpp11_name(idl_identifier(typedef_node->declarators));
+  char *cpp11Type = get_cpp11_type(typedef_node->type_spec);
+
+  idl_file_out_printf(ctx, "typedef %s %s;\n\n", cpp11Type, cpp11Name);
+
+  free(cpp11Type);
+  free(cpp11Name);
+  return IDL_RETCODE_OK;
+}
+
+static idl_retcode_t
+emit_module(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
+{
+  (void)pstate;
+
+  const idl_module_t* module_node = (const idl_module_t*)node;
+  idl_backend_ctx ctx = (idl_backend_ctx)user_data;
+
+  if (visit->type == IDL_EXIT)
+  {
+    idl_indent_decr(ctx);
+    idl_file_out_printf(ctx, "}\n\n");
+    return IDL_RETCODE_OK;
+  }
+  else
+  {
+    char* cpp11Name = get_cpp11_name(idl_identifier(module_node));
+    idl_file_out_printf(ctx, "namespace %s\n", cpp11Name);
+    idl_file_out_printf(ctx, "{\n", cpp11Name);
+    idl_indent_incr(ctx);
+    free(cpp11Name);
+    return IDL_VISIT_REVISIT;
+  }
+}
+
+static idl_retcode_t
+emit_forward(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
+{
+  (void)pstate;
+  (void)visit;
+
+  const idl_forward_t * forward_node = (const idl_forward_t*)node;
+  idl_backend_ctx ctx = (idl_backend_ctx)user_data;
+
+  char *cpp11Name = get_cpp11_name(idl_identifier(forward_node));
+  //check for correct creation of cpp11name
+  assert(idl_mask(&forward_node->node) & (IDL_STRUCT | IDL_UNION));
+  idl_file_out_printf(
+      ctx,
+      "%s %s;\n\n",
+      (idl_mask(&forward_node->node) & IDL_STRUCT) ? "struct" : "union",
+      cpp11Name);
+
+  //check for correct print
+  free(cpp11Name);
+  return IDL_RETCODE_OK;
+}
+
+static idl_retcode_t
+emit_const(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
+{
+  (void)pstate;
+  (void)visit;
+
+  const idl_const_t* const_node = (const idl_const_t*)node;
+  idl_backend_ctx ctx = (idl_backend_ctx)user_data;
+
+  char* cpp11Name = get_cpp11_name(idl_identifier(const_node));
+  char* cpp11Type = get_cpp11_type(const_node->type_spec);
+  char* cpp11Value = get_cpp11_const_value((const idl_constval_t*)const_node->const_expr);
+
+  //check for correct creation of cpp11*
+  idl_file_out_printf(
+    ctx,
+    "const %s %s = %s;\n\n",
+    cpp11Type,
+    cpp11Name,
+    cpp11Value);
+
+  free(cpp11Value);
+  free(cpp11Type);
+  free(cpp11Name);
+  return IDL_RETCODE_OK;
+}
+
+typedef enum
+{
+  idl_no_dep                = 0x0,
+  idl_string_bounded_dep    = 0x01 << 0,
+  idl_string_unbounded_dep  = 0x01 << 1,
+  idl_array_dep             = 0x01 << 2,
+  idl_vector_bounded_dep    = 0x01 << 3,
+  idl_vector_unbounded_dep  = 0x01 << 4,
+  idl_variant_dep           = 0x01 << 5,
+  idl_optional_dep          = 0x01 << 6,
+  idl_all_dep               = (idl_optional_dep*2-1)
+} idl_include_dep;
+
+static idl_retcode_t
+type_spec_includes(
+  idl_type_spec_t* ts,
+  idl_include_dep* id)
+{
+  if (idl_is_masked(ts, IDL_SEQUENCE))
+  {
+    uint64_t bound = ((idl_sequence_t*)ts)->maximum;
+    if (bound != 0 &&
+      (idl_vector_bounded_dep & *id) == idl_no_dep)
+      *id |= idl_vector_bounded_dep;
+    else if (bound == 0 && (idl_vector_unbounded_dep & *id) == idl_no_dep)
+      *id |= idl_vector_unbounded_dep;
+  }
+
+  if (idl_is_masked(ts, IDL_STRING))
+  {
+    uint64_t bound = ((idl_string_t*)ts)->maximum;
+    if (bound != 0 &&
+      (idl_string_bounded_dep & *id) == idl_no_dep)
+      *id |= idl_string_bounded_dep;
+    else if (bound == 0 &&
+      (idl_string_unbounded_dep & *id) == idl_no_dep)
+      *id |= idl_string_unbounded_dep;
+  }
+
+  return IDL_RETCODE_OK;
 }
 
 typedef struct cpp11_case_state_s
@@ -328,18 +517,30 @@ typedef struct cpp11_union_context_s
 } cpp11_union_context;
 
 static idl_retcode_t
-count_labels(idl_backend_ctx ctx, const idl_node_t *node)
+count_labels(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
 {
-  uint32_t *nr_labels = (uint32_t *) idl_get_custom_context(ctx);
-  const idl_case_label_t *label = (const idl_case_label_t *) node;
+  (void)pstate;
+  (void)visit;
+  uint32_t* nr_labels = (uint32_t*)user_data;
+  const idl_case_label_t* label = (const idl_case_label_t*)node;
   if (label->const_expr) ++(*nr_labels);
   return IDL_RETCODE_OK;
 }
 
 static idl_retcode_t
-count_cases(idl_backend_ctx ctx, const idl_node_t *node)
+count_cases(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
 {
-  uint32_t *nr_cases = (uint32_t *) idl_get_custom_context(ctx);
+  (void)pstate;
+  (void)visit;
+  uint32_t* nr_cases = (uint32_t*)user_data;
   (void)node;
   ++(*nr_cases);
   return IDL_RETCODE_OK;
@@ -359,61 +560,79 @@ get_label_value(const idl_case_label_t *label)
 }
 
 static idl_retcode_t
-get_cpp11_labels(idl_backend_ctx ctx, const idl_node_t *node)
+emit_case_label(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
 {
-  cpp11_union_context *union_ctx = (cpp11_union_context *) idl_get_custom_context(ctx);
+  (void)pstate;
+  (void)visit;
+  cpp11_union_context *union_data = (cpp11_union_context *) user_data;
   const idl_case_label_t *label = (const idl_case_label_t *) node;
-  cpp11_case_state *case_data = &union_ctx->cases[union_ctx->case_count];
+  cpp11_case_state *case_data = union_data->cases + union_data->case_count;
   /* Check if there is a label: if not it represents the default case. */
   if (label->const_expr) {
     case_data->labels[case_data->label_count] = get_label_value(label);
     ++(case_data->label_count);
   } else {
     /* Assert that there can only be one default case */
-    assert(union_ctx->default_case == NULL);
-    union_ctx->default_case = case_data;
+    assert(union_data->default_case == NULL);
+    union_data->default_case = case_data;
   }
   return IDL_RETCODE_OK;
 }
 
 static idl_retcode_t
-get_cpp11_case_data(idl_backend_ctx ctx, const idl_node_t *node)
+emit_case(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
 {
+  (void)visit;
+
   idl_retcode_t result;
-  cpp11_union_context *union_ctx = (cpp11_union_context *) idl_get_custom_context(ctx);
+  cpp11_union_context *union_ctx = (cpp11_union_context *) user_data;
   cpp11_case_state *case_data = &union_ctx->cases[union_ctx->case_count];
   const idl_case_t *case_node = (const idl_case_t *) node;
-  const idl_node_t *case_labels = (const idl_node_t *) case_node->case_labels;
-  uint32_t label_count = 0;
 
-  idl_reset_custom_context(ctx);
-  result = idl_set_custom_context(ctx, &label_count);
-  if (result) return result;
-  idl_walk_node_list(ctx, case_labels, count_labels, IDL_CASE_LABEL);
-  union_ctx->total_label_count += label_count;
-  idl_reset_custom_context(ctx);
-  result = idl_set_custom_context(ctx, union_ctx);
-  if (result) return result;
+  uint32_t case_labels = 0;
+  case_data->label_count = 0;
+  /*count the number of labels, maybe better solved by linked list approach?*/
+  idl_visitor_t visitor;
+  memset(&visitor, 0, sizeof(visitor));
+  visitor.visit = IDL_CASE_LABEL;
+  visitor.accept[IDL_ACCEPT_CASE_LABEL] = &count_labels;
+  if (pstate->sources)
+    visitor.glob = pstate->sources->path->name;
+  if ((result = idl_visit(pstate, case_node->case_labels, &visitor, &case_labels)))
+    return result;
+
+  union_ctx->total_label_count += case_labels;
 
   case_data->typespec_node = case_node->type_spec;
   case_data->declarator_node = case_node->declarator;
   case_data->name = get_cpp11_name(idl_identifier(case_node->declarator));
-  case_data->label_count = 0;
-  if (label_count > 0) {
-    case_data->labels = malloc(sizeof(char *) * label_count);
-  } else {
-    case_data->labels = NULL;
-  }
   case_data->type_name = get_cpp11_type(case_node->type_spec);
   /* Check if the declarator contains also an array expression... */
-  if (idl_declarator_is_array(case_data->declarator_node))
-  {
-    char *array_expr = get_cpp11_declarator_array_expr(
-        ctx, case_data->declarator_node->const_expr, case_data->type_name);
-    free(case_data->type_name);
-    case_data->type_name = array_expr;
+  generate_array_expression(&case_data->type_name, case_data->declarator_node->const_expr);
+
+  if (case_labels > 0) {
+    case_data->labels = malloc(sizeof(char*) * case_labels);
   }
-  idl_walk_node_list(ctx, case_labels, get_cpp11_labels, IDL_CASE_LABEL);
+  else {
+    case_data->labels = NULL;
+  }
+
+  /*visit the individual labels*/
+  memset(&visitor, 0, sizeof(visitor));
+  visitor.visit = IDL_CASE_LABEL;
+  visitor.accept[IDL_ACCEPT_CASE_LABEL] = &emit_case_label;
+  if (pstate->sources)
+    visitor.glob = pstate->sources->path->name;
+  if ((result = idl_visit(pstate, case_node->case_labels, &visitor, union_ctx)))
+    return result;
 
   ++(union_ctx->case_count);
   return IDL_RETCODE_OK;
@@ -1129,22 +1348,36 @@ union_generate_implicit_default_setter(idl_backend_ctx ctx)
 }
 
 static idl_retcode_t
-union_generate_body(idl_backend_ctx ctx, const idl_union_t *union_node)
+emit_union(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
 {
-  idl_retcode_t result = IDL_RETCODE_OK;
-  char *cpp11Name = get_cpp11_name(idl_identifier(union_node));
+  (void)visit;
+
+  idl_backend_ctx ctx = (idl_backend_ctx)user_data;
+
+  const idl_union_t* union_node = (const idl_union_t*)node;
+  idl_retcode_t result = IDL_VISIT_DONT_RECURSE;
+  char* cpp11Name = get_cpp11_name(idl_identifier(union_node));
 
   idl_file_out_printf(ctx, "class %s\n", cpp11Name);
   idl_file_out_printf(ctx, "{\n");
 
+  /*count the number of cases, maybe better solved by linked list approach?*/
   uint32_t nr_cases = 0;
-  const idl_node_t *cases = (const idl_node_t *) union_node->cases;
-  cpp11_union_context union_ctx;
-  result = idl_set_custom_context(ctx, &nr_cases);
-  if (result) return result;
-  idl_walk_node_list(ctx, cases, count_cases, IDL_CASE);
-  idl_reset_custom_context(ctx);
+  idl_visitor_t visitor;
+  memset(&visitor, 0, sizeof(visitor));
+  visitor.visit = IDL_CASE;
+  visitor.accept[IDL_ACCEPT_CASE] = &count_cases;
+  if (pstate->sources)
+    visitor.glob = pstate->sources->path->name;
+  if ((result = idl_visit(pstate, union_node->cases, &visitor, &nr_cases)))
+    return result;
 
+  /*create container for the number of cases*/
+  cpp11_union_context union_ctx;
   union_ctx.cases = malloc(sizeof(cpp11_case_state) * nr_cases);
   union_ctx.case_count = 0;
   union_ctx.discr_node = (idl_node_t*)union_node->switch_type_spec->type_spec;
@@ -1154,8 +1387,18 @@ union_generate_body(idl_backend_ctx ctx, const idl_union_t *union_node)
   union_ctx.has_impl_default = false;
   union_ctx.total_label_count = 0;
   result = idl_set_custom_context(ctx, &union_ctx);
-  if (result) return result;
-  idl_walk_node_list(ctx, cases, get_cpp11_case_data, IDL_CASE);
+  if (result)
+    return result;
+
+  /*walk over the number of cases to collect the data*/
+  memset(&visitor, 0, sizeof(visitor));
+  visitor.visit = IDL_CASE;
+  visitor.accept[IDL_ACCEPT_CASE] = &emit_case;
+  if (pstate->sources)
+    visitor.glob = pstate->sources->path->name;
+  if ((result = idl_visit(pstate, union_node->cases, &visitor, &union_ctx)))
+    return result;
+
   union_ctx.default_label = get_default_discr_value(ctx, union_node);
 
   /* Generate the union content. */
@@ -1188,208 +1431,52 @@ union_generate_body(idl_backend_ctx ctx, const idl_union_t *union_node)
 }
 
 static idl_retcode_t
-enumerator_generate_identifier(idl_backend_ctx ctx, const idl_node_t *enumerator_node)
+emit_includes(
+  const idl_pstate_t* pstate,
+  idl_visit_t* visit,
+  const void* node,
+  void* user_data)
 {
-  const idl_enumerator_t *enumerator = (const idl_enumerator_t *) enumerator_node;
-  char *cpp11Name = get_cpp11_name(idl_identifier(enumerator));
-  idl_file_out_printf(ctx, "%s,\n", cpp11Name);
-  free(cpp11Name);
-  return IDL_RETCODE_OK;
-}
+  (void)pstate;
+  (void)visit;
 
-static idl_retcode_t
-enum_generate_body(idl_backend_ctx ctx, const idl_enum_t *enum_node)
-{
-  idl_retcode_t result;
-  char *cpp11Name = get_cpp11_name(idl_identifier(enum_node));
-  const idl_node_t *enumerators = (const idl_node_t *) enum_node->enumerators;
-
-  idl_file_out_printf(ctx, "enum class %s\n", cpp11Name);
-  idl_file_out_printf(ctx, "{\n", cpp11Name);
-  idl_indent_incr(ctx);
-  result = idl_walk_node_list(ctx, enumerators, enumerator_generate_identifier, IDL_ENUMERATOR);
-  idl_indent_decr(ctx);
-  idl_file_out_printf(ctx, "};\n\n");
-  free(cpp11Name);
-  return result;
-}
-
-static idl_retcode_t
-typedef_generate_body(idl_backend_ctx ctx, const idl_typedef_t *typedef_node)
-{
-  char *cpp11Name = get_cpp11_name(idl_identifier(typedef_node->declarators));
-  char *cpp11Type = get_cpp11_type(typedef_node->type_spec);
-
-  idl_file_out_printf(ctx, "typedef %s %s;\n\n", cpp11Type, cpp11Name);
-
-  free(cpp11Type);
-  free(cpp11Name);
-  return IDL_RETCODE_OK;
-}
-
-static idl_retcode_t
-module_generate_body(idl_backend_ctx ctx, const idl_module_t *module_node)
-{
-  idl_retcode_t result;
-  char *cpp11Name = get_cpp11_name(idl_identifier(module_node));
-
-  idl_file_out_printf(ctx, "namespace %s\n", cpp11Name);
-  idl_file_out_printf(ctx, "{\n", cpp11Name);
-  idl_indent_incr(ctx);
-  result = idl_walk_node_list(ctx, module_node->definitions, cpp11_scope_walk, IDL_MASK_ALL);
-  idl_indent_decr(ctx);
-  idl_file_out_printf(ctx, "}\n\n");
-
-  free(cpp11Name);
-
-  return result;
-}
-
-static idl_retcode_t
-forward_decl_generate_body(idl_backend_ctx ctx, const idl_forward_t *forward_node)
-{
-  char *cpp11Name = get_cpp11_name(idl_identifier(forward_node));
-  assert(idl_mask(&forward_node->node) & (IDL_STRUCT | IDL_UNION));
-  idl_file_out_printf(
-      ctx,
-      "%s %s;\n\n",
-      (idl_mask(&forward_node->node) & IDL_STRUCT) ? "struct" : "union",
-      cpp11Name);
-  free(cpp11Name);
-  return IDL_RETCODE_OK;
-}
-
-static idl_retcode_t
-const_generate_body(idl_backend_ctx ctx, const idl_const_t *const_node)
-{
-  char *cpp11Name = get_cpp11_name(idl_identifier(const_node));
-  char *cpp11Type = get_cpp11_type(const_node->type_spec);
-  char *cpp11Value = get_cpp11_const_value((const idl_constval_t *) const_node->const_expr);
-  idl_file_out_printf(
-      ctx,
-      "const %s %s = %s;\n\n",
-      cpp11Type,
-      cpp11Name,
-      cpp11Value);
-  free(cpp11Value);
-  free(cpp11Type);
-  free(cpp11Name);
-  return IDL_RETCODE_OK;
-}
-
-static idl_retcode_t
-cpp11_scope_walk(idl_backend_ctx ctx, const idl_node_t *node)
-{
-  idl_retcode_t result = IDL_RETCODE_OK;
-
-  idl_mask_t mask = idl_mask(node);
-  if (mask & IDL_FORWARD)
-  {
-    result = forward_decl_generate_body(ctx, (const idl_forward_t *) node);
-  }
-  else
-  {
-    switch (mask & IDL_CATEGORY_MASK)
-    {
-    case IDL_MODULE:
-      result = module_generate_body(ctx, (const idl_module_t *) node);
-      break;
-    case IDL_STRUCT:
-      result = struct_generate_body(ctx, (const idl_struct_t *) node);
-      break;
-    case IDL_UNION:
-      result = union_generate_body(ctx, (const idl_union_t *) node);
-      break;
-    case IDL_ENUM:
-      result = enum_generate_body(ctx, (const idl_enum_t *) node);
-      break;
-    case IDL_TYPEDEF:
-      result = typedef_generate_body(ctx, (const idl_typedef_t *) node);
-      break;
-    case IDL_CONST:
-      result = const_generate_body(ctx, (const idl_const_t *) node);
-      break;
-    default:
-      assert(0);
-      break;
-    }
-  }
-
-  return result;
-}
-
-typedef enum
-{
-  idl_no_dep                = 0x0,
-  idl_string_bounded_dep    = 0x01 << 0,
-  idl_string_unbounded_dep  = 0x01 << 1,
-  idl_array_dep             = 0x01 << 2,
-  idl_vector_bounded_dep    = 0x01 << 3,
-  idl_vector_unbounded_dep  = 0x01 << 4,
-  idl_variant_dep           = 0x01 << 5,
-  idl_optional_dep          = 0x01 << 6
-} idl_include_dep;
-
-static idl_retcode_t
-get_util_dependencies(idl_backend_ctx ctx, const idl_node_t *node)
-{
-  idl_retcode_t result = IDL_RETCODE_OK;
+  idl_backend_ctx ctx = (idl_backend_ctx)user_data;
   idl_include_dep *dependency_mask = (idl_include_dep *) idl_get_custom_context(ctx);
 
-  switch (idl_mask(node) & IDL_CATEGORY_MASK)
+  if (idl_is_masked(node, IDL_UNION) &&
+    (idl_variant_dep & *dependency_mask) == idl_no_dep)
+    *dependency_mask |= idl_variant_dep;
+
+  if (idl_is_masked(node, IDL_DECLARATOR))
   {
-  case IDL_UNION:
-    (*dependency_mask) |= idl_variant_dep;
-    break;
-  case IDL_TEMPL_TYPE:
-    switch (idl_mask(node) & IDL_TEMPL_TYPE_MASK)
-    {
-    case IDL_SEQUENCE:
-      if (((const idl_sequence_t*)node)->maximum)
-        (*dependency_mask) |= idl_vector_bounded_dep;
-      else
-        (*dependency_mask) |= idl_vector_unbounded_dep;
-      result = get_util_dependencies(ctx, ((const idl_sequence_t *)node)->type_spec);
-      break;
-    case IDL_STRING:
-      if (((const idl_string_t*)node)->maximum)
-        (*dependency_mask) |= idl_string_bounded_dep;
-      else
-        (*dependency_mask) |= idl_string_unbounded_dep;
-      break;
-    default:
-      break;
-    }
-    break;
-  case IDL_DECLARATOR:
-    if (((const idl_declarator_t *)node)->const_expr) {
-      (*dependency_mask) |= idl_array_dep;
-    }
-    break;
-  default:
-    break;
+    if (((const idl_declarator_t*)node)->const_expr &&
+      (idl_array_dep & *dependency_mask) == idl_no_dep)
+      *dependency_mask |= idl_array_dep;
+
+    idl_node_t *parent = ((idl_node_t*)node)->parent;
+    if (idl_is_member(parent))
+      type_spec_includes(((idl_member_t*)parent)->type_spec, dependency_mask);
+    else if (idl_is_case(parent))
+      type_spec_includes(((idl_case_t*)parent)->type_spec, dependency_mask);
+    else if (idl_is_typedef(parent))
+      type_spec_includes(((idl_typedef_t*)parent)->type_spec, dependency_mask);
   }
-  return result;
+
+  return IDL_RETCODE_OK;
 }
 
-static void
+static idl_retcode_t
 idl_generate_include_statements(idl_backend_ctx ctx, const idl_pstate_t *parse_tree)
 {
-  idl_include_dep util_depencencies = idl_no_dep;
   uint32_t nr_includes = 0;
 
   /* First determine the list of files included by our IDL file itself. */
-  idl_include_t *include, *next;
-  include = idl_get_include_list(ctx, parse_tree);
-  for (; include; include = next, ++nr_includes) {
+  for (idl_source_t* include = parse_tree->sources->includes; include; include = include->next) {
     char *file, *dot;
     file = include->file->name;
     dot = strrchr(file, '.');
     if (!dot) dot = file + strlen(file);
-    if (!include->indirect)
-      idl_file_out_printf(ctx, "#include \"%.*s.hpp\"\n", dot - file, file);
-    next = include->next;
-    free(include);
+    idl_file_out_printf(ctx, "#include \"%.*s.hpp\"\n", dot - file, file);
   }
   if (nr_includes == 0) {
     idl_file_out_printf(ctx, "#include <cstddef>\n");
@@ -1398,9 +1485,20 @@ idl_generate_include_statements(idl_backend_ctx ctx, const idl_pstate_t *parse_t
   }
   idl_file_out_printf(ctx, "\n");
 
+  idl_visitor_t visitor;
+
+  idl_include_dep util_depencencies = idl_no_dep;
   /* Next determine if we need to include any utility libraries... */
   idl_set_custom_context(ctx, &util_depencencies);
-  idl_walk_tree(ctx, parse_tree->root, get_util_dependencies, IDL_MASK_ALL);
+  memset(&visitor, 0, sizeof(visitor));
+  visitor.visit = ((idl_mask_t)-1);
+  visitor.accept[IDL_ACCEPT] = &emit_includes;
+  if (parse_tree->sources)
+    visitor.glob = parse_tree->sources->path->name;
+  idl_retcode_t ret;
+  if ((ret = idl_visit(parse_tree, parse_tree->root, &visitor, ctx)))
+    return ret;
+
   idl_reset_custom_context(ctx);
   if (util_depencencies) {
     if (strcmp(bounded_sequence_include, sequence_include))
@@ -1441,6 +1539,8 @@ idl_generate_include_statements(idl_backend_ctx ctx, const idl_pstate_t *parse_t
     }
     idl_file_out_printf(ctx, "\n");
   }
+
+  return ret;
 }
 
 idl_retcode_t
@@ -1449,7 +1549,22 @@ idl_backendGenerateType(idl_backend_ctx ctx, const idl_pstate_t *parse_tree)
   /* If input comes from a file, generate appropriate include statements. */
   if (parse_tree->files) idl_generate_include_statements(ctx, parse_tree);
 
-  /* Next, generate the C++ representation for all nodes in the list. */
-  return idl_walk_node_list(ctx, parse_tree->root, cpp11_scope_walk, IDL_MASK_ALL);
+  idl_retcode_t ret = IDL_RETCODE_OK;
+  idl_visitor_t visitor;
+
+  memset(&visitor, 0, sizeof(visitor));
+  visitor.visit = IDL_CONST | IDL_TYPEDEF | IDL_STRUCT | IDL_MODULE | IDL_ENUM | IDL_FORWARD | IDL_UNION;
+  visitor.accept[IDL_ACCEPT_CONST] = &emit_const;
+  visitor.accept[IDL_ACCEPT_FORWARD] = &emit_forward;
+  visitor.accept[IDL_ACCEPT_TYPEDEF] = &emit_typedef;
+  visitor.accept[IDL_ACCEPT_STRUCT] = &emit_struct;
+  visitor.accept[IDL_ACCEPT_UNION] = &emit_union;
+  visitor.accept[IDL_ACCEPT_ENUM] = &emit_enum;
+  visitor.accept[IDL_ACCEPT_MODULE] = &emit_module;
+  if (parse_tree->sources)
+    visitor.glob = parse_tree->sources->path->name;
+  ret = idl_visit(parse_tree, parse_tree->root, &visitor, ctx);
+
+  return ret;
 }
 

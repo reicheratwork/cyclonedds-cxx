@@ -168,7 +168,7 @@ get_cpp11_templ_type(const idl_node_t *node)
 char *
 get_cpp11_type(const idl_node_t *node)
 {
-  assert(idl_mask(node) & (IDL_BASE_TYPE|IDL_TEMPL_TYPE|IDL_CONSTR_TYPE|IDL_TYPEDEF));
+  assert(idl_mask(node) & (IDL_BASE_TYPE|IDL_TEMPL_TYPE|IDL_CONSTR_TYPE|IDL_DECLARATOR));
   if (idl_is_base_type(node))
     return get_cpp11_base_type(node);
   else if (idl_is_templ_type(node))
@@ -180,57 +180,45 @@ get_cpp11_type(const idl_node_t *node)
 char *
 get_cpp11_fully_scoped_name(const idl_node_t *node)
 {
-  uint32_t nr_scopes = 0;
-  size_t scoped_enumerator_len = 0;
-  char *scoped_enumerator;
-  char **scope_names;
+  char* scoped_enumerator = idl_strdup("");
+  char* scope_name = NULL;
   const idl_node_t *current_node = node;
-  idl_mask_t scope_type;
 
-  while (current_node) {
-    ++nr_scopes;
-    current_node = current_node->parent;
-  }
-  scope_names = malloc(sizeof(char *) * nr_scopes);
-  current_node = node;
-  for (uint32_t i = 0; i < nr_scopes; ++i)
+  while (current_node)
   {
-    scope_type = idl_mask(current_node) & (IDL_MODULE | IDL_ENUMERATOR | IDL_ENUM | IDL_STRUCT | IDL_UNION | IDL_TYPEDEF);
-    assert(scope_type);
-    switch (scope_type)
+    switch (idl_mask(current_node) & (IDL_ENUMERATOR | IDL_UNION | IDL_ENUM | IDL_MODULE | IDL_STRUCT | IDL_TYPEDEF))
     {
     case IDL_ENUMERATOR:
-      scope_names[i] = get_cpp11_name(idl_identifier(current_node));
-      break;
-    case IDL_ENUM:
-      scope_names[i] = get_cpp11_name(idl_identifier(current_node));
-      break;
-    case IDL_MODULE:
-      scope_names[i] = get_cpp11_name(idl_identifier(current_node));
-      break;
-    case IDL_STRUCT:
-      scope_names[i] = get_cpp11_name(idl_identifier(current_node));
-      break;
     case IDL_UNION:
-      scope_names[i] = get_cpp11_name(idl_identifier(current_node));
+    case IDL_ENUM:
+    case IDL_MODULE:
+    case IDL_STRUCT:
+      scope_name = get_cpp11_name(idl_identifier(current_node));
       break;
     case IDL_TYPEDEF:
-      scope_names[i] = get_cpp11_name(idl_identifier(((const idl_typedef_t *)current_node)->declarators));
+      scope_name = get_cpp11_name(idl_identifier(((const idl_typedef_t*)current_node)->declarators));
       break;
     }
-    scoped_enumerator_len += (strlen(scope_names[i]) + 2); /* scope + "::" */
+
+    if (scope_name)
+    {
+      char* temp = NULL;
+      if (idl_asprintf(&temp, "::%s%s", scope_name, scoped_enumerator) == -1)
+        goto fail;
+      free(scope_name);
+      free(scoped_enumerator);
+      scoped_enumerator = temp;
+    }
+
     current_node = current_node->parent;
   }
-  scoped_enumerator = malloc(++scoped_enumerator_len); /* Add one for '\0' */
-  scoped_enumerator[0] = '\0';
-  while(nr_scopes)
-  {
-    strncat(scoped_enumerator, "::", scoped_enumerator_len);
-    strncat(scoped_enumerator, scope_names[--nr_scopes], scoped_enumerator_len);
-    free(scope_names[nr_scopes]);
-  }
-  free(scope_names);
   return scoped_enumerator;
+
+fail:
+  free(scope_name);
+  free(scoped_enumerator);
+
+  return NULL;
 }
 
 char *
@@ -384,7 +372,7 @@ get_cpp11_const_value(const idl_constval_t *constval)
 uint64_t
 array_entries(const idl_const_expr_t* ce)
 {
-  if (0 == idl_mask((const idl_node_t*)ce) & IDL_CONST)
+  if (0 == (idl_mask((const idl_node_t*)ce) & IDL_CONST))
     return 0;
 
   const idl_constval_t* var = (const idl_constval_t*)ce;
@@ -414,7 +402,7 @@ uint64_t
 generate_array_expression(char** type_name, const idl_const_expr_t* ce)
 {
   uint64_t ret = 0;
-  idl_const_expr_t* tmp = ce;
+  const idl_const_expr_t* tmp = ce;
   /*go forward so that ce ends at the last entry in the list*/
   while (tmp)
   {

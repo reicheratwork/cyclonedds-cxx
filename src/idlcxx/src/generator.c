@@ -215,7 +215,7 @@ idl_retcode_t
 generate(const idl_pstate_t *tree)
 {
   bool abs = false;
-  const char *sep, *ext, *file, *path = tree->files ? tree->files->name : NULL;
+  const char *sep, *ext, *file, *path = tree->sources->file ? tree->sources->file->name : NULL;
   char *dir = NULL, *basename = NULL;
 
   assert(path);
