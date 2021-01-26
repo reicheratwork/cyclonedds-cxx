@@ -1,8 +1,9 @@
 #include "idlcxx/processor_options.h"
+#include <inttypes.h>
 
 const char* sequence_template = "std::vector<%1$s>";
 const char* sequence_include = "<vector>";
-const char* array_template = "std::array<%1$s, %2$s>";
+const char* array_template = "std::array<%1$s, %2$"PRIu64">";
 const char* array_include = "<array>";
 const char* bounded_sequence_template = "std::vector<%1$s>";
 const char* bounded_sequence_include = "<vector>";

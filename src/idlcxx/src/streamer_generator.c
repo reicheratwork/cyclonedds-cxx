@@ -234,7 +234,6 @@ struct context
 };
 
 static void reset_alignment(context_t* ctx, bool is_key);
-static uint64_t array_entries(idl_declarator_t* decl);
 static idl_retcode_t add_default_case(context_t* ctx);
 static idl_retcode_t process_node(context_t* ctx, idl_node_t* node);
 static idl_retcode_t process_instance(context_t* ctx, idl_declarator_t* decl, idl_type_spec_t* spec, bool is_key);
@@ -266,7 +265,6 @@ static idl_retcode_t write_instance_funcs(context_t* ctx, const char* write_acce
 static context_t* create_context(const char* name);
 static context_t* child_context(context_t* ctx, const char* name);
 static void close_context(context_t* ctx, idl_streamer_output_t* str);
-static void resolve_namespace(idl_node_t* node, char** up);
 static char* generate_accessor(idl_declarator_t* decl);
 static void start_array(context_t* ctx, uint64_t entries, bool is_key, bool* locals);
 static void stop_array(context_t* ctx, bool is_key, bool* locals);
@@ -490,29 +488,6 @@ void close_context(context_t* ctx, idl_streamer_output_t* str)
   free(ctx);
 }
 
-void resolve_namespace(idl_node_t* node, char** up)
-{
-  if (!node)
-    return;
-
-  if (!*up)
-    *up = idl_strdup("");
-
-  if (idl_is_module(node))
-  {
-    idl_module_t* mod = (idl_module_t*)node;
-    char* cppname = get_cpp11_name(idl_identifier(mod));
-    assert(cppname);
-    char *temp = NULL;
-    idl_asprintf(&temp, "%s::%s", cppname, *up);
-    free(*up);
-    *up = temp;
-    free(cppname);
-  }
-
-  resolve_namespace(node->parent, up);
-}
-
 char* generate_accessor(idl_declarator_t* decl)
 {
   char* accessor = NULL;
@@ -657,51 +632,6 @@ idl_retcode_t process_instance(context_t* ctx, idl_declarator_t* decl, idl_type_
     assert(idl_is_typedef(spec));
     return process_typedef_instance_decl(ctx, decl, spec, is_key);
   }
-}
-
-uint64_t array_entries(idl_declarator_t* decl)
-{
-  if (NULL == decl)
-    return 0;
-
-  idl_const_expr_t* ce = decl->const_expr;
-  uint64_t entries = 0;
-  while (ce)
-  {
-    if ((idl_mask(ce) & IDL_CONST) == IDL_CONST)
-    {
-      idl_constval_t* var = (idl_constval_t*)ce;
-      uint64_t cv = 0;
-      switch (idl_mask(&var->node) & ~IDL_CONST)
-      {
-      case IDL_UINT8:
-        cv = var->value.uint8;
-        break;
-      case IDL_USHORT:
-      case IDL_UINT16:
-        cv = var->value.uint16;
-        break;
-      case IDL_ULONG:
-      case IDL_UINT32:
-        cv = var->value.uint32;
-        break;
-      case IDL_ULLONG:
-      case IDL_UINT64:
-        cv = var->value.uint64;
-        break;
-      }
-      if (cv)
-      {
-        if (entries)
-          entries *= cv;
-        else
-          entries = cv;
-      }
-    }
-
-    ce = ((idl_node_t*)ce)->next;
-  }
-  return entries;
 }
 
 idl_retcode_t process_constructed_type_decl(context_t* ctx, idl_declarator_t* decl, idl_type_spec_t* spec, bool is_key)

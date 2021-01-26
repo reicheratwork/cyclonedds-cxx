@@ -27,3 +27,11 @@ get_default_value(idl_backend_ctx ctx, const idl_node_t *node);
 char *
 get_cpp11_const_value(const idl_constval_t *literal);
 
+uint64_t
+array_entries(const idl_const_expr_t* ce);
+
+uint64_t
+generate_array_expression(char** type_name, const idl_const_expr_t* ce);
+
+void
+resolve_namespace(idl_node_t* node, char** up);

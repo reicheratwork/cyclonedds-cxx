@@ -380,3 +380,90 @@ get_cpp11_const_value(const idl_constval_t *constval)
   }
   return NULL;
 }
+
+uint64_t
+array_entries(const idl_const_expr_t* ce)
+{
+  if (0 == idl_mask((const idl_node_t*)ce) & IDL_CONST)
+    return 0;
+
+  const idl_constval_t* var = (const idl_constval_t*)ce;
+  switch (idl_mask(var) & ~IDL_CONST)
+  {
+  case IDL_UINT8:
+    return var->value.uint8;
+    break;
+  case IDL_USHORT:
+  case IDL_UINT16:
+    return var->value.uint16;
+    break;
+  case IDL_ULONG:
+  case IDL_UINT32:
+    return var->value.uint32;
+    break;
+  case IDL_ULLONG:
+  case IDL_UINT64:
+    return var->value.uint64;
+    break;
+  default:
+    return 0;
+  }
+}
+
+uint64_t
+generate_array_expression(char** type_name, const idl_const_expr_t* ce)
+{
+  uint64_t ret = 0;
+  idl_const_expr_t* tmp = ce;
+  /*go forward so that ce ends at the last entry in the list*/
+  while (tmp)
+  {
+    ce = tmp;
+    tmp = ((idl_node_t*)tmp)->next;
+  }
+
+  /*go backwards through the list, so that the last entries in the list are the innermost arrays*/
+  while (ce)
+  {
+    uint64_t entries = array_entries(ce);
+    if (entries)
+    {
+      char* temp = NULL;
+      idl_replace_indices_with_values(&temp, array_template, *type_name, entries);
+      free(*type_name);
+      *type_name = temp;
+
+      if (ret)
+        ret *= entries;
+      else
+        ret = entries;
+    }
+    ce = ((idl_node_t*)ce)->previous;
+  }
+
+  return ret;
+}
+
+void
+resolve_namespace(idl_node_t* node, char** up)
+{
+  if (!node)
+    return;
+
+  if (!*up)
+    *up = idl_strdup("");
+
+  if (idl_is_module(node))
+  {
+    idl_module_t* mod = (idl_module_t*)node;
+    char* cppname = get_cpp11_name(idl_identifier(mod));
+    assert(cppname);
+    char* temp = NULL;
+    idl_asprintf(&temp, "%s::%s", cppname, *up);
+    free(*up);
+    *up = temp;
+    free(cppname);
+  }
+
+  resolve_namespace(node->parent, up);
+}
