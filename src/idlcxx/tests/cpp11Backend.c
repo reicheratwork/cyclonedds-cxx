@@ -133,22 +133,25 @@ IDL_OUTPUT_STREAMER_INTERFACES\
 "};\n\n"
 
 #define DEFAULT_DISCR_TP(label1) ""\
+"    if (to == from) {\n"\
+"      return true;\n"\
+"    }\n\n"\
 "    bool valid = true;\n"\
-"    switch (val) {\n"\
+"    switch (to) {\n"\
 "    case " label1 ":\n"\
-"      if (m__d != " label1 ") {\n"\
+"      if (from != " label1 ") {\n"\
 "        valid = false;\n"\
 "      }\n"\
 "      break;\n"\
 "    default:\n"\
-"      if (m__d == " label1 ") {\n"\
+"      if (from == " label1 ") {\n"\
 "        valid = false;\n"\
 "      }\n"\
 "      break;\n"\
 "    }\n"
 
 #define BOOL_DISCR_TP(label1) ""\
-"    bool valid = (val == m__d);\n"
+"    bool valid = (to == from);\n"
 
 #define SINGLE_DEFAULT(discr_type,default_discr_val) ""\
 "  void _default()\n"\
@@ -166,9 +169,20 @@ IDL_OUTPUT_STREAMER_INTERFACES\
 "class " union_name "\n{\n"\
 "private:\n"\
 "  " discr_type " m__d;\n"\
-"  std::variant<\n"\
-"      " case_type1 "\n"\
-"  > " case_name1 ";\n"\
+"  typedef std::variant<\n"\
+"      " case_type1 "> var_type;\n\n"\
+"  var_type m__u;\n"\
+"\n"\
+"  bool _discriminator_validate(" discr_type " from, " discr_type " to)\n"\
+"  {\n"\
+discr_setter_tp(label1)\
+"\n"\
+"    if (!valid) {\n"\
+"      throw dds::core::InvalidArgumentError(\"New discriminator value does not match current discriminator\");\n"\
+"    }\n"\
+"\n"\
+"    return valid;\n"\
+"  }\n"\
 "\n"\
 "public:\n"\
 "  " union_name "() :\n"\
@@ -181,19 +195,15 @@ IDL_OUTPUT_STREAMER_INTERFACES\
 "\n"\
 "  void _d(" discr_type " val)\n"\
 "  {\n"\
-discr_setter_tp(label1)\
-"\n"\
-"    if (!valid) {\n"\
-"      throw dds::core::InvalidArgumentError(\"New discriminator value does not match current discriminator\");\n"\
+"    if (_discriminator_validate(m__d, val)) {\n"\
+"      m__d = val;\n"\
 "    }\n"\
-"\n"\
-"    m__d = val;\n"\
 "  }\n"\
 "\n"\
 "  const " case_type1 "& " case_name1 "() const\n"\
 "  {\n"\
 "    if (m__d == " label1 ") {\n"\
-"      return std::get<" case_type1 ">(" case_name1 ");\n"\
+"      return std::get<" case_type1 ">(m__u);\n"\
 "    } else {\n"\
 "      throw dds::core::InvalidArgumentError(\"Requested branch does not match current discriminator\");\n"\
 "    }\n"\
@@ -202,7 +212,7 @@ discr_setter_tp(label1)\
 "  " case_type1 "& " case_name1 "()\n"\
 "  {\n"\
 "    if (m__d == " label1 ") {\n"\
-"      return std::get<" case_type1 ">(" case_name1 ");\n"\
+"      return std::get<" case_type1 ">(m__u);\n"\
 "    } else {\n"\
 "      throw dds::core::InvalidArgumentError(\"Requested branch does not match current discriminator\");\n"\
 "    }\n"\
@@ -210,14 +220,18 @@ discr_setter_tp(label1)\
 "\n"\
 "  void " case_name1 "(const " case_type1 "& val)\n"\
 "  {\n"\
-"    m__d = " label1 ";\n"\
-"    " case_name1 " = val;\n"\
+"    if (_discriminator_validate(" label1 ",_new_disc)) {\n"\
+"      m__u = var_type{val};\n"\
+"      m__d = _new_disc;\n"\
+"    }\n"\
 "  }\n"\
 "\n"\
 "  void " case_name1 "(" case_type1 "&& val)\n"\
 "  {\n"\
-"    m__d = " label1 ";\n"\
-"    " case_name1 " = val;\n"\
+"    if (_discriminator_validate(" label1 ",_new_disc)) {\n"\
+"      m__u = var_type{val};\n"\
+"      m__d = _new_disc;\n"\
+"    }\n"\
 "  }\n"\
 "\n"\
 default_case_tp(discr_type,default_discr_val)\

@@ -999,6 +999,94 @@ get_default_discr_value(idl_backend_ctx ctx, const idl_union_t *union_node)
 }
 
 static void
+union_generate_discriminator_check_fctn(idl_backend_ctx ctx)
+{
+  cpp11_union_context* union_ctx = (cpp11_union_context*)idl_get_custom_context(ctx);
+
+  idl_indent_incr(ctx);
+  idl_file_out_printf(ctx, "bool _discriminator_validate(%s from, %s to)\n", union_ctx->discr_type, union_ctx->discr_type);
+  idl_file_out_printf(ctx, "{\n");
+  idl_indent_incr(ctx);
+
+  if ((idl_mask(union_ctx->discr_node) & IDL_BOOL) == IDL_BOOL) {
+    idl_file_out_printf(ctx, "bool valid = (to == from);\n\n");
+  }
+  else {
+    idl_file_out_printf(ctx, "if (to == from) {\n");
+    idl_file_out_printf(ctx, "  return true;\n");
+    idl_file_out_printf(ctx, "}\n\n");
+    idl_file_out_printf(ctx, "bool valid = true;\n");
+    idl_file_out_printf(ctx, "switch (to) {\n");
+    for (uint32_t i = 0; i < union_ctx->case_count; ++i) {
+      if (&union_ctx->cases[i] == union_ctx->default_case)
+      {
+        continue;
+      }
+      else
+      {
+        for (uint32_t j = 0; j < union_ctx->cases[i].label_count; ++j) {
+          idl_file_out_printf(ctx, "case %s:\n", union_ctx->cases[i].labels[j]);
+        }
+        idl_indent_incr(ctx);
+        for (uint32_t j = 0; j < union_ctx->cases[i].label_count; ++j) {
+          if (j == 0) {
+            idl_file_out_printf(ctx, "if (from != %s", union_ctx->cases[i].labels[j]);
+            idl_indent_double_incr(ctx);
+          }
+          else {
+            idl_file_out_printf_no_indent(ctx, " &&\n");
+            idl_file_out_printf(ctx, "from != %s", union_ctx->cases[i].labels[j]);
+          }
+        }
+        idl_indent_decr(ctx);
+        idl_file_out_printf_no_indent(ctx, ") {\n");
+        idl_file_out_printf(ctx, "valid = false;\n");
+        idl_indent_decr(ctx);
+        idl_file_out_printf(ctx, "}\n");
+        idl_file_out_printf(ctx, "break;\n");
+        idl_indent_decr(ctx);
+      }
+    }
+    if (union_ctx->default_case || union_ctx->has_impl_default) {
+      idl_file_out_printf(ctx, "default:\n");
+      idl_indent_incr(ctx);
+      for (uint32_t i = 0; i < union_ctx->case_count; ++i) {
+        for (uint32_t j = 0; j < union_ctx->cases[i].label_count; ++j) {
+          if (i == 0 && j == 0) {
+            idl_file_out_printf(ctx, "if (from == %s", union_ctx->cases[i].labels[j]);
+            idl_indent_double_incr(ctx);
+          }
+          else
+          {
+            idl_file_out_printf_no_indent(ctx, " ||\n");
+            idl_file_out_printf(ctx, "from == %s", union_ctx->cases[i].labels[j]);
+          }
+        }
+      }
+      idl_file_out_printf_no_indent(ctx, ") {\n");
+      idl_indent_decr(ctx);
+      idl_file_out_printf(ctx, "valid = false;\n");
+      idl_indent_decr(ctx);
+      idl_file_out_printf(ctx, "}\n");
+      idl_file_out_printf(ctx, "break;\n");
+    }
+
+    idl_indent_decr(ctx);
+    idl_file_out_printf(ctx, "}\n\n");
+  }
+
+  idl_file_out_printf(ctx, "if (!valid) {\n");
+  idl_indent_incr(ctx);
+  idl_file_out_printf(ctx, "throw dds::core::InvalidArgumentError(\"New discriminator value does not match current discriminator\");\n");
+  idl_indent_decr(ctx);
+  idl_file_out_printf(ctx, "}\n\n");
+  idl_file_out_printf(ctx, "return valid;\n");
+  idl_indent_decr(ctx);
+  idl_file_out_printf(ctx, "}\n\n");
+  idl_indent_decr(ctx);
+}
+
+static void
 union_generate_attributes(idl_backend_ctx ctx)
 {
   cpp11_union_context *union_ctx = (cpp11_union_context *) idl_get_custom_context(ctx);
@@ -1010,25 +1098,17 @@ union_generate_attributes(idl_backend_ctx ctx)
   idl_file_out_printf(ctx, "%s m__d;\n", union_ctx->discr_type);
 
   /* Declare a union attribute comprising of all the branch types. */
-  idl_file_out_printf(ctx, "%s<\n", union_template);
+  idl_file_out_printf(ctx, "typedef %s<\n", union_template);
   idl_indent_double_incr(ctx);
   for (uint32_t i = 0; i < union_ctx->case_count; ++i) {
     idl_file_out_printf(
         ctx,
         "%s%s\n",
         union_ctx->cases[i].type_name,
-        i == (union_ctx->case_count - 1) ? "" : ",");
+        i == (union_ctx->case_count - 1) ? "> var_type;\n" : ",");
   }
   idl_indent_double_decr(ctx);
-  idl_file_out_printf(ctx, ">");
-  for (uint32_t i = 0; i < union_ctx->case_count; ++i) {
-    idl_file_out_printf_no_indent(
-        ctx,
-        " %s%s",
-        union_ctx->cases[i].name,
-        (i ==  (union_ctx->case_count - 1)) ? ";" : ",");
-  }
-  idl_file_out_printf_no_indent(ctx, "\n\n");
+  idl_file_out_printf(ctx, "var_type m__u;\n\n");
   idl_indent_decr(ctx);
 }
 
@@ -1052,7 +1132,7 @@ union_generate_constructor(idl_backend_ctx ctx)
 
     /* If there is an explicit default case, then pick that one. */
     if (union_ctx->default_case) {
-      idl_file_out_printf(ctx, "%s()", union_ctx->default_case->name);
+      idl_file_out_printf(ctx, "m__u()");
     } else {
       /* Otherwise pick the first case that is specified. */
       idl_file_out_printf(ctx, "%s()", union_ctx->cases[0].name);
@@ -1080,75 +1160,9 @@ union_generate_discr_getter_setter(idl_backend_ctx ctx)
   idl_file_out_printf(ctx, "void _d(%s val)\n", union_ctx->discr_type);
   idl_file_out_printf(ctx, "{\n");
   idl_indent_incr(ctx);
-
-  if ((idl_mask(union_ctx->discr_node) & IDL_BOOL) == IDL_BOOL) {
-    idl_file_out_printf(ctx, "bool valid = (val == m__d);\n\n");
-  } else {
-    idl_file_out_printf(ctx, "bool valid = true;\n");
-    idl_file_out_printf(ctx, "switch (val) {\n");
-    for (uint32_t i = 0; i < union_ctx->case_count; ++i) {
-      if (&union_ctx->cases[i] == union_ctx->default_case)
-      {
-        continue;
-      }
-      else
-      {
-        for (uint32_t j = 0; j < union_ctx->cases[i].label_count; ++j) {
-          idl_file_out_printf(ctx, "case %s:\n", union_ctx->cases[i].labels[j]);
-        }
-        idl_indent_incr(ctx);
-        for (uint32_t j = 0; j < union_ctx->cases[i].label_count; ++j) {
-          if (j == 0) {
-            idl_file_out_printf(ctx, "if (m__d != %s", union_ctx->cases[i].labels[j]);
-            idl_indent_double_incr(ctx);
-          } else {
-            idl_file_out_printf_no_indent(ctx, " &&\n");
-            idl_file_out_printf(ctx, "m__d != %s", union_ctx->cases[i].labels[j]);
-          }
-        }
-        idl_indent_decr(ctx);
-        idl_file_out_printf_no_indent(ctx, ") {\n");
-        idl_file_out_printf(ctx, "valid = false;\n");
-        idl_indent_decr(ctx);
-        idl_file_out_printf(ctx, "}\n");
-        idl_file_out_printf(ctx, "break;\n");
-        idl_indent_decr(ctx);
-      }
-    }
-    if (union_ctx->default_case || union_ctx->has_impl_default) {
-      idl_file_out_printf(ctx, "default:\n");
-      idl_indent_incr(ctx);
-      for (uint32_t i = 0; i < union_ctx->case_count; ++i) {
-        for (uint32_t j = 0; j < union_ctx->cases[i].label_count; ++j) {
-          if (i == 0 && j == 0) {
-            idl_file_out_printf(ctx, "if (m__d == %s", union_ctx->cases[i].labels[j]);
-            idl_indent_double_incr(ctx);
-          }
-          else
-          {
-            idl_file_out_printf_no_indent(ctx, " ||\n");
-            idl_file_out_printf(ctx, "m__d == %s", union_ctx->cases[i].labels[j]);
-          }
-        }
-      }
-      idl_file_out_printf_no_indent(ctx, ") {\n");
-      idl_indent_decr(ctx);
-      idl_file_out_printf(ctx, "valid = false;\n");
-      idl_indent_decr(ctx);
-      idl_file_out_printf(ctx, "}\n");
-      idl_file_out_printf(ctx, "break;\n");
-    }
-
-    idl_indent_decr(ctx);
-    idl_file_out_printf(ctx, "}\n\n");
-  }
-
-  idl_file_out_printf(ctx, "if (!valid) {\n");
-  idl_indent_incr(ctx);
-  idl_file_out_printf(ctx, "throw dds::core::InvalidArgumentError(\"New discriminator value does not match current discriminator\");\n");
-  idl_indent_decr(ctx);
-  idl_file_out_printf(ctx, "}\n\n");
-  idl_file_out_printf(ctx, "m__d = val;\n");
+  idl_file_out_printf(ctx, "if (_discriminator_validate(m__d, val)) {\n");
+  idl_file_out_printf(ctx, "  m__d = val;\n");
+  idl_file_out_printf(ctx, "}\n");
   idl_indent_decr(ctx);
   idl_file_out_printf(ctx, "}\n\n");
   idl_indent_decr(ctx);
@@ -1187,7 +1201,7 @@ union_generate_getter_body(idl_backend_ctx ctx, uint32_t i)
     idl_file_out_printf_no_indent(ctx, ") {\n");
   }
   idl_indent_decr(ctx);
-  idl_file_out_printf(ctx, "return %s<%s>(%s);\n", union_getter_template, union_ctx->cases[i].type_name, union_ctx->cases[i].name);
+  idl_file_out_printf(ctx, "return %s<%s>(m__u);\n", union_getter_template, union_ctx->cases[i].type_name);
   idl_indent_decr(ctx);
   idl_file_out_printf(ctx, "} else {\n");
   idl_indent_incr(ctx);
@@ -1201,48 +1215,17 @@ union_generate_getter_body(idl_backend_ctx ctx, uint32_t i)
 static void
 union_generate_setter_body(idl_backend_ctx ctx, uint32_t i)
 {
-  cpp11_union_context *union_ctx = (cpp11_union_context *) idl_get_custom_context(ctx);
+  cpp11_union_context* union_ctx = (cpp11_union_context*)idl_get_custom_context(ctx);
+  bool is_default_case = (&union_ctx->cases[i] == union_ctx->default_case);
 
   idl_file_out_printf(ctx, "{\n");
   idl_indent_incr(ctx);
-  /* Check if a setter with optional discriminant value is present (when more than 1 label). */
-  if (union_ctx->cases[i].label_count < 2)
-  {
-    const char *new_discr_value;
-
-    /* If not, check whether the current case is the default case. */
-    if (&union_ctx->cases[i] != union_ctx->default_case) {
-      /* If not the default case, pick the first available value. */
-      new_discr_value = union_ctx->cases[i].labels[0];
-    } else {
-      /* If it is the default case, pick the default label. */
-      new_discr_value = union_ctx->default_label;
-    }
-    idl_file_out_printf(ctx, "m__d = %s;\n", new_discr_value);
-  }
-  else
-  {
-    /* In case the discriminant is explicitly passed, check its validity and then take that value. */
-    for (uint32_t j = 0; j < union_ctx->cases[i].label_count; ++j) {
-      if (j == 0) {
-        idl_file_out_printf(ctx, "if (m__d != %s", union_ctx->cases[i].labels[j]);
-        idl_indent_double_incr(ctx);
-      } else {
-        idl_file_out_printf_no_indent(ctx, " &&\n");
-        idl_file_out_printf(ctx, "m__d != %s", union_ctx->cases[i].labels[j]);
-      }
-    }
-    idl_indent_decr(ctx);
-    idl_file_out_printf_no_indent(ctx, ") {\n");
-    idl_file_out_printf(ctx, "throw dds::core::InvalidArgumentError(\"Provided discriminator does not match selected branch\");\n");
-    idl_indent_decr(ctx);
-    idl_file_out_printf(ctx, "} else {\n");
-    idl_indent_incr(ctx);
-    idl_file_out_printf(ctx, "m__d = _d;\n");
-    idl_indent_decr(ctx);
-    idl_file_out_printf(ctx, "}\n");
-  }
-  idl_file_out_printf(ctx, "%s = val;\n", union_ctx->cases[i].name);
+  idl_file_out_printf(ctx, "if (_discriminator_validate(%s,_new_disc)) {\n", is_default_case ? union_ctx->default_label : union_ctx->cases[i].labels[0]);
+  idl_indent_incr(ctx);
+  idl_file_out_printf(ctx, "m__u = var_type{val};\n");
+  idl_file_out_printf(ctx, "m__d = _new_disc;\n");
+  idl_indent_decr(ctx);
+  idl_file_out_printf(ctx, "}\n");
   idl_indent_decr(ctx);
   idl_file_out_printf(ctx, "}\n\n");
 }
@@ -1272,7 +1255,8 @@ union_generate_branch_getters_setters(idl_backend_ctx ctx)
     union_generate_getter_body(ctx, i);
 
     /* Build setter. */
-    if (case_state->label_count < 2)
+    bool is_default_case = (&union_ctx->cases[i] == union_ctx->default_case);
+    if (case_state->label_count < 2 && !is_default_case)
     {
       /* No need for optional discriminant parameter if there is only one applicable label. */
       idl_file_out_printf(ctx, "void %s(%s%s%s val)\n",
@@ -1284,19 +1268,19 @@ union_generate_branch_getters_setters(idl_backend_ctx ctx)
     else
     {
       /* Use optional discriminant parameter if there is more than one applicable label. */
-      idl_file_out_printf(ctx, "void %s(%s%s%s val, %s _d = %s)\n",
+      idl_file_out_printf(ctx, "void %s(%s%s%s val, %s _new_disc = %s)\n",
           case_state->name,
           is_primitive ? "": "const ",
           case_state->type_name,
           is_primitive ? "" : "&",
           union_ctx->discr_type,
-          case_state->labels[0]);
+          is_default_case ? union_ctx->default_label : case_state->labels[0]);
     }
     union_generate_setter_body(ctx, i);
 
     /* When appropriate, build setter with move semantics. */
     if (!is_primitive) {
-      if (case_state->label_count < 2)
+      if (case_state->label_count < 2 && !is_default_case)
       {
         idl_file_out_printf(ctx, "void %s(%s&& val)\n",
             case_state->name,
@@ -1304,11 +1288,11 @@ union_generate_branch_getters_setters(idl_backend_ctx ctx)
       }
       else
       {
-        idl_file_out_printf(ctx, "void %s(%s&& val, %s _d = %s)\n",
+        idl_file_out_printf(ctx, "void %s(%s&& val, %s _new_disc = %s)\n",
             case_state->name,
             case_state->type_name,
             union_ctx->discr_type,
-            case_state->labels[0]);
+            is_default_case ? union_ctx->default_label : case_state->labels[0]);
       }
       union_generate_setter_body(ctx, i);
     }
@@ -1403,6 +1387,7 @@ emit_union(
 
   /* Generate the union content. */
   union_generate_attributes(ctx);
+  union_generate_discriminator_check_fctn(ctx);
   union_generate_constructor(ctx);
   union_generate_discr_getter_setter(ctx);
   union_generate_branch_getters_setters(ctx);
@@ -1468,7 +1453,6 @@ emit_includes(
 static idl_retcode_t
 idl_generate_include_statements(idl_backend_ctx ctx, const idl_pstate_t *parse_tree)
 {
-  uint32_t nr_includes = 0;
 
   /* First determine the list of files included by our IDL file itself. */
   for (idl_source_t* include = parse_tree->sources->includes; include; include = include->next) {
@@ -1478,12 +1462,10 @@ idl_generate_include_statements(idl_backend_ctx ctx, const idl_pstate_t *parse_t
     if (!dot) dot = file + strlen(file);
     idl_file_out_printf(ctx, "#include \"%.*s.hpp\"\n", dot - file, file);
   }
-  if (nr_includes == 0) {
-    idl_file_out_printf(ctx, "#include <cstddef>\n");
-    idl_file_out_printf(ctx, "#include <cstdint>\n\n");
-    idl_file_out_printf(ctx, "#include \"dds/ddsi/ddsi_keyhash.h\"\n");
-  }
-  idl_file_out_printf(ctx, "\n");
+  idl_file_out_printf(ctx, "#include <cstddef>\n");
+  idl_file_out_printf(ctx, "#include <cstdint>\n\n");
+  idl_file_out_printf(ctx, "#include \"dds/dds.hpp\"\n");
+  idl_file_out_printf(ctx, "#include \"dds/ddsi/ddsi_keyhash.h\"\n\n");
 
   idl_visitor_t visitor;
 

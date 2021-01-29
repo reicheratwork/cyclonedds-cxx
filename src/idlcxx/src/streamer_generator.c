@@ -83,7 +83,7 @@ if (key) {format_key_read_stream(indent,ctx, __VA_ARGS__);}
 #define bytes_for_member_comment "  //bytes for member: %s\n"
 #define bytes_for_seq_entries_comment "  //bytes for sequence entries\n"
 #define entries_of_sequence_comment "  //entries of sequence\n"
-#define union_switch "  switch (_d())\n"
+#define union_switch "  switch (_disc_temp)\n"
 #define union_case "  case %s:\n"
 #define default_case "  default:\n"
 #define union_case_ending "  break;\n"
@@ -806,7 +806,7 @@ idl_retcode_t check_alignment(context_t* ctx, int bytewidth, bool is_key)
 
     if (ctx->in_union)
     {
-      format_max_size_intermediate_stream(1, ctx, false, max_size_check union_case_max_incr "%s" align_comment, buffer);
+      format_max_size_intermediate_stream(1, ctx, false, union_case_max_incr "%s" align_comment, buffer);
     }
     else
     {
@@ -1211,12 +1211,15 @@ idl_retcode_t process_case(const idl_pstate_t* pstate,
 
   context_t* ctx = *((context_t**)user_data);
   const idl_case_t* _case = (const idl_case_t*)node;
+  idl_retcode_t ret = IDL_RETCODE_OK;
 
   if (visit->type == IDL_EXIT)
   {
     //store the offsets and alignments for this case
     functioncontents_t sfuncs = ctx->streamer_funcs;
     functioncontents_t kfuncs = ctx->key_funcs;
+    reset_function_contents(&ctx->streamer_funcs);
+    reset_function_contents(&ctx->key_funcs);
 
     format_write_stream(1, ctx, false, "  {\n");
     format_write_size_stream(1, ctx, false, "  {\n");
@@ -1225,12 +1228,32 @@ idl_retcode_t process_case(const idl_pstate_t* pstate,
     format_max_size_intermediate_stream(1, ctx, false, "  size_t case_max = position;\n");
     ctx->depth++;
 
-    idl_retcode_t ret = process_instance(ctx, _case->declarator, _case->type_spec, false);
+    char *cpp11name = get_cpp11_name(idl_identifier(_case->declarator));
+    if (!cpp11name)
+    {
+      ret = IDL_RETCODE_NO_MEMORY;
+      goto fail1;
+    }
+    char *cpp11type = get_cpp11_type(_case->type_spec);
+    if (!cpp11type)
+    {
+      ret = IDL_RETCODE_NO_MEMORY;
+      goto fail2;
+    }
+
+    format_write_stream(1, ctx, false, "  auto& obj = %s();\n", cpp11name);
+    format_write_size_stream(1, ctx, false, "  auto& obj = %s();\n", cpp11name);
+    format_write_size_stream(1, ctx, false, "  (void)obj;\n", cpp11name);
+    format_read_stream(1, ctx, false, "  %s obj;\n", cpp11type);
+
+    ret = process_instance(ctx, NULL, _case->type_spec, false);
     if (ret)
-      return ret;
+      goto fail3;
+
+    format_read_stream(1, ctx, false, "  %s(obj,_disc_temp);\n", cpp11name);
 
     ctx->depth--;
-    format_max_size_intermediate_stream(1, ctx, false, "  union_max = max(case_max,union_max);\n");
+    format_max_size_intermediate_stream(1, ctx, false, "  union_max = std::max(case_max,union_max);\n");
     format_max_size_intermediate_stream(1, ctx, false, "}\n");
     format_write_stream(1, ctx, false, "  }\n");
     format_write_stream(1, ctx, false, union_case_ending);
@@ -1241,14 +1264,18 @@ idl_retcode_t process_case(const idl_pstate_t* pstate,
 
     ctx->streamer_funcs = sfuncs;
     ctx->key_funcs = kfuncs;
-
-    return IDL_RETCODE_OK;
+  fail3:
+    free(cpp11type);
+  fail2:
+    free(cpp11name);
   }
   else
   {
     //first process all the case labels
-    return IDL_VISIT_REVISIT;
+    ret = IDL_VISIT_REVISIT;
   }
+fail1:
+  return ret;
 }
 
 idl_type_spec_t* resolve_typedef(idl_type_spec_t* spec)
@@ -1337,9 +1364,20 @@ static idl_retcode_t union_switch_start(context_t* ctx, idl_switch_type_spec_t* 
   bool disc_is_key = idl_is_masked(st, IDL_KEY);
   idl_retcode_t returnval = IDL_RETCODE_OK;
 
-  format_read_stream(1, ctx, true, union_clear_func);
-  if ((returnval = process_known_width(ctx, "_d()", st->type_spec, disc_is_key)))
-    return returnval;
+  /*create temporary discriminator holders since
+  the discriminator cannot be set through reference*/
+  char* discriminator_cast = determine_cast(st->type_spec);
+  if (!discriminator_cast)
+  {
+    returnval = IDL_RETCODE_NO_MEMORY;
+    goto fail1;
+  }
+
+  format_write_stream(1, ctx, false, "  %s _disc_temp = _d();\n", discriminator_cast);
+  format_write_size_stream(1, ctx, false, "  %s _disc_temp = _d();\n", discriminator_cast);
+  format_read_stream(1, ctx, false, "  %s _disc_temp;\n", discriminator_cast);
+  if ((returnval = process_known_width(ctx, "_disc_temp", st->type_spec, disc_is_key)))
+    goto fail2;
 
   format_write_size_stream(1, ctx, false, union_switch);
   format_write_size_stream(1, ctx, false, "  {\n");
@@ -1352,6 +1390,9 @@ static idl_retcode_t union_switch_start(context_t* ctx, idl_switch_type_spec_t* 
   format_max_size_intermediate_stream(1, ctx, false, "  size_t union_max = position;\n");
   ctx->depth++;
 
+fail2:
+  free(discriminator_cast);
+fail1:
   return returnval;
 }
 
@@ -1363,7 +1404,7 @@ static idl_retcode_t union_switch_stop(context_t* ctx)
   ctx->streamer_funcs.accumulatedalignment = 0;
   ctx->key_funcs.currentalignment = -1;
   ctx->key_funcs.accumulatedalignment = 0;
-  format_max_size_intermediate_stream(1, ctx, false, "  position = max(position,union_max);\n");
+  format_max_size_intermediate_stream(1, ctx, false, "  position = union_max;\n");
   ctx->in_union = false;
 
   format_write_stream(1, ctx, false, "  }\n");
