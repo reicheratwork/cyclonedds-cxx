@@ -238,12 +238,12 @@ static void reset_alignment(context_t* ctx, bool is_key);
 static idl_retcode_t add_default_case(context_t* ctx);
 static idl_retcode_t process_instance(context_t* ctx, idl_declarator_t* decl, idl_type_spec_t* spec, bool is_key);
 static idl_retcode_t process_constructed_type_impl(context_t* ctx, const char* accessor, bool is_key, bool key_is_all_members);
-static idl_retcode_t process_struct_definition(const idl_pstate_t* pstate, idl_visit_t* visit, const void* node, void* user_data);
-static idl_retcode_t process_union_definition(const idl_pstate_t* pstate, idl_visit_t* visit, const void* node, void* user_data);
+static idl_retcode_t process_struct_definition(const idl_pstate_t* pstate, const bool revisit, const idl_path_t* path, const void* node, void* user_data);
+static idl_retcode_t process_union_definition(const idl_pstate_t* pstate, const bool revisit, const idl_path_t* path, const void* node, void* user_data);
 static idl_retcode_t process_string_impl(context_t* ctx, const char *accessor, idl_string_t* spec, bool is_key);
 static idl_retcode_t process_sequence_impl(context_t* ctx, const char* accessor, idl_sequence_t* spec, bool is_key);
 static idl_type_spec_t* resolve_typedef(idl_type_spec_t* def);
-static idl_retcode_t process_typedef_definition(const idl_pstate_t* pstate, idl_visit_t* visit, const void* node, void* user_data);
+static idl_retcode_t process_typedef_definition(const idl_pstate_t* pstate, const bool revisit, const idl_path_t* path, const void* node, void* user_data);
 static idl_retcode_t process_typedef_instance_impl(context_t* ctx, const char* accessor, idl_type_spec_t* spec, bool is_key);
 static idl_retcode_t process_known_width(context_t* ctx, const char* accessor, idl_node_t* typespec, bool is_key);
 static idl_retcode_t process_sequence_entries(context_t* ctx, const char* accessor, bool plusone, bool is_key);
@@ -251,10 +251,10 @@ static int determine_byte_width(idl_node_t* typespec);
 static char* determine_cast(idl_node_t* typespec);
 static idl_retcode_t check_alignment(context_t* ctx, int bytewidth, bool is_key);
 static idl_retcode_t add_null(context_t* ctx, int nbytes, bool stream, bool is_key);
-static idl_retcode_t process_member(const idl_pstate_t* pstate, idl_visit_t* visit, const void* node, void* user_data);
-static idl_retcode_t process_module_definition(const idl_pstate_t* pstate, idl_visit_t* visit, const void* node, void* user_data);
-static idl_retcode_t process_case(const idl_pstate_t* pstate, idl_visit_t* visit, const void* node, void* user_data);
-static idl_retcode_t process_case_label(const idl_pstate_t* pstate, idl_visit_t* visit, const void* node, void* user_data);
+static idl_retcode_t process_member(const idl_pstate_t* pstate, const bool revisit, const idl_path_t* path, const void* node, void* user_data);
+static idl_retcode_t process_module_definition(const idl_pstate_t* pstate, const bool revisit, const idl_path_t* path, const void* node, void* user_data);
+static idl_retcode_t process_case(const idl_pstate_t* pstate, const bool revisit, const idl_path_t* path, const void* node, void* user_data);
+static idl_retcode_t process_case_label(const idl_pstate_t* pstate, const bool revisit, const idl_path_t* path, const void* node, void* user_data);
 static idl_retcode_t write_instance_funcs(context_t* ctx, const char* write_accessor, const char* read_accessor, bool is_key, bool key_is_all_members);
 static context_t* create_context(const char* name);
 static context_t* child_context(context_t* ctx, const char* name);
@@ -645,10 +645,11 @@ bool has_keys(idl_type_spec_t* spec)
   return false;
 }
 
-idl_retcode_t process_member(const idl_pstate_t* pstate, idl_visit_t* visit, const void* node, void* user_data)
+idl_retcode_t process_member(const idl_pstate_t* pstate, const bool revisit, const idl_path_t* path, const void* node, void* user_data)
 {
   (void)pstate;
-  (void)visit;
+  (void)revisit;
+  (void)path;
 
   context_t* ctx = *(context_t**)user_data;
   idl_member_t* mem = (idl_member_t*)node;
@@ -1066,11 +1067,14 @@ fail:
 
 idl_retcode_t process_module_definition(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
+  (void)path;
+
   context_t* ctx = *((context_t**)user_data);
   const idl_module_t* module = (const idl_module_t*)node;
   idl_retcode_t ret = IDL_RETCODE_NO_MEMORY;
@@ -1083,7 +1087,7 @@ idl_retcode_t process_module_definition(
   ret = IDL_RETCODE_OK;
   if (module->definitions)
   {
-    if (visit->type == IDL_EXIT)
+    if (revisit)
     {
       context_t* parentctx = ctx->parent;
       close_context(ctx, NULL);
@@ -1202,18 +1206,19 @@ static void print_constructed_type_open(context_t* ctx, char* cpp11name)
 }
 
 idl_retcode_t process_case(const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
-  (void)visit;
+  (void)path;
 
   context_t* ctx = *((context_t**)user_data);
   const idl_case_t* _case = (const idl_case_t*)node;
   idl_retcode_t ret = IDL_RETCODE_OK;
 
-  if (visit->type == IDL_EXIT)
+  if (revisit)
   {
     //store the offsets and alignments for this case
     functioncontents_t sfuncs = ctx->streamer_funcs;
@@ -1325,11 +1330,13 @@ fail1:
 
 idl_retcode_t process_struct_definition(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
+  (void)path;
 
   idl_retcode_t returnval = IDL_RETCODE_OUT_OF_MEMORY;
   context_t* ctx = *(context_t**)user_data;
@@ -1337,7 +1344,7 @@ idl_retcode_t process_struct_definition(
   if (!cpp11name)
     goto fail;
 
-  if (visit->type == IDL_EXIT)
+  if (revisit)
   {
     print_constructed_type_close(ctx, cpp11name);
     returnval = IDL_RETCODE_OK;
@@ -1416,11 +1423,13 @@ static idl_retcode_t union_switch_stop(context_t* ctx)
 
 idl_retcode_t process_union_definition(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
+  (void)path;
 
   idl_retcode_t returnval = IDL_RETCODE_OUT_OF_MEMORY;
   context_t* ctx = *(context_t**)user_data;
@@ -1428,7 +1437,7 @@ idl_retcode_t process_union_definition(
   if (!cpp11name)
     goto fail1;
 
-  if (visit->type == IDL_EXIT)
+  if (revisit)
   {
     if ((returnval = union_switch_stop(ctx)))
       goto fail2;
@@ -1456,12 +1465,14 @@ fail1:
 
 idl_retcode_t process_typedef_definition(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
-  (void)visit;
+  (void)revisit;
+  (void)path;
 
   context_t* ctx = *((context_t**)user_data);
   const idl_typedef_t* typedef_node = (const idl_typedef_t*)node;
@@ -1599,12 +1610,14 @@ fail1:
 }
 
 idl_retcode_t process_case_label(const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
-  (void)visit;
+  (void)revisit;
+  (void)path;
 
   context_t* ctx = *((context_t**)user_data);
   idl_const_expr_t* ce = ((idl_case_label_t*)node)->const_expr;
@@ -1862,8 +1875,13 @@ void idl_streamers_generate(const idl_pstate_t* tree, idl_streamer_output_t* str
   visitor.accept[IDL_ACCEPT_CASE] = &process_case;
   visitor.accept[IDL_ACCEPT_CASE_LABEL] = &process_case_label;
   if (tree->sources)
-    visitor.glob = tree->sources->path->name;
+  {
+    visitor.sources = malloc(sizeof(char*) * 2);
+    visitor.sources[0] = tree->sources->path->name;
+    visitor.sources[1] = NULL;
+  }
   idl_visit(tree, tree->root, &visitor, &ctx);
 
+  free(visitor.sources);
   close_context(ctx, str);
 }

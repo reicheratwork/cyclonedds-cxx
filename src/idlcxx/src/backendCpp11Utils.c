@@ -225,7 +225,7 @@ char *
 get_default_value(idl_backend_ctx ctx, const idl_node_t *node)
 {
   static const idl_mask_t mask = (IDL_BASE_TYPE|(IDL_BASE_TYPE-1));
-  const idl_node_t *unwinded_node = idl_unalias(node);
+  const idl_node_t *unwinded_node = idl_unalias(node, 0x0);
   (void)ctx;
 
 

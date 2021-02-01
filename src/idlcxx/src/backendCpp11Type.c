@@ -136,12 +136,14 @@ void cleanup_cpp11_struct_state(cpp11_struct_state_s* in)
 static idl_retcode_t
 emit_member(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
-  (void)visit;
+  (void)revisit;
+  (void)path;
 
   const idl_member_t* member_node = (const idl_member_t*)node;
   cpp11_struct_state_s* customctx = (cpp11_struct_state_s*)user_data;
@@ -177,12 +179,14 @@ generate_streamer_interfaces(idl_backend_ctx ctx)
 static idl_retcode_t
 emit_struct(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
-  (void)visit;
+  (void)revisit;
+  (void)path;
 
   const idl_struct_t* struct_node = (const idl_struct_t*)node;
   idl_backend_ctx ctx = (idl_backend_ctx)user_data;
@@ -196,9 +200,13 @@ emit_struct(
   visitor.visit = IDL_MEMBER;
   visitor.accept[IDL_ACCEPT_MEMBER] = &emit_member;
   if (pstate->sources)
-    visitor.glob = pstate->sources->path->name;
+  {
+    visitor.sources = malloc(sizeof(char*) * 2);
+    visitor.sources[0] = pstate->sources->path->name;
+    visitor.sources[1] = NULL;
+  }
   if ((ret = idl_visit(pstate, struct_node->members, &visitor, strctx)))
-    return ret;
+    goto fail;
 
   /* Create class declaration. */
   if (strctx->inherit_name)
@@ -297,6 +305,8 @@ emit_struct(
 
   idl_file_out_printf(ctx, "};\n\n");
 
+fail:
+  free(visitor.sources);
   cleanup_cpp11_struct_state(strctx);
 
   return ret;
@@ -305,11 +315,13 @@ emit_struct(
 static idl_retcode_t
 emit_enum(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
-  (void)visit;
+  (void)revisit;
+  (void)path;
 
   const idl_enum_t* enum_node = (const idl_enum_t*)node;
   idl_backend_ctx ctx = (idl_backend_ctx)user_data;
@@ -344,12 +356,14 @@ emit_enum(
 static idl_retcode_t
 emit_typedef(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
-  (void)visit;
+  (void)revisit;
+  (void)path;
 
   const idl_typedef_t* typedef_node = (const idl_typedef_t*)node;
   idl_backend_ctx ctx = (idl_backend_ctx)user_data;
@@ -367,16 +381,18 @@ emit_typedef(
 static idl_retcode_t
 emit_module(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
+  (void)path;
 
   const idl_module_t* module_node = (const idl_module_t*)node;
   idl_backend_ctx ctx = (idl_backend_ctx)user_data;
 
-  if (visit->type == IDL_EXIT)
+  if (revisit)
   {
     idl_indent_decr(ctx);
     idl_file_out_printf(ctx, "}\n\n");
@@ -393,15 +409,18 @@ emit_module(
   }
 }
 
+#if 0
 static idl_retcode_t
 emit_forward(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
-  (void)visit;
+  (void)revisit;
+  (void)path;
 
   const idl_forward_t * forward_node = (const idl_forward_t*)node;
   idl_backend_ctx ctx = (idl_backend_ctx)user_data;
@@ -419,16 +438,19 @@ emit_forward(
   free(cpp11Name);
   return IDL_RETCODE_OK;
 }
+#endif
 
 static idl_retcode_t
 emit_const(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
-  (void)visit;
+  (void)revisit;
+  (void)path;
 
   const idl_const_t* const_node = (const idl_const_t*)node;
   idl_backend_ctx ctx = (idl_backend_ctx)user_data;
@@ -519,12 +541,15 @@ typedef struct cpp11_union_context_s
 static idl_retcode_t
 count_labels(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
-  (void)visit;
+  (void)revisit;
+  (void)path;
+
   uint32_t* nr_labels = (uint32_t*)user_data;
   const idl_case_label_t* label = (const idl_case_label_t*)node;
   if (label->const_expr) ++(*nr_labels);
@@ -534,14 +559,17 @@ count_labels(
 static idl_retcode_t
 count_cases(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
-  (void)visit;
-  uint32_t* nr_cases = (uint32_t*)user_data;
+  (void)revisit;
+  (void)path;
   (void)node;
+
+  uint32_t* nr_cases = (uint32_t*)user_data;
   ++(*nr_cases);
   return IDL_RETCODE_OK;
 }
@@ -562,12 +590,15 @@ get_label_value(const idl_case_label_t *label)
 static idl_retcode_t
 emit_case_label(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
-  (void)visit;
+  (void)revisit;
+  (void)path;
+
   cpp11_union_context *union_data = (cpp11_union_context *) user_data;
   const idl_case_label_t *label = (const idl_case_label_t *) node;
   cpp11_case_state *case_data = union_data->cases + union_data->case_count;
@@ -586,11 +617,13 @@ emit_case_label(
 static idl_retcode_t
 emit_case(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
-  (void)visit;
+  (void)revisit;
+  (void)path;
 
   idl_retcode_t result;
   cpp11_union_context *union_ctx = (cpp11_union_context *) user_data;
@@ -605,9 +638,13 @@ emit_case(
   visitor.visit = IDL_CASE_LABEL;
   visitor.accept[IDL_ACCEPT_CASE_LABEL] = &count_labels;
   if (pstate->sources)
-    visitor.glob = pstate->sources->path->name;
+  {
+    visitor.sources = malloc(sizeof(char*) * 2);
+    visitor.sources[0] = pstate->sources->path->name;
+    visitor.sources[1] = NULL;
+  }
   if ((result = idl_visit(pstate, case_node->case_labels, &visitor, &case_labels)))
-    return result;
+    goto fail;
 
   union_ctx->total_label_count += case_labels;
 
@@ -626,14 +663,12 @@ emit_case(
   }
 
   /*visit the individual labels*/
-  memset(&visitor, 0, sizeof(visitor));
-  visitor.visit = IDL_CASE_LABEL;
   visitor.accept[IDL_ACCEPT_CASE_LABEL] = &emit_case_label;
-  if (pstate->sources)
-    visitor.glob = pstate->sources->path->name;
   if ((result = idl_visit(pstate, case_node->case_labels, &visitor, union_ctx)))
-    return result;
+    goto fail;
 
+fail:
+  free(visitor.sources);
   ++(union_ctx->case_count);
   return IDL_RETCODE_OK;
 }
@@ -727,7 +762,7 @@ get_min_value(const idl_node_t *node)
   static const idl_mask_t mask = (IDL_BASE_TYPE|(IDL_BASE_TYPE-1));
 
   result.node = *node;
-  result.node.symbol.mask &= mask;
+  result.node.mask &= mask;
   switch (idl_mask(node) & mask)
   {
   case IDL_BOOL:
@@ -771,7 +806,7 @@ get_min_value(const idl_node_t *node)
     assert(0);
     break;
   }
-  result.node.symbol.mask |= IDL_CONST;
+  result.node.mask |= IDL_CONST;
   return result;
 }
 
@@ -1334,11 +1369,13 @@ union_generate_implicit_default_setter(idl_backend_ctx ctx)
 static idl_retcode_t
 emit_union(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
-  (void)visit;
+  (void)revisit;
+  (void)path;
 
   idl_backend_ctx ctx = (idl_backend_ctx)user_data;
 
@@ -1356,9 +1393,13 @@ emit_union(
   visitor.visit = IDL_CASE;
   visitor.accept[IDL_ACCEPT_CASE] = &count_cases;
   if (pstate->sources)
-    visitor.glob = pstate->sources->path->name;
+  {
+    visitor.sources = malloc(sizeof(char*) * 2);
+    visitor.sources[0] = pstate->sources->path->name;
+    visitor.sources[1] = NULL;
+  }
   if ((result = idl_visit(pstate, union_node->cases, &visitor, &nr_cases)))
-    return result;
+    goto fail;
 
   /*create container for the number of cases*/
   cpp11_union_context union_ctx;
@@ -1375,13 +1416,9 @@ emit_union(
     return result;
 
   /*walk over the number of cases to collect the data*/
-  memset(&visitor, 0, sizeof(visitor));
-  visitor.visit = IDL_CASE;
   visitor.accept[IDL_ACCEPT_CASE] = &emit_case;
-  if (pstate->sources)
-    visitor.glob = pstate->sources->path->name;
   if ((result = idl_visit(pstate, union_node->cases, &visitor, &union_ctx)))
-    return result;
+    goto fail;
 
   union_ctx.default_label = get_default_discr_value(ctx, union_node);
 
@@ -1397,6 +1434,8 @@ emit_union(
   idl_file_out_printf(ctx, "};\n\n");
   idl_reset_custom_context(ctx);
 
+fail:
+  free(visitor.sources);
   for (uint32_t i = 0; i < nr_cases; ++i)
   {
     free(union_ctx.cases[i].name);
@@ -1418,12 +1457,14 @@ emit_union(
 static idl_retcode_t
 emit_includes(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
   (void)pstate;
-  (void)visit;
+  (void)revisit;
+  (void)path;
 
   idl_backend_ctx ctx = (idl_backend_ctx)user_data;
   idl_include_dep *dependency_mask = (idl_include_dep *) idl_get_custom_context(ctx);
@@ -1476,10 +1517,15 @@ idl_generate_include_statements(idl_backend_ctx ctx, const idl_pstate_t *parse_t
   visitor.visit = ((idl_mask_t)-1);
   visitor.accept[IDL_ACCEPT] = &emit_includes;
   if (parse_tree->sources)
-    visitor.glob = parse_tree->sources->path->name;
+  {
+    visitor.sources = malloc(sizeof(char*) * 2);
+    visitor.sources[0] = parse_tree->sources->path->name;
+    visitor.sources[1] = NULL;
+  }
+
   idl_retcode_t ret;
   if ((ret = idl_visit(parse_tree, parse_tree->root, &visitor, ctx)))
-    return ret;
+    goto fail;
 
   idl_reset_custom_context(ctx);
   if (util_depencencies) {
@@ -1522,6 +1568,8 @@ idl_generate_include_statements(idl_backend_ctx ctx, const idl_pstate_t *parse_t
     idl_file_out_printf(ctx, "\n");
   }
 
+fail:
+  free(visitor.sources);
   return ret;
 }
 
@@ -1535,18 +1583,23 @@ idl_backendGenerateType(idl_backend_ctx ctx, const idl_pstate_t *parse_tree)
   idl_visitor_t visitor;
 
   memset(&visitor, 0, sizeof(visitor));
-  visitor.visit = IDL_CONST | IDL_TYPEDEF | IDL_STRUCT | IDL_MODULE | IDL_ENUM | IDL_FORWARD | IDL_UNION;
+  visitor.visit = IDL_CONST | IDL_TYPEDEF | IDL_STRUCT | IDL_MODULE | IDL_ENUM/* | IDL_FORWARD*/ | IDL_UNION;
   visitor.accept[IDL_ACCEPT_CONST] = &emit_const;
-  visitor.accept[IDL_ACCEPT_FORWARD] = &emit_forward;
+  //visitor.accept[IDL_ACCEPT_FORWARD] = &emit_forward;
   visitor.accept[IDL_ACCEPT_TYPEDEF] = &emit_typedef;
   visitor.accept[IDL_ACCEPT_STRUCT] = &emit_struct;
   visitor.accept[IDL_ACCEPT_UNION] = &emit_union;
   visitor.accept[IDL_ACCEPT_ENUM] = &emit_enum;
   visitor.accept[IDL_ACCEPT_MODULE] = &emit_module;
   if (parse_tree->sources)
-    visitor.glob = parse_tree->sources->path->name;
+  {
+    visitor.sources = malloc(sizeof(char*) * 2);
+    visitor.sources[0] = parse_tree->sources->path->name;
+    visitor.sources[1] = NULL;
+  }
   ret = idl_visit(parse_tree, parse_tree->root, &visitor, ctx);
 
+  free(visitor.sources);
   return ret;
 }
 

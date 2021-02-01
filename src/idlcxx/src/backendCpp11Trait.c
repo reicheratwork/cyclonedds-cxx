@@ -19,12 +19,14 @@
 static idl_retcode_t
 test_keyless(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
-  (void)visit;
   (void)pstate;
+  (void)revisit;
+  (void)path;
 
   const idl_member_t* member_node = (const idl_member_t*)node;
   bool* keyless = (bool*)user_data;
@@ -36,12 +38,14 @@ test_keyless(
 static idl_retcode_t
 generate_traits(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
-  (void)visit;
   (void)pstate;
+  (void)revisit;
+  (void)path;
 
   idl_backend_ctx ctx = (idl_backend_ctx)user_data;
   const idl_struct_t* struct_node = (const idl_struct_t*)node;
@@ -53,11 +57,15 @@ generate_traits(
   visitor.visit = IDL_MEMBER;
   visitor.accept[IDL_ACCEPT_MEMBER] = &test_keyless;
   if (pstate->sources)
-    visitor.glob = pstate->sources->path->name;
+  {
+    visitor.sources = malloc(sizeof(char*) * 2);
+    visitor.sources[0] = pstate->sources->path->name;
+    visitor.sources[1] = NULL;
+  }
 
   idl_retcode_t result = IDL_RETCODE_OK;
   if ((result = idl_visit(pstate, struct_node->members, &visitor, &is_keyless)))
-    return result;
+    goto fail;
 
   idl_file_out_printf(ctx, "template <>\n");
   idl_file_out_printf(ctx, "class TopicTraits<%s>\n", struct_name);
@@ -115,20 +123,24 @@ generate_traits(
   idl_file_out_printf(ctx, "}\n");
   idl_indent_decr(ctx);
   idl_file_out_printf(ctx, "};\n");
-  free(struct_name);
 
+fail:
+  free(visitor.sources);
+  free(struct_name);
   return result;
 }
 
 static idl_retcode_t
 generate_macro_call(
   const idl_pstate_t* pstate,
-  idl_visit_t* visit,
+  const bool revisit,
+  const idl_path_t* path,
   const void* node,
   void* user_data)
 {
-  (void)visit;
   (void)pstate;
+  (void)revisit;
+  (void)path;
 
   idl_backend_ctx ctx = (idl_backend_ctx)user_data;
   char* struct_name = get_cpp11_fully_scoped_name(node);
@@ -155,23 +167,26 @@ idl_backendGenerateTrait(idl_backend_ctx ctx, const idl_pstate_t *parse_tree)
   visitor.visit = IDL_STRUCT;
   visitor.accept[IDL_ACCEPT_STRUCT] = &generate_traits;
   if (parse_tree->sources)
-    visitor.glob = parse_tree->sources->path->name;
+  {
+    visitor.sources = malloc(sizeof(char*) * 2);
+    visitor.sources[0] = parse_tree->sources->path->name;
+    visitor.sources[1] = NULL;
+  }
+
   if ((result = idl_visit(parse_tree, parse_tree->root, &visitor, ctx)))
-    return result;
+    goto fail;
 
   idl_file_out_printf(ctx, "}}}}\n\n");
 
-  memset(&visitor, 0, sizeof(visitor));
-  visitor.visit = IDL_STRUCT;
   visitor.accept[IDL_ACCEPT_STRUCT] = &generate_macro_call;
-  if (parse_tree->sources)
-    visitor.glob = parse_tree->sources->path->name;
 
   if ((result = idl_visit(parse_tree, parse_tree->root, &visitor, ctx)))
-    return result;
+    goto fail;
 
   idl_file_out_printf(ctx, "\n");
 
+fail:
+  free(visitor.sources);
   return result;
 }
 
