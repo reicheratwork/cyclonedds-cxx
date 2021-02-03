@@ -16,6 +16,7 @@
 #include "idl/retcode.h"
 #include "idl/processor.h"
 #include "idl/string.h"
+#include "idlc/generator.h"
 
 #include "idlcxx/backendCpp11Type.h"
 #include "idlcxx/backendCpp11Trait.h"
@@ -269,12 +270,13 @@ generate(const idl_pstate_t *tree)
   free(basename);
   return IDL_RETCODE_OK;
 }
-/*
+
 #if _WIN32
 __declspec(dllexport)
 #endif
-int set_seq_tem(const idlc_option_t* option, const char* value)
+int set_seq_temp(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
@@ -288,6 +290,7 @@ __declspec(dllexport)
 #endif
 int set_seq_incl(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
@@ -301,6 +304,7 @@ __declspec(dllexport)
 #endif
 int set_arr_temp(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
@@ -314,6 +318,7 @@ __declspec(dllexport)
 #endif
 int set_arr_incl(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
@@ -327,6 +332,7 @@ __declspec(dllexport)
 #endif
 int set_bseq_temp(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
@@ -340,6 +346,7 @@ __declspec(dllexport)
 #endif
 int set_bseq_incl(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
@@ -353,6 +360,7 @@ __declspec(dllexport)
 #endif
 int set_str_temp(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
@@ -366,6 +374,7 @@ __declspec(dllexport)
 #endif
 int set_str_incl(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
@@ -379,6 +388,7 @@ __declspec(dllexport)
 #endif
 int set_bstr_temp(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
@@ -392,6 +402,7 @@ __declspec(dllexport)
 #endif
 int set_bstr_incl(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
@@ -405,6 +416,7 @@ __declspec(dllexport)
 #endif
 int set_uni_temp(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
@@ -418,6 +430,7 @@ __declspec(dllexport)
 #endif
 int set_uni_get(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
@@ -431,20 +444,13 @@ __declspec(dllexport)
 #endif
 int set_uni_incl(const idlc_option_t* option, const char* value)
 {
+  (void)option;
   char *output = NULL;
   if (idl_replace_tokens_default(&output, value) <= 0)
     return -1;
   //further validation?
   union_include = output;
   return 0;
-}
-
-#if _WIN32
-__declspec(dllexport)
-#endif
-const idlc_option_t** generator_options(void)
-{
-  return opts;
 }
 
 static const idlc_option_t* opts[] = {
@@ -502,4 +508,11 @@ static const idlc_option_t* opts[] = {
  },
 NULL
 };
-*/
+
+#if _WIN32
+__declspec(dllexport)
+#endif
+const idlc_option_t** generator_options(void)
+{
+  return opts;
+}
