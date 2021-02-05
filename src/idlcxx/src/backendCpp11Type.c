@@ -338,7 +338,7 @@ emit_enum(
 
     /* IDL3.5 did not support fixed enumerator values */
     uint32_t value = enumerator->value;
-    if (value == skip || (pstate->flags & IDL_FLAG_VERSION_35))
+    if (value == skip || (pstate->version == IDL35))
       idl_file_out_printf(ctx, "%s%s\n", enumerator->name->identifier, next ? "," : "");
     else
       idl_file_out_printf(ctx, "%s = %" PRIu32"%s\n", enumerator->name->identifier, value, next ? "," : "");
@@ -457,7 +457,7 @@ emit_const(
 
   char* cpp11Name = get_cpp11_name(idl_identifier(const_node));
   char* cpp11Type = get_cpp11_type(const_node->type_spec);
-  char* cpp11Value = get_cpp11_const_value((const idl_constval_t*)const_node->const_expr);
+  char* cpp11Value = get_cpp11_const_value((const idl_literal_t*)const_node->const_expr);
 
   //check for correct creation of cpp11*
   idl_file_out_printf(
@@ -491,7 +491,7 @@ type_spec_includes(
   idl_type_spec_t* ts,
   idl_include_dep* id)
 {
-  if (idl_is_masked(ts, IDL_SEQUENCE))
+  if (idl_is_sequence(ts))
   {
     uint64_t bound = ((idl_sequence_t*)ts)->maximum;
     if (bound != 0 &&
@@ -501,7 +501,7 @@ type_spec_includes(
       *id |= idl_vector_unbounded_dep;
   }
 
-  if (idl_is_masked(ts, IDL_STRING))
+  if (idl_is_string(ts))
   {
     uint64_t bound = ((idl_string_t*)ts)->maximum;
     if (bound != 0 &&
@@ -582,7 +582,7 @@ get_label_value(const idl_case_label_t *label)
   if (idl_mask(label->const_expr) & IDL_ENUMERATOR) {
     label_value = get_cpp11_fully_scoped_name(label->const_expr);
   } else {
-    label_value = get_cpp11_const_value((const idl_constval_t *) label->const_expr);
+    label_value = get_cpp11_const_value((const idl_literal_t *) label->const_expr);
   }
   return label_value;
 }
@@ -679,91 +679,69 @@ get_potential_nr_discr_values(const idl_union_t *union_node)
   uint64_t nr_discr_values = 0;
   const idl_type_spec_t *node = union_node->switch_type_spec ? union_node->switch_type_spec->type_spec : NULL;
 
-  switch (idl_mask(node) & (IDL_BASE_TYPE | IDL_CONSTR_TYPE))
+  if (idl_is_base_type(node))
   {
-  case IDL_BASE_TYPE:
     switch (idl_mask(node) & IDL_BASE_TYPE_MASK)
     {
-    case IDL_INTEGER_TYPE:
-      switch(idl_mask(node) & IDL_INTEGER_MASK_IGNORE_SIGN)
-      {
-      case IDL_INT8:
-        nr_discr_values = UINT8_MAX;
-        break;
-      case IDL_INT16:
-      case IDL_SHORT:
-        nr_discr_values = UINT16_MAX;
-        break;
-      case IDL_INT32:
-      case IDL_LONG:
-        nr_discr_values = UINT32_MAX;
-        break;
-      case IDL_INT64:
-      case IDL_LLONG:
-        nr_discr_values = UINT64_MAX;
-        break;
-      default:
-        assert(0);
-        break;
-      }
+    case IDL_BOOL:
+      nr_discr_values = 2;
       break;
-    default:
-      switch(idl_mask(node) & IDL_BASE_OTHERS_MASK)
-      {
-      case IDL_CHAR:
-      case IDL_OCTET:
-        nr_discr_values = UINT8_MAX;
-        break;
-      case IDL_WCHAR:
-        nr_discr_values = UINT16_MAX;
-        break;
-      case IDL_BOOL:
-        nr_discr_values = 2;
-        break;
-      default:
-        assert(0);
-        break;
-      }
+    case IDL_CHAR:
+    case IDL_OCTET:
+    case IDL_INT8:
+    case IDL_UINT8:
+      nr_discr_values = UINT8_MAX;
       break;
-    }
-    break;
-  case IDL_CONSTR_TYPE:
-    switch (idl_mask(node) & IDL_ENUM)
-    {
-    case IDL_ENUM:
-    {
-      /* Pick the first of the available enumerators. */
-      const idl_enum_t *enumeration = (const idl_enum_t *) node;
-      const idl_enumerator_t* enumerator = enumeration->enumerators;
-      nr_discr_values = 0;
-      while(enumerator)
-      {
-        ++nr_discr_values;
-        enumerator = (const idl_enumerator_t*)enumerator->node.next;
-      }
+    case IDL_INT16:
+    case IDL_UINT16:
+    case IDL_SHORT:
+    case IDL_USHORT:
+    case IDL_WCHAR:
+      nr_discr_values = UINT16_MAX;
       break;
-    }
+    case IDL_INT32:
+    case IDL_UINT32:
+    case IDL_LONG:
+    case IDL_ULONG:
+      nr_discr_values = UINT32_MAX;
+      break;
+    case IDL_INT64:
+    case IDL_UINT64:
+    case IDL_LLONG:
+    case IDL_ULLONG:
+      nr_discr_values = UINT64_MAX;
+      break;
     default:
       assert(0);
-      break;
     }
-    break;
-  default:
+  }
+  else if (idl_is_enum(node))
+  {
+    /* Pick the first of the available enumerators. */
+    const idl_enum_t* enumeration = (const idl_enum_t*)node;
+    const idl_enumerator_t* enumerator = enumeration->enumerators;
+    nr_discr_values = 0;
+    while (enumerator)
+    {
+      ++nr_discr_values;
+      enumerator = (const idl_enumerator_t*)enumerator->node.next;
+    }
+  }
+  else
+  {
     assert(0);
-    break;
   }
   return nr_discr_values;
 }
 
-static idl_constval_t
+static idl_literal_t
 get_min_value(const idl_node_t *node)
 {
-  idl_constval_t result;
-  static const idl_mask_t mask = (IDL_BASE_TYPE|(IDL_BASE_TYPE-1));
+  idl_literal_t result;
 
   result.node = *node;
-  result.node.mask &= mask;
-  switch (idl_mask(node) & mask)
+  result.node.mask &= IDL_BASE_TYPE_MASK;
+  switch (idl_mask(node) & IDL_BASE_TYPE_MASK)
   {
   case IDL_BOOL:
     result.value.bln = false;
@@ -820,10 +798,9 @@ enumerator_incr_value(void *val)
 static void *
 constval_incr_value(void *val)
 {
-  idl_constval_t *cv = (idl_constval_t *)val;
-  static const idl_mask_t mask = (IDL_BASE_TYPE|(IDL_BASE_TYPE-1));
+  idl_literal_t *cv = (idl_literal_t*)val;
 
-  switch (idl_mask(&cv->node) & mask)
+  switch (idl_mask(&cv->node) & IDL_BASE_TYPE_MASK)
   {
   case IDL_BOOL:
     cv->value.bln = true;
@@ -879,12 +856,11 @@ static idl_equality_t
 compare_const_elements(const void *element1, const void *element2)
 {
 #define EQ(a,b) ((a<b) ? IDL_LT : ((a>b) ? IDL_GT : IDL_EQ))
-  const idl_constval_t *cv1 = (const idl_constval_t *) element1;
-  const idl_constval_t *cv2 = (const idl_constval_t *) element2;
-  static const idl_mask_t mask = IDL_BASE_TYPE|(IDL_BASE_TYPE-1);
+  const idl_literal_t*cv1 = (const idl_literal_t*) element1;
+  const idl_literal_t*cv2 = (const idl_literal_t*) element2;
 
-  assert((idl_mask(&cv1->node) & mask) == (idl_mask(&cv2->node) & mask));
-  switch (idl_mask(&cv1->node) & mask)
+  assert((idl_mask(&cv1->node) & IDL_BASE_TYPE_MASK) == (idl_mask(&cv2->node) & IDL_BASE_TYPE_MASK));
+  switch (idl_mask(&cv1->node) & IDL_BASE_TYPE_MASK)
   {
   case IDL_BOOL:
     return EQ(cv1->value.bln, cv2->value.bln);
@@ -985,7 +961,7 @@ get_default_discr_value(idl_backend_ctx ctx, const idl_union_t *union_node)
   char *def_value = NULL;
   union_ctx->nr_unused_discr_values =
       get_potential_nr_discr_values(union_node) - union_ctx->total_label_count;
-  idl_constval_t min_const_value;
+  idl_literal_t min_const_value;
   void *min_value;
   idl_comparison_fn compare_elements;
   idl_incr_element_fn incr_element;
@@ -1027,7 +1003,7 @@ get_default_discr_value(idl_backend_ctx ctx, const idl_union_t *union_node)
   } else {
     /* Pick the first available literal value from the first available case. */
     const idl_const_expr_t *const_expr = union_node->cases->case_labels->const_expr;
-    def_value = get_cpp11_const_value((const idl_constval_t *) const_expr);
+    def_value = get_cpp11_const_value((const idl_literal_t*) const_expr);
   }
 
   return def_value;
@@ -1469,11 +1445,11 @@ emit_includes(
   idl_backend_ctx ctx = (idl_backend_ctx)user_data;
   idl_include_dep *dependency_mask = (idl_include_dep *) idl_get_custom_context(ctx);
 
-  if (idl_is_masked(node, IDL_UNION) &&
+  if (idl_is_union(node) &&
     (idl_variant_dep & *dependency_mask) == idl_no_dep)
     *dependency_mask |= idl_variant_dep;
 
-  if (idl_is_masked(node, IDL_DECLARATOR))
+  if (idl_is_declarator(node))
   {
     if (((const idl_declarator_t*)node)->const_expr &&
       (idl_array_dep & *dependency_mask) == idl_no_dep)

@@ -173,7 +173,7 @@ bool
 idl_is_reference(const idl_node_t *node)
 {
   bool result = false;
-  if (idl_is_masked(node, IDL_TEMPL_TYPE))
+  if (idl_is_templ_type(node))
   {
     switch(idl_mask(node) & IDL_TEMPL_TYPE_MASK)
     {

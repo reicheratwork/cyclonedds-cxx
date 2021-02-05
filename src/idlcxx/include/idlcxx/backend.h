@@ -20,16 +20,8 @@
 #include "idl/export.h"
 #include "idlcxx/idl_ostream.h"
 
-#define IDL_BASE_TYPE_MASK (IDL_INTEGER_TYPE | IDL_FLOATING_PT_TYPE)
-#define IDL_INTEGER_MASK (IDL_INTEGER_TYPE | 0x0F)
-#define IDL_INTEGER_MASK_IGNORE_SIGN (IDL_INTEGER_TYPE | 0x0E)
-#define IDL_FLOAT_MASK (IDL_FLOAT | IDL_DOUBLE | IDL_LDOUBLE)
-#define IDL_BASE_OTHERS_MASK (IDL_BASE_TYPE | 0x07)
-
+#define IDL_BASE_TYPE_MASK (IDL_BASE_TYPE*2-1)
 #define IDL_TEMPL_TYPE_MASK (IDL_SEQUENCE | IDL_STRING | IDL_WSTRING | IDL_FIXED_PT)
-#define IDL_CONSTR_TYPE_MASK (IDL_CONSTR_TYPE | IDL_STRUCT | IDL_UNION | IDL_ENUM)
-#define IDL_CATEGORY_MASK (IDL_BASE_TYPE | IDL_TEMPL_TYPE | IDL_MODULE | IDL_STRUCT |\
-            IDL_UNION | IDL_ENUM | IDL_TYPEDEF | IDL_CONST | IDL_MEMBER | IDL_DECLARATOR | IDL_CASE)
 
 /* An idl_retcode_t value used to abort a walk function.                      */
 /* An abort does not represent an error and should therefore not be negative. */

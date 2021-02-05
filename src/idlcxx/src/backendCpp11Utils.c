@@ -71,9 +71,7 @@ get_cpp11_name(const char* name)
 static char *
 get_cpp11_base_type(const idl_node_t *node)
 {
-  static const idl_mask_t mask = (IDL_BASE_TYPE|(IDL_BASE_TYPE-1));
-
-  switch (idl_mask(node) & mask)
+  switch (idl_mask(node) & IDL_BASE_TYPE_MASK)
   {
   case IDL_CHAR:
     return idl_strdup("char");
@@ -224,16 +222,13 @@ fail:
 char *
 get_default_value(idl_backend_ctx ctx, const idl_node_t *node)
 {
-  static const idl_mask_t mask = (IDL_BASE_TYPE|(IDL_BASE_TYPE-1));
   const idl_node_t *unwinded_node = idl_unalias(node, 0x0);
   (void)ctx;
-
-
 
   if (idl_is_enum(unwinded_node))
     return get_cpp11_fully_scoped_name((idl_node_t*)((idl_enum_t*)unwinded_node)->enumerators);
 
-  switch (idl_mask(unwinded_node) & mask)
+  switch (idl_mask(unwinded_node) & IDL_BASE_TYPE_MASK)
   {
   case IDL_BOOL:
     return idl_strdup("false");
@@ -267,13 +262,12 @@ get_default_value(idl_backend_ctx ctx, const idl_node_t *node)
 }
 
 static char *
-get_cpp11_base_type_const_value(const idl_constval_t *constval)
+get_cpp11_base_type_const_value(const idl_literal_t* constval)
 {
   int cnt = -1;
   char *str = NULL;
-  static const idl_mask_t mask = (IDL_BASE_TYPE_MASK|(IDL_BASE_TYPE_MASK-1));
 
-  switch (idl_mask(&constval->node) & mask)
+  switch (idl_mask(&constval->node) & IDL_BASE_TYPE_MASK)
   {
   case IDL_BOOL:
     return idl_strdup(constval->value.bln ? "true" : "false");
@@ -332,12 +326,12 @@ get_cpp11_base_type_const_value(const idl_constval_t *constval)
 }
 
 static char *
-get_cpp11_templ_type_const_value(const idl_constval_t *constval)
+get_cpp11_templ_type_const_value(const idl_literal_t *constval)
 {
   char *str;
   size_t len;
 
-  if (!idl_is_masked(constval, IDL_STRING))
+  if (!idl_is_string(constval))
     return NULL;
   assert(constval->value.str);
   len = strlen(constval->value.str);
@@ -351,7 +345,7 @@ get_cpp11_templ_type_const_value(const idl_constval_t *constval)
 }
 
 char *
-get_cpp11_const_value(const idl_constval_t *constval)
+get_cpp11_const_value(const idl_literal_t *constval)
 {
   static const idl_mask_t mask = IDL_BASE_TYPE | IDL_TEMPL_TYPE | IDL_ENUMERATOR;
 
@@ -372,11 +366,11 @@ get_cpp11_const_value(const idl_constval_t *constval)
 uint64_t
 array_entries(const idl_const_expr_t* ce)
 {
-  if (0 == (idl_mask((const idl_node_t*)ce) & IDL_CONST))
+  if (0 == (idl_mask((const idl_node_t*)ce) & IDL_LITERAL))
     return 0;
 
-  const idl_constval_t* var = (const idl_constval_t*)ce;
-  switch (idl_mask(var) & ~IDL_CONST)
+  const idl_literal_t* var = (const idl_literal_t*)ce;
+  switch (idl_mask(var) & IDL_BASE_TYPE_MASK)
   {
   case IDL_UINT8:
     return var->value.uint8;

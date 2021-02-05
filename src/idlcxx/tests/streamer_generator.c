@@ -1307,7 +1307,7 @@ void test_base(size_t n, bool ns)
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, buffer);
 
@@ -1353,7 +1353,7 @@ void test_instance(bool ns)
   }
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, buffer);
 
@@ -1393,7 +1393,7 @@ void test_string(bool ns)
   }
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, buffer);
 
@@ -1435,7 +1435,7 @@ void test_sequence(size_t n, bool ns)
   }
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, buffer);
 
@@ -1489,7 +1489,7 @@ void test_union(bool ns)
   }
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, buffer);
 
@@ -1530,7 +1530,7 @@ void test_enum(bool ns)
   }
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, buffer);
 
@@ -1570,7 +1570,7 @@ void test_array_base(bool ns)
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, buffer);
 
@@ -1616,7 +1616,7 @@ void test_array_instance(bool ns)
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, buffer);
 
@@ -1641,7 +1641,7 @@ void test_namespace_cross_call()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -1666,7 +1666,7 @@ void test_struct_inheritance()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(IDL_FLAG_EXTENDED_DATA_TYPES, &annots, &tree);
+  idl_create_pstate(IDL4, IDL_FLAG_EXTENDED_DATA_TYPES, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -1689,7 +1689,7 @@ void test_bounded_sequence()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -1715,7 +1715,7 @@ void test_bounded_sequence_of_structs()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -1738,7 +1738,7 @@ void test_bounded_string()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -1773,7 +1773,7 @@ void test_typedef_resolution()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -1797,7 +1797,7 @@ void test_keys_base()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(0u, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -1832,7 +1832,7 @@ void test_keys_union_implicit()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(IDL_FLAG_ANNOTATIONS, &annots, &tree);
+  idl_create_pstate(IDL4, IDL_FLAG_ANNOTATIONS, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -1861,7 +1861,7 @@ void test_keys_struct_explicit()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(IDL_FLAG_ANNOTATIONS, &annots, &tree);
+  idl_create_pstate(IDL4, IDL_FLAG_ANNOTATIONS, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -1890,7 +1890,7 @@ void test_keys_struct_implicit()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(IDL_FLAG_ANNOTATIONS, &annots, &tree);
+  idl_create_pstate(IDL4, IDL_FLAG_ANNOTATIONS, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -1915,7 +1915,7 @@ void test_keys_typedef()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(IDL_FLAG_ANNOTATIONS, &annots, &tree);
+  idl_create_pstate(IDL4, IDL_FLAG_ANNOTATIONS, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -1936,7 +1936,7 @@ void test_sequence_recursive()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(IDL_FLAG_ANNOTATIONS, &annots, &tree);
+  idl_create_pstate(IDL4, IDL_FLAG_ANNOTATIONS, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -1960,7 +1960,7 @@ void test_re_alignment()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(IDL_FLAG_ANNOTATIONS, &annots, &tree);
+  idl_create_pstate(IDL4, IDL_FLAG_ANNOTATIONS, &annots, &tree);
 
   idl_parse_string(tree, str);
 

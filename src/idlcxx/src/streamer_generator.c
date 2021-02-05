@@ -23,8 +23,6 @@
 #include "idl/string.h"
 #include "idl/processor.h"
 
-#define BASE_TYPE_MASK ((IDL_BASE_TYPE << 1) -1)
-
 static void format_ostream_indented(size_t depth, idl_ostream_t* ostr, const char *fmt, ...)
 {
   if (depth > 0) format_ostream(ostr, "%*c", depth, ' ');
@@ -314,7 +312,7 @@ int determine_byte_width(idl_node_t* typespec)
   if (idl_is_enum(typespec))
     return 4;
 
-  switch (idl_mask(typespec) & BASE_TYPE_MASK)
+  switch (idl_mask(typespec) & IDL_BASE_TYPE_MASK)
   {
   case IDL_INT8:
   case IDL_UINT8:
@@ -544,7 +542,7 @@ idl_retcode_t check_start_array(context_t* ctx, char **accessor, idl_declarator_
   idl_const_expr_t* ce = decl ? decl->const_expr : NULL;
   while (ce)
   {
-    if (idl_mask(ce) & IDL_CONST)
+    if (idl_mask(ce) & IDL_LITERAL)
     {
       uint64_t entries = array_entries(ce);
       if (entries)
@@ -580,7 +578,7 @@ idl_retcode_t check_stop_array(context_t* ctx, idl_declarator_t* decl, bool is_k
   idl_const_expr_t* ce = decl ? decl->const_expr : NULL;
   while (ce)
   {
-    if (idl_mask(ce) & IDL_CONST)
+    if (idl_mask(ce) & IDL_LITERAL)
     {
       if (array_entries(ce))
       {
@@ -634,7 +632,7 @@ bool has_keys(idl_type_spec_t* spec)
   //is union
   else if (idl_is_union(spec))
   {
-    if (idl_is_masked(((idl_union_t*)spec)->switch_type_spec, IDL_KEY)) return true;
+    return ((idl_union_t*)spec)->switch_type_spec->key;
   }
   //is typedef
   else if (idl_is_typedef(spec))
@@ -692,9 +690,10 @@ idl_retcode_t process_instance(context_t* ctx, idl_declarator_t* decl, idl_type_
     if ((returnval = process_sequence_impl(ctx, accessor, spec, is_key)))
       goto fail2;
   } else {
-    assert(idl_is_typedef(spec));
+    idl_typedef_t* tp = (idl_typedef_t*)((idl_node_t*)spec)->parent;
+    assert(idl_is_typedef(tp));
 
-    idl_type_spec_t* ispec = resolve_typedef(spec);
+    idl_type_spec_t* ispec = resolve_typedef(tp);
 
     if (idl_is_base_type(ispec))
     {
@@ -929,7 +928,7 @@ char* determine_cast(idl_node_t* typespec)
     return idl_strdup(char_cast);
   }
 
-  switch (idl_mask(typespec) & BASE_TYPE_MASK)
+  switch (idl_mask(typespec) & IDL_BASE_TYPE_MASK)
   {
   case IDL_CHAR:
     return idl_strdup(char_cast);
@@ -1299,7 +1298,7 @@ idl_type_spec_t* resolve_typedef(idl_type_spec_t* spec)
 
 idl_retcode_t print_inherit_spec(context_t* ctx, idl_inherit_spec_t* ispec)
 {
-  idl_retcode_t returnval = IDL_RETCODE_OUT_OF_MEMORY;
+  idl_retcode_t returnval = IDL_RETCODE_NO_MEMORY;
 
   char* base_cpp11name = get_cpp11_name(idl_identifier(ispec->base));
   if (!base_cpp11name)
@@ -1338,7 +1337,7 @@ idl_retcode_t process_struct_definition(
   (void)pstate;
   (void)path;
 
-  idl_retcode_t returnval = IDL_RETCODE_OUT_OF_MEMORY;
+  idl_retcode_t returnval = IDL_RETCODE_NO_MEMORY;
   context_t* ctx = *(context_t**)user_data;
   char* cpp11name = get_cpp11_name(idl_identifier(node));
   if (!cpp11name)
@@ -1368,7 +1367,6 @@ fail:
 
 static idl_retcode_t union_switch_start(context_t* ctx, idl_switch_type_spec_t* st)
 {
-  bool disc_is_key = idl_is_masked(st, IDL_KEY);
   idl_retcode_t returnval = IDL_RETCODE_OK;
 
   /*create temporary discriminator holders since
@@ -1383,7 +1381,7 @@ static idl_retcode_t union_switch_start(context_t* ctx, idl_switch_type_spec_t* 
   format_write_stream(1, ctx, false, "  %s _disc_temp = _d();\n", discriminator_cast);
   format_write_size_stream(1, ctx, false, "  %s _disc_temp = _d();\n", discriminator_cast);
   format_read_stream(1, ctx, false, "  %s _disc_temp;\n", discriminator_cast);
-  if ((returnval = process_known_width(ctx, "_disc_temp", st->type_spec, disc_is_key)))
+  if ((returnval = process_known_width(ctx, "_disc_temp", st->type_spec, st->key)))
     goto fail2;
 
   format_write_size_stream(1, ctx, false, union_switch);
@@ -1431,7 +1429,7 @@ idl_retcode_t process_union_definition(
   (void)pstate;
   (void)path;
 
-  idl_retcode_t returnval = IDL_RETCODE_OUT_OF_MEMORY;
+  idl_retcode_t returnval = IDL_RETCODE_NO_MEMORY;
   context_t* ctx = *(context_t**)user_data;
   char* cpp11name = get_cpp11_name(idl_identifier(node));
   if (!cpp11name)
@@ -1624,7 +1622,7 @@ idl_retcode_t process_case_label(const idl_pstate_t* pstate,
   if (ce)
   {
     char* buffer = NULL;
-    idl_constval_t* cv = (idl_constval_t*)ce;
+    idl_literal_t* cv = (idl_literal_t*)ce;
     switch (idl_mask(ce) % (IDL_BASE_TYPE * 2))
     {
     case IDL_INT8:
@@ -1749,9 +1747,10 @@ idl_retcode_t process_string_impl(context_t* ctx, const char* accessor, idl_stri
 idl_retcode_t process_sequence_impl(context_t* ctx, const char* accessor, idl_sequence_t* spec, bool is_key)
 {
   idl_type_spec_t* ispec = spec->type_spec;
-  if (idl_is_typedef(ispec))
+  if (idl_is_declarator(ispec) &&
+      idl_is_typedef(((idl_node_t*)ispec)->parent))
   {
-    idl_type_spec_t* temp = resolve_typedef(ispec);
+    idl_type_spec_t* temp = resolve_typedef(((idl_node_t*)ispec)->parent);
     if (idl_is_base_type(temp))
       ispec = temp;
   }
@@ -1832,9 +1831,11 @@ idl_retcode_t process_sequence_impl(context_t* ctx, const char* accessor, idl_se
     {
       process_constructed_type_impl(ctx, entryaccess, is_key, !has_keys((idl_type_spec_t*)spec));
     }
-    else if (idl_is_typedef(ispec))
+    else if (idl_is_declarator(ispec) &&
+             idl_is_typedef(((idl_node_t*)ispec)->parent))
     {
-      process_typedef_instance_impl(ctx, entryaccess, ispec, is_key);
+      idl_typedef_t* td = (idl_typedef_t*)((idl_node_t*)ispec)->parent;
+      process_typedef_instance_impl(ctx, entryaccess, td->declarators, is_key);
     }
     free(entryaccess);
 

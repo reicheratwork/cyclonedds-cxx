@@ -270,7 +270,7 @@ test_base_type(const char *input, uint32_t flags, int32_t retcode, const char *o
   const char *mem_buf;
 
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(flags, &annots, &tree);
+  idl_create_pstate(IDL35, flags, &annots, &tree);
 
   ret = idl_parse_string(tree, input);
   if (ret != retcode)
