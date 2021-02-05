@@ -44,6 +44,16 @@ void byte_swap(T& toswap) {
     toswap = u.a;
 }
 
+template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
+void transfer_and_swap(const T& from, T& to, bool sw) {
+
+  to = from;
+
+  if (sw &&
+    sizeof(T) > 1)
+    byte_swap(to);
+}
+
 enum class endianness {
     little_endian = DDSRT_LITTLE_ENDIAN,
     big_endian = DDSRT_BIG_ENDIAN
@@ -57,33 +67,28 @@ public:
 
     size_t position() const { return m_position; }
 
+    size_t position(size_t newposition) { if (m_position != SIZE_MAX) m_position = newposition; return m_position; }
+
+    size_t incr_position(size_t incr_by) { if (m_position != SIZE_MAX) return (m_position += incr_by); }
+
     void reset_position() { m_position = 0; m_current_alignment = 0; }
 
     void set_buffer(void* toset);
 
-    void set_stream_endianness(endianness toset) { m_stream_endianness = toset; }
+    const char* get_cursor() const { return m_position != SIZE_MAX && m_buffer != nullptr ? m_buffer + m_position : nullptr; }
 
-    void align(size_t newalignment, bool add_zeroes);
+    bool swap_endianness() const { return m_stream_endianness == m_local_endianness; }
+
+    size_t align(size_t newalignment, bool add_zeroes);
 
 protected:
-
-    template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-    void transfer_and_swap(const T& from, T& to, bool sw) {
-
-        to = from;
-
-        if (sw)
-            byte_swap(to);
-
-        m_position += sizeof(T);
-    }
 
     endianness m_stream_endianness, //the endianness of the stream
         m_local_endianness = native_endianness();  //the local endianness
     size_t m_position = 0,  //the current offset position in the stream
         m_max_alignment,  //the maximum bytes that can be aligned to
         m_current_alignment = 1;  //the current alignment
-    char* m_buffer = NULL;  //the current buffer in use
+    char* m_buffer = nullptr;  //the current buffer in use
 };
 
 #endif

@@ -19,13 +19,16 @@ void cdr_stream::set_buffer(void* toset) {
   reset_position();
 }
 
-void cdr_stream::align(size_t newalignment, bool add_zeroes) {
+size_t cdr_stream::align(size_t newalignment, bool add_zeroes) {
   m_current_alignment = std::min(newalignment, m_max_alignment);
 
   size_t tomove = (m_current_alignment - m_position % m_current_alignment) % m_current_alignment;
   if (tomove != 0 &&
-    add_zeroes)
-    memset(m_buffer + m_position, 0, tomove);
+    add_zeroes &&
+    m_buffer)
+    memset(get_cursor(), 0, tomove);
 
   m_position += tomove;
+
+  return tomove;
 }
