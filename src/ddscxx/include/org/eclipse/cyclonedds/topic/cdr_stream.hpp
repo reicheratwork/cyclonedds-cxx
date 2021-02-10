@@ -101,10 +101,9 @@ public:
     size_t position() const { return m_position; }
 
     /**
-    * Sets the current position offset to newposition if it is not at SIZE_MAX.
     * Returns the position value after this operation.
     */
-    size_t position(size_t newposition) { if (m_position != SIZE_MAX) m_position = newposition; return m_position; }
+    size_t position(size_t newposition) { return m_position = newposition; }
 
     /**
     * Moves the current position offset by incr_by if it is not at SIZE_MAX.

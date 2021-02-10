@@ -142,26 +142,21 @@ generate_streamers(
   const char *dir,
   const char *basename)
 {
-  FILE *srcfh = NULL, *hdrfh = NULL;
-  char *src = NULL, *hdr = NULL, *inc = NULL;
+  (void)idl;
+  FILE *hdrfh = NULL;
+  char *hdr = NULL, *inc = NULL;
   const char *sep = strlen(dir) ? "/" : "";
   idl_streamer_output_t *generated = NULL;
   idl_retcode_t ret = IDL_RETCODE_OK;
   idl_ostream_t *stm = NULL;
   size_t len = 0;
 
-  if (idl_asprintf(&src, "%s%s%s.cpp", dir, sep, basename) == -1) {
-    ret = IDL_RETCODE_NO_MEMORY;
-    goto err_src;
-  } else if (idl_asprintf(&hdr, "%s%s%s.hpp", dir, sep, basename) == -1) {
+  if (idl_asprintf(&hdr, "%s%s%s.hpp", dir, sep, basename) == -1) {
     ret = IDL_RETCODE_NO_MEMORY;
     goto err_hdr;
   } else if ((inc = figure_guard(hdr)) == NULL) {
     ret = IDL_RETCODE_NO_MEMORY;
     goto err_guard;
-  } else if ((srcfh = fopen(src, "wb")) == NULL) {
-    ret = IDL_RETCODE_NO_ENTRY;
-    goto err_src_fopen;
   } else if ((hdrfh = fopen(hdr, "ab")) == NULL) {
     ret = IDL_RETCODE_NO_ENTRY;
     goto err_hdr_fopen;
@@ -171,16 +166,6 @@ generate_streamers(
   }
 
   idl_streamers_generate(tree, generated);
-  stm = get_idl_streamer_impl_buf(generated);
-  assert(stm);
-  print_header(srcfh, idl, src);
-  fprintf(srcfh, "\n#include \"%s\"\n", hdr);
-  len = get_ostream_buffer_position(stm);
-  if (fwrite(get_ostream_buffer(stm), 1, len, srcfh) != len && ferror(srcfh)) {
-    ret = IDL_RETCODE_NO_ENTRY;
-    goto err_write_impl_buf;
-  }
-
   stm = get_idl_streamer_head_buf(generated);
   assert(stm);
   len = get_ostream_buffer_position(stm);
@@ -193,19 +178,14 @@ generate_streamers(
 
 
 err_write_head_buf:
-err_write_impl_buf:
   destruct_idl_streamer_output(generated);
 err_create_streamer_output:
   fclose(hdrfh);
 err_hdr_fopen:
-  fclose(srcfh);
-err_src_fopen:
   free(inc);
 err_guard:
   free(hdr);
 err_hdr:
-  free(src);
-err_src:
   return ret;
 }
 
