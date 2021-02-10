@@ -323,9 +323,9 @@ CU_TheoryDataPoints(cpp11Backend, Struct) =
                               /*IDL_INPUT_STRUCT("AttrHolder","wstring","_wname"),*/
                               IDL_INPUT_STRUCT("AttrHolder","sequence<octet>","payload"),
                               IDL_INPUT_STRUCT("AttrHolder","sequence<octet, 100>","b_payload"),
-                              IDL_INPUT_STRUCT("AttrHolder","sequence<string<8>>","listBStr"),
+                              IDL_INPUT_STRUCT("AttrHolder","sequence<string<8> >","listBStr"),
                               IDL_INPUT_STRUCT("AttrHolder","sequence<string<8>, 5>","bListBStr"),
-                              IDL_INPUT_STRUCT("AttrHolder","sequence<sequence<string>>","strSeqSeq"),
+                              IDL_INPUT_STRUCT("AttrHolder","sequence<sequence<string> >","strSeqSeq"),
                               IDL_INPUT_STRUCT("AttrHolder","float","coordinate[3]"),
                               IDL_INPUT_STRUCT("AttrHolder","float","LineCoordinates[2][3]"),
                               IDL_INPUT_STRUCT("EmbeddedStr","long","x") IDL_INPUT_STRUCT("AttrHolder","EmbeddedStr","emb_str"),
