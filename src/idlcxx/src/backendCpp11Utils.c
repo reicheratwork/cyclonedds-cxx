@@ -127,24 +127,15 @@ get_cpp11_templ_type(const idl_node_t *node)
       char *typeval = get_cpp11_type(((const idl_sequence_t*)node)->type_spec);
 
       uint64_t bound = ((const idl_sequence_t*)node)->maximum;
-      char* boundval = NULL;
-      idl_asprintf(&boundval, "%"PRIu64, bound);
-      
-      idl_replace_indices_with_values(&cpp11Type, bound ? bounded_sequence_template : sequence_template, typeval, boundval);
+      idl_replace_indices_with_values(&cpp11Type, bound ? bounded_sequence_template : sequence_template, typeval, bound);
 
       free(typeval);
-      free(boundval);
     }
     break;
   case IDL_STRING:
     {
       uint64_t bound = ((const idl_string_t*)node)->maximum;
-      char* boundval = NULL;
-      idl_asprintf(&boundval, "%"PRIu64, bound);
-
-      idl_replace_indices_with_values(&cpp11Type, bound ? bounded_string_template : string_template, boundval);
-
-      free(boundval);
+      idl_replace_indices_with_values(&cpp11Type, bound ? bounded_string_template : string_template, bound);
     }
     break;
   case IDL_WSTRING:

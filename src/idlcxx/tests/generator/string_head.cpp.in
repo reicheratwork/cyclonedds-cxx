@@ -1,29 +1,25 @@
 template<typename T>
 void write(T& str, const ::N::s& instance)
 {
-  write(str, instance.mem_simple());
-  write(str, instance.mem());
+  write(str, instance.str());
 }
 
 template<typename T>
 void read(T& str, ::N::s& instance)
 {
-  read(str, instance.mem_simple());
-  read(str, instance.mem());
+  read(str, instance.str());
 }
 
 template<typename T>
 void move(T& str, const ::N::s& instance)
 {
-  move(str, instance.mem_simple());
-  move(str, instance.mem());
+  move(str, instance.str());
 }
 
 template<typename T>
 void max(T& str, const ::N::s& instance)
 {
-  max(str, instance.mem_simple());
-  max(str, instance.mem());
+  max(str, instance.str());
 }
 
 template<typename T>

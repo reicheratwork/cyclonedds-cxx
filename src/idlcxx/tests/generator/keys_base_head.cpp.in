@@ -2,51 +2,51 @@ template<typename T>
 void write(T& str, const ::s& instance)
 {
   write(str, instance.o());
-  write(str, instance.t());
+  write(str, instance.l());
 }
 
 template<typename T>
 void read(T& str, ::s& instance)
 {
   read(str, instance.o());
-  read(str, instance.t());
+  read(str, instance.l());
 }
 
 template<typename T>
 void move(T& str, const ::s& instance)
 {
   move(str, instance.o());
-  move(str, instance.t());
+  move(str, instance.l());
 }
 
 template<typename T>
 void max(T& str, const ::s& instance)
 {
   max(str, instance.o());
-  max(str, instance.t());
+  max(str, instance.l());
 }
 
 template<typename T>
 void key_write(T& str, const ::s& instance)
 {
-  write(str, instance.t());
+  write(str, instance.l());
 }
 
 template<typename T>
 void key_read(T& str, ::s& instance)
 {
-  read(str, instance.t());
+  read(str, instance.l());
 }
 
 template<typename T>
 void key_move(T& str, const ::s& instance)
 {
-  move(str, instance.t());
+  move(str, instance.l());
 }
 
 template<typename T>
 void key_max(T& str, const ::s& instance)
 {
-  max(str, instance.t());
+  max(str, instance.l());
 }
 

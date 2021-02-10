@@ -73,19 +73,19 @@ if (key) {format_key_read_stream(indent,ctx, __VA_ARGS__);}
 #define open_block "{\n"
 #define close_block "}\n"
 #define close_function close_block "\n"
-#define const_ref_cast "dynamic_cast<const %s&>(*this)"
-#define ref_cast "dynamic_cast<%s&>(*this)"
-#define member_access "%s()"
+#define const_ref_cast "dynamic_cast<const %s&>(instance)"
+#define ref_cast "dynamic_cast<%s&>(instance)"
+#define member_access "instance.%s()"
 #define ignore_str "(void)str;\n"
-#define write_member "write(str, towrite.%s);\n"
-#define read_member "read(str, toread.%s);\n"
+#define ignore_instance "(void)instance;\n"
+#define write_instance "write(str, %s);\n"
 #define read_instance "read(str, %s);\n"
-#define move_member "move(str, tomove.%s);\n"
-#define max_member "max(str, tomax.%s);\n"
-#define key_write_member "key_write(str, towrite.%s);\n"
-#define key_read_member "key_read(str, toread.%s);\n"
-#define key_move_member "key_move(str, tomove.%s);\n"
-#define key_max_member "key_max(str, tomax.%s);\n"
+#define move_instance "move(str, %s);\n"
+#define max_instance "max(str, %s);\n"
+#define key_write_instance "key_write(str, %s);\n"
+#define key_read_instance "key_read(str, %s);\n"
+#define key_move_instance "key_move(str, %s);\n"
+#define key_max_instance "key_max(str, %s);\n"
 #define template_decl "template<typename T>\n"
 
 struct idl_streamer_output
@@ -146,6 +146,7 @@ struct context
   idl_ostream_t* key_move_stream;
   idl_ostream_t* key_max_stream;
   idl_ostream_t* key_stream;
+  size_t key_entries;
   size_t depth;
 };
 
@@ -227,63 +228,6 @@ close_context(context_t* ctx,
 }
 
 static char*
-determine_cast(idl_node_t* typespec)
-{
-  if (idl_is_enum(typespec))
-  {
-    return get_cpp11_type(typespec);
-  }
-
-  switch (idl_mask(typespec) & IDL_BASE_TYPE_MASK)
-  {
-  case IDL_CHAR:
-    return idl_strdup("char");
-    break;
-  case IDL_BOOL:
-    return idl_strdup("bool");
-    break;
-  case IDL_INT8:
-    return idl_strdup("int8_t");
-    break;
-  case IDL_UINT8:
-  case IDL_OCTET:
-    return idl_strdup("uint8_t");
-    break;
-  case IDL_INT16:
-  case IDL_SHORT:
-    return idl_strdup("int16_t");
-    break;
-  case IDL_UINT16:
-  case IDL_USHORT:
-    return idl_strdup("uint16_t");
-    break;
-  case IDL_INT32:
-  case IDL_LONG:
-    return idl_strdup("int32_t");
-    break;
-  case IDL_UINT32:
-  case IDL_ULONG:
-    return idl_strdup("uint32_t");
-    break;
-  case IDL_INT64:
-  case IDL_LLONG:
-    return idl_strdup("int64_t");
-    break;
-  case IDL_UINT64:
-  case IDL_ULLONG:
-    return idl_strdup("uint64_t");
-    break;
-  case IDL_FLOAT:
-    return idl_strdup("float");
-    break;
-  case IDL_DOUBLE:
-    return idl_strdup("double");
-    break;
-  }
-  return NULL;
-}
-
-static char*
 generate_accessor(idl_declarator_t* decl)
 {
   char* accessor = NULL;
@@ -338,27 +282,30 @@ process_instance(context_t* ctx,
     goto fail1;
   }
 
+  if (is_key)
+    ctx->key_entries++;
+
   //write functions for accessor
   if ((idl_is_struct(spec) || idl_is_union(spec)) && has_keys(spec))
   {
-    format_write_stream(1, ctx, false, write_member, accessor);
-    format_read_stream(1, ctx, false, read_member, accessor);
-    format_move_stream(1, ctx, false, move_member, accessor);
-    format_max_stream(1, ctx, false, max_member, accessor);
+    format_write_stream(1, ctx, false, write_instance, accessor);
+    format_read_stream(1, ctx, false, read_instance, accessor);
+    format_move_stream(1, ctx, false, move_instance, accessor);
+    format_max_stream(1, ctx, false, max_instance, accessor);
     if (is_key)
     {
-      format_key_write_stream(1, ctx, key_write_member, accessor);
-      format_key_read_stream(1, ctx, key_read_member, accessor);
-      format_key_move_stream(1, ctx, key_move_member, accessor);
-      format_key_max_stream(1, ctx, key_max_member, accessor);
+      format_key_write_stream(1, ctx, key_write_instance, accessor);
+      format_key_read_stream(1, ctx, key_read_instance, accessor);
+      format_key_move_stream(1, ctx, key_move_instance, accessor);
+      format_key_max_stream(1, ctx, key_max_instance, accessor);
     }
   }
   else
   {
-    format_write_stream(1, ctx, is_key, write_member, accessor);
-    format_read_stream(1, ctx, is_key, read_member, accessor);
-    format_move_stream(1, ctx, is_key, move_member, accessor);
-    format_max_stream(1, ctx, is_key, max_member, accessor);
+    format_write_stream(1, ctx, is_key, write_instance, accessor);
+    format_read_stream(1, ctx, is_key, read_instance, accessor);
+    format_move_stream(1, ctx, is_key, move_instance, accessor);
+    format_max_stream(1, ctx, is_key, max_instance, accessor);
   }
 
   idl_declarator_t* nextdecl = decl ? (idl_declarator_t*)(decl->node.next) : NULL;
@@ -389,6 +336,22 @@ process_member(const idl_pstate_t* pstate,
 static void
 print_constructed_type_close(context_t* ctx)
 {
+  if (ctx->key_entries == 0)
+  {
+    format_key_write_stream(1, ctx, ignore_str);
+    format_key_write_stream(1, ctx, ignore_instance);
+
+    format_key_read_stream(1, ctx, ignore_str);
+    format_key_read_stream(1, ctx, ignore_instance);
+
+    format_key_move_stream(1, ctx, ignore_str);
+    format_key_move_stream(1, ctx, ignore_instance);
+
+    format_key_max_stream(1, ctx, ignore_str);
+    format_key_max_stream(1, ctx, ignore_instance);
+  }
+  ctx->key_entries = 0;
+
   ctx->depth--;
 
   format_write_stream(1, ctx, true, close_function);
@@ -404,38 +367,26 @@ print_constructed_type_open(context_t* ctx,
   char* struct_name = get_cpp11_fully_scoped_name(node);
 
   format_write_stream(1, ctx, true, template_decl);
-  format_write_stream(1, ctx, false, "void write(T& str, const %s& towrite)\n", struct_name);
-  format_key_write_stream(1, ctx, "void key_write(T& str, const %s& towrite)\n", struct_name);
+  format_write_stream(1, ctx, false, "void write(T& str, const %s& instance)\n", struct_name);
+  format_key_write_stream(1, ctx, "void key_write(T& str, const %s& instance)\n", struct_name);
   format_write_stream(1, ctx, true, open_block);
 
   format_read_stream(1, ctx, true, template_decl);
-  format_read_stream(1, ctx, false, "void read(T& str, %s& toread)\n", struct_name);
-  format_key_read_stream(1, ctx, "void key_read(T& str, %s& toread)\n", struct_name);
+  format_read_stream(1, ctx, false, "void read(T& str, %s& instance)\n", struct_name);
+  format_key_read_stream(1, ctx, "void key_read(T& str, %s& instance)\n", struct_name);
   format_read_stream(1, ctx, true, open_block);
 
   format_move_stream(1, ctx, true, template_decl);
-  format_move_stream(1, ctx, false, "void move(T& str, const %s& tomove)\n", struct_name);
-  format_key_move_stream(1, ctx, "void key_move(T& str, const %s& tomove)\n", struct_name);
+  format_move_stream(1, ctx, false, "void move(T& str, const %s& instance)\n", struct_name);
+  format_key_move_stream(1, ctx, "void key_move(T& str, const %s& instance)\n", struct_name);
   format_move_stream(1, ctx, true, open_block);
 
   format_max_stream(1, ctx, true, template_decl);
-  format_max_stream(1, ctx, false, "void max(T& str, const %s& tomax)\n", struct_name);
-  format_key_max_stream(1, ctx, "void key_max(T& str, const %s& tomax)\n", struct_name);
+  format_max_stream(1, ctx, false, "void max(T& str, const %s& instance)\n", struct_name);
+  format_key_max_stream(1, ctx, "void key_max(T& str, const %s& instance)\n", struct_name);
   format_max_stream(1, ctx, true, open_block);
 
   ctx->depth++;
-
-  format_key_write_stream(1, ctx, ignore_str);
-  format_key_write_stream(1, ctx, "(void)towrite;\n");
-
-  format_key_read_stream(1, ctx, ignore_str);
-  format_key_read_stream(1, ctx, "(void)toread;\n");
-
-  format_key_move_stream(1, ctx, ignore_str);
-  format_key_move_stream(1, ctx, "(void)tomove;\n");
-
-  format_key_max_stream(1, ctx, ignore_str);
-  format_key_max_stream(1, ctx, "(void)tomax;\n");
 
   free(struct_name);
 }
@@ -480,17 +431,17 @@ process_case(const idl_pstate_t* pstate,
     if (idl_asprintf(&cpp11accessor, member_access, cpp11name) == -1)
       goto fail3;
 
-    format_write_stream(1, ctx, false, write_member, cpp11accessor);
+    format_write_stream(1, ctx, false, write_instance, cpp11accessor);
     format_write_stream(1, ctx, false, union_case_ending);
 
-    format_move_stream(1, ctx, false, move_member, cpp11accessor);
+    format_move_stream(1, ctx, false, move_instance, cpp11accessor);
     format_move_stream(1, ctx, false, union_case_ending);
 
     format_read_stream(1, ctx, false, "%s %s;\n", cpp11type, union_temp_instance);
     format_read_stream(1, ctx, false, read_instance, union_temp_instance);
     format_read_stream(1, ctx, false, "%s(%s,%s);\n", cpp11name, union_temp_instance, union_temp_discriminator);
 
-    format_max_stream(1, ctx, false, max_member, cpp11accessor);
+    format_max_stream(1, ctx, false, max_instance, cpp11accessor);
     format_max_stream(1, ctx, false, "union_max = std::max(str.position(),union_max);\n");
     format_max_stream(1, ctx, false, "str.position(pos);\n");
     format_max_stream(1, ctx, false, "str.alignment(alignment);\n");
@@ -523,6 +474,8 @@ print_inherit_spec(context_t* ctx,
 {
   idl_retcode_t returnval = IDL_RETCODE_NO_MEMORY;
 
+  ctx->key_entries++;
+
   char* base_cpp11name = get_cpp11_fully_scoped_name(ispec->base);
   if (!base_cpp11name)
     goto fail1;
@@ -533,15 +486,16 @@ print_inherit_spec(context_t* ctx,
   if (idl_asprintf(&read_accessor, ref_cast, base_cpp11name) == -1)
     goto fail3;
 
-  format_write_stream(1, ctx, false, write_member, write_accessor);
-  format_read_stream(1, ctx, false, read_member, read_accessor);
-  format_move_stream(1, ctx, false, move_member, write_accessor);
-  format_max_stream(1, ctx, false, max_member, write_accessor);
-  format_key_write_stream(1, ctx, key_write_member, write_accessor);
-  format_key_read_stream(1, ctx, key_read_member, read_accessor);
-  format_key_move_stream(1, ctx, key_move_member, write_accessor);
-  format_key_max_stream(1, ctx, key_max_member, write_accessor);
+  format_write_stream(1, ctx, false, write_instance, write_accessor);
+  format_read_stream(1, ctx, false, read_instance, read_accessor);
+  format_move_stream(1, ctx, false, move_instance, write_accessor);
+  format_max_stream(1, ctx, false, max_instance, write_accessor);
+  format_key_write_stream(1, ctx, key_write_instance, write_accessor);
+  format_key_read_stream(1, ctx, key_read_instance, read_accessor);
+  format_key_move_stream(1, ctx, key_move_instance, write_accessor);
+  format_key_max_stream(1, ctx, key_max_instance, write_accessor);
 
+  returnval = IDL_RETCODE_OK;
   free(read_accessor);
 fail3:
   free(write_accessor);
@@ -595,14 +549,14 @@ union_switch_start(context_t* ctx,
 {
   idl_retcode_t returnval = IDL_RETCODE_OK;
 
-  char* discriminator_cast = determine_cast(st->type_spec);
+  char* discriminator_cast = get_cpp11_type(st->type_spec);
   if (!discriminator_cast)
   {
     returnval = IDL_RETCODE_NO_MEMORY;
     goto fail1;
   }
 
-  format_write_stream(1, ctx, st->key, write_member, union_discriminator_accessor);
+  format_write_stream(1, ctx, st->key, write_instance, union_discriminator_accessor);
   format_write_stream(1, ctx, false, union_switch, union_discriminator_accessor);
   format_write_stream(1, ctx, false, open_block);
 
@@ -611,11 +565,11 @@ union_switch_start(context_t* ctx,
   format_read_stream(1, ctx, false, union_switch, union_temp_discriminator);
   format_read_stream(1, ctx, false, open_block);
 
-  format_move_stream(1, ctx, st->key, move_member, union_discriminator_accessor);
+  format_move_stream(1, ctx, st->key, move_instance, union_discriminator_accessor);
   format_move_stream(1, ctx, false, union_switch, union_discriminator_accessor);
   format_move_stream(1, ctx, false, open_block);
 
-  format_max_stream(1, ctx, st->key, max_member, union_discriminator_accessor);
+  format_max_stream(1, ctx, st->key, max_instance, union_discriminator_accessor);
   format_max_stream(1, ctx, false, "size_t union_max = str.position();\n");
 
   free(discriminator_cast);

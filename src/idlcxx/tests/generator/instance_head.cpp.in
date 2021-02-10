@@ -1,33 +1,67 @@
 template<typename T>
+void write(T& str, const ::N::I& instance)
+{
+  write(str, instance.l());
+}
+
+template<typename T>
 void write(T& str, const ::N::s& instance)
 {
-  write(str, instance.mem_simple());
   write(str, instance.mem());
+}
+
+template<typename T>
+void read(T& str, ::N::I& instance)
+{
+  read(str, instance.l());
 }
 
 template<typename T>
 void read(T& str, ::N::s& instance)
 {
-  read(str, instance.mem_simple());
   read(str, instance.mem());
+}
+
+template<typename T>
+void move(T& str, const ::N::I& instance)
+{
+  move(str, instance.l());
 }
 
 template<typename T>
 void move(T& str, const ::N::s& instance)
 {
-  move(str, instance.mem_simple());
   move(str, instance.mem());
+}
+
+template<typename T>
+void max(T& str, const ::N::I& instance)
+{
+  max(str, instance.l());
 }
 
 template<typename T>
 void max(T& str, const ::N::s& instance)
 {
-  max(str, instance.mem_simple());
   max(str, instance.mem());
 }
 
 template<typename T>
+void key_write(T& str, const ::N::I& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
 void key_write(T& str, const ::N::s& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_read(T& str, ::N::I& instance)
 {
   (void)str;
   (void)instance;
@@ -41,7 +75,21 @@ void key_read(T& str, ::N::s& instance)
 }
 
 template<typename T>
+void key_move(T& str, const ::N::I& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
 void key_move(T& str, const ::N::s& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_max(T& str, const ::N::I& instance)
 {
   (void)str;
   (void)instance;

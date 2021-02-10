@@ -1,0 +1,112 @@
+template<typename T>
+void write(T& str, const ::s& instance)
+{
+  write(str, instance.o());
+  write(str, instance.l());
+}
+
+template<typename T>
+void write(T& str, const ::ss& instance)
+{
+  write(str, instance.o());
+  write(str, instance.s_());
+  write(str, instance.l());
+}
+
+template<typename T>
+void read(T& str, ::s& instance)
+{
+  read(str, instance.o());
+  read(str, instance.l());
+}
+
+template<typename T>
+void read(T& str, ::ss& instance)
+{
+  read(str, instance.o());
+  read(str, instance.s_());
+  read(str, instance.l());
+}
+
+template<typename T>
+void move(T& str, const ::s& instance)
+{
+  move(str, instance.o());
+  move(str, instance.l());
+}
+
+template<typename T>
+void move(T& str, const ::ss& instance)
+{
+  move(str, instance.o());
+  move(str, instance.s_());
+  move(str, instance.l());
+}
+
+template<typename T>
+void max(T& str, const ::s& instance)
+{
+  max(str, instance.o());
+  max(str, instance.l());
+}
+
+template<typename T>
+void max(T& str, const ::ss& instance)
+{
+  max(str, instance.o());
+  max(str, instance.s_());
+  max(str, instance.l());
+}
+
+template<typename T>
+void key_write(T& str, const ::s& instance)
+{
+  write(str, instance.l());
+}
+
+template<typename T>
+void key_write(T& str, const ::ss& instance)
+{
+  key_write(str, instance.s_());
+  write(str, instance.l());
+}
+
+template<typename T>
+void key_read(T& str, ::s& instance)
+{
+  read(str, instance.l());
+}
+
+template<typename T>
+void key_read(T& str, ::ss& instance)
+{
+  key_read(str, instance.s_());
+  read(str, instance.l());
+}
+
+template<typename T>
+void key_move(T& str, const ::s& instance)
+{
+  move(str, instance.l());
+}
+
+template<typename T>
+void key_move(T& str, const ::ss& instance)
+{
+  key_move(str, instance.s_());
+  move(str, instance.l());
+}
+
+template<typename T>
+void key_max(T& str, const ::s& instance)
+{
+  max(str, instance.l());
+}
+
+template<typename T>
+void key_max(T& str, const ::ss& instance)
+{
+  key_max(str, instance.s_());
+  max(str, instance.l());
+}
+

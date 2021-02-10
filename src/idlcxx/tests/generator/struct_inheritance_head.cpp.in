@@ -1,0 +1,104 @@
+template<typename T>
+void write(T& str, const ::N::I& instance)
+{
+  write(str, instance.inherited_member());
+}
+
+template<typename T>
+void write(T& str, const ::N::s& instance)
+{
+  write(str, dynamic_cast<const ::N::I&>(instance));
+  write(str, instance.new_member());
+}
+
+template<typename T>
+void read(T& str, ::N::I& instance)
+{
+  read(str, instance.inherited_member());
+}
+
+template<typename T>
+void read(T& str, ::N::s& instance)
+{
+  read(str, dynamic_cast<::N::I&>(instance));
+  read(str, instance.new_member());
+}
+
+template<typename T>
+void move(T& str, const ::N::I& instance)
+{
+  move(str, instance.inherited_member());
+}
+
+template<typename T>
+void move(T& str, const ::N::s& instance)
+{
+  move(str, dynamic_cast<const ::N::I&>(instance));
+  move(str, instance.new_member());
+}
+
+template<typename T>
+void max(T& str, const ::N::I& instance)
+{
+  max(str, instance.inherited_member());
+}
+
+template<typename T>
+void max(T& str, const ::N::s& instance)
+{
+  max(str, dynamic_cast<const ::N::I&>(instance));
+  max(str, instance.new_member());
+}
+
+template<typename T>
+void key_write(T& str, const ::N::I& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_write(T& str, const ::N::s& instance)
+{
+  key_write(str, dynamic_cast<const ::N::I&>(instance));
+}
+
+template<typename T>
+void key_read(T& str, ::N::I& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_read(T& str, ::N::s& instance)
+{
+  key_read(str, dynamic_cast<::N::I&>(instance));
+}
+
+template<typename T>
+void key_move(T& str, const ::N::I& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_move(T& str, const ::N::s& instance)
+{
+  key_move(str, dynamic_cast<const ::N::I&>(instance));
+}
+
+template<typename T>
+void key_max(T& str, const ::N::I& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_max(T& str, const ::N::s& instance)
+{
+  key_max(str, dynamic_cast<const ::N::I&>(instance));
+}
+

@@ -1,0 +1,160 @@
+template<typename T>
+void write(T& str, const ::N::s& instance)
+{
+  write(str, _d());
+  switch (_d())
+  {
+  case -12345:
+  case 0:
+  case 1:
+    write(str, instance.o());
+    break;
+  case 2:
+  case 3:
+    write(str, instance.l());
+    break;
+  case 4:
+  case 5:
+    write(str, instance.str());
+    break;
+  default:
+    write(str, instance.f());
+    break;
+  }
+}
+
+template<typename T>
+void read(T& str, ::N::s& instance)
+{
+  int32_t _disc_temp;
+  read(str, _disc_temp);
+  switch (_disc_temp)
+  {
+  case -12345:
+  case 0:
+  case 1:
+  {
+    uint8_t obj;
+    read(str, obj);
+    o(obj,_disc_temp);
+  }
+    break;
+  case 2:
+  case 3:
+  {
+    int32_t obj;
+    read(str, obj);
+    l(obj,_disc_temp);
+  }
+    break;
+  case 4:
+  case 5:
+  {
+    idl_string<0> obj;
+    read(str, obj);
+    str(obj,_disc_temp);
+  }
+    break;
+  default:
+  {
+    float obj;
+    read(str, obj);
+    f(obj,_disc_temp);
+  }
+    break;
+  }
+}
+
+template<typename T>
+void move(T& str, const ::N::s& instance)
+{
+  move(str, _d());
+  switch (_d())
+  {
+  case -12345:
+  case 0:
+  case 1:
+    move(str, instance.o());
+    break;
+  case 2:
+  case 3:
+    move(str, instance.l());
+    break;
+  case 4:
+  case 5:
+    move(str, instance.str());
+    break;
+  default:
+    move(str, instance.f());
+    break;
+  }
+}
+
+template<typename T>
+void max(T& str, const ::N::s& instance)
+{
+  max(str, _d());
+  size_t union_max = str.position();
+  {
+    size_t pos = str.position();
+    size_t alignment = str.alignment();
+    max(str, instance.o());
+    union_max = std::max(str.position(),union_max);
+    str.position(pos);
+    str.alignment(alignment);
+  }
+  {
+    size_t pos = str.position();
+    size_t alignment = str.alignment();
+    max(str, instance.l());
+    union_max = std::max(str.position(),union_max);
+    str.position(pos);
+    str.alignment(alignment);
+  }
+  {
+    size_t pos = str.position();
+    size_t alignment = str.alignment();
+    max(str, instance.str());
+    union_max = std::max(str.position(),union_max);
+    str.position(pos);
+    str.alignment(alignment);
+  }
+  {
+    size_t pos = str.position();
+    size_t alignment = str.alignment();
+    max(str, instance.f());
+    union_max = std::max(str.position(),union_max);
+    str.position(pos);
+    str.alignment(alignment);
+  }
+  str.position(union_max);
+}
+
+template<typename T>
+void key_write(T& str, const ::N::s& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_read(T& str, ::N::s& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_move(T& str, const ::N::s& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_max(T& str, const ::N::s& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
