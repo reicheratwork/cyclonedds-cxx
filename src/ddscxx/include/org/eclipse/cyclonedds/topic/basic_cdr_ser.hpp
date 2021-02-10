@@ -21,16 +21,31 @@
 #include <cstring>
 #include <algorithm>
 
+/**
+* Implementation of the basic cdr stream.
+*/
 class basic_cdr_stream : public cdr_stream {
 public:
   basic_cdr_stream(endianness end = native_endianness()) : cdr_stream(end, 8) { ; }
-
-  //friend function decls
 };
 
-//primitive functions
+/**
+* Primitive type stream manipulation functions.
+*
+* These are "endpoints" for write functions, since composit
+* (sequence/array/constructed type) functions will decay to these
+* calls.
+*/
 
-template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
+/**
+* Primitive type read function.
+*
+* Aligns the stream to the alignment of type T.
+* Reads the value from the current position of the stream str into
+* toread, will swap bytes if necessary.
+* Moves the cursor of the stream by the size of T.
+*/
+template<typename T, std::enable_if_t<std::is_arithmetic<T>::value && !std::is_enum<T>::value, bool> = true >
 void read(basic_cdr_stream &str, T& toread)
 {
   str.align(sizeof(T), false);
@@ -43,7 +58,15 @@ void read(basic_cdr_stream &str, T& toread)
   str.incr_position(sizeof(T));
 }
 
-template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
+/**
+* Primitive type write function.
+*
+* Aligns str to the type to be written.
+* Writes towrite to str.
+* Swaps bytes written to str if the endiannesses do not match up.
+* Moves the cursor of str by the size of towrite.
+*/
+template<typename T, std::enable_if_t<std::is_arithmetic<T>::value && !std::is_enum<T>::value, bool> = true >
 void write(basic_cdr_stream& str, const T& towrite)
 {
   str.align(sizeof(T), true);
@@ -56,8 +79,15 @@ void write(basic_cdr_stream& str, const T& towrite)
   str.incr_position(sizeof(T));
 }
 
-template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-void incr(basic_cdr_stream& str, const T& toincr)
+/**
+* Primitive type cursor move function.
+*
+* Used in determining the size of a type when written to the stream.
+* Aligns str to the size of toincr.
+* Moves the cursor of str by the size of toincr.
+*/
+template<typename T, std::enable_if_t<std::is_arithmetic<T>::value && !std::is_enum<T>::value, bool> = true >
+void move(basic_cdr_stream& str, const T& toincr)
 {
   (void)toincr;
 
@@ -66,40 +96,82 @@ void incr(basic_cdr_stream& str, const T& toincr)
   str.incr_position(sizeof(T));
 }
 
-template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-void max_size(basic_cdr_stream& str, const T& max_sz)
+/**
+* Primitive type max stream move function.
+*
+* Used in determining the maximum stream size of a constructed type.
+* Moves the cursor to the maximum position it could occupy after
+* writing max_sz to the stream.
+* Is in essence the same as the primitive type cursor move function,
+* but additionally checks for whether the cursor it at the "end",
+* which may happen if unbounded members (strings/sequences/...)
+* are part of the constructed type.
+*/
+template<typename T, std::enable_if_t<std::is_arithmetic<T>::value && !std::is_enum<T>::value, bool> = true >
+void max(basic_cdr_stream& str, const T& max_sz)
 {
   if (str.position() == SIZE_MAX)
     return;
 
-  incr(str, max_sz);
+  move(str, max_sz);
 }
 
-//enum functions
+/**
+* Enumerated type stream manipulation functions.
+* Since enumerated types are represented by a uint32_t in basic CDR streams
+* they just loop through to writing uint32_t versions of the enum.
+*
+* These are "endpoints" for write functions, since compound
+* (sequence/array/constructed type) functions will decay to these
+* calls.
+*/
 
-template<typename T, typename = std::enable_if_t<std::is_enum<T>::value> >
+/**
+* Enum read function.
+*/
+template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
 void read(basic_cdr_stream& str, T& toread) {
-  read(str, uint32_t(toread));
+  read(str, *reinterpret_cast<uint32_t*>(&toread));
 }
 
-template<typename T, typename = std::enable_if_t<std::is_enum<T>::value> >
+/**
+* Enum write function.
+*/
+template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
 void write(basic_cdr_stream& str, const T& towrite) {
   write(str, uint32_t(towrite));
 }
 
-template<typename T, typename = std::enable_if_t<std::is_enum<T>::value> >
-void incr(basic_cdr_stream& str, const T& toincr) {
-  incr(str, uint32_t(toincr));
+/**
+* Enum move function.
+*/
+template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
+void move(basic_cdr_stream& str, const T& toincr) {
+  move(str, uint32_t(toincr));
 }
 
-template<typename T, typename = std::enable_if_t<std::is_enum<T>::value> >
-void max_size(basic_cdr_stream& str, const T& max_sz) {
-  max_size(str, uint32_t(max_sz));
+/**
+* Enum max move function.
+*/
+template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
+void max(basic_cdr_stream& str, const T& max_sz) {
+  max(str, uint32_t(max_sz));
 }
 
-//length functions
+/**
+* Stream length field manipulation functions.
+* Functions for reading/writing length fields for objects like sequences/strings.
+*/
 
-void write_length(basic_cdr_stream& str, size_t length, size_t bound)
+/**
+* Bound checked length field write function.
+*
+* Will check whether a bound is present for this length field, and will throw
+* an exception if a length is attempted to be written which exceeds this
+* (bound of 0 equals no bound present).
+* Writes length to str as a uint32_t type.
+*/
+static void write_length(basic_cdr_stream& str, size_t length, size_t bound)
 {
   //throw an exception if we attempt to write a length field in excess of the supplied bound
   if (bound &&
@@ -109,23 +181,44 @@ void write_length(basic_cdr_stream& str, size_t length, size_t bound)
   write(str, uint32_t(length));
 }
 
-void read_length(basic_cdr_stream& str, uint32_t& length)
+/**
+* Length field read function.
+*
+* Reads length from the stream.
+* This is not bound checked, to prevent reading of spurious data, which the program has
+* no control over to result in program failure.
+*/
+static void read_length(basic_cdr_stream& str, uint32_t& length)
 {
   read(str, length);
 }
 
-void incr_length(basic_cdr_stream& str, size_t length, size_t bound)
+/**
+* Bounds checked length field move function.
+*
+* Will check whether a bound is present for this length field, and will throw
+* an exception if a length is attempted to be written which exceeds this
+* (bound of 0 equals no bound present).
+* Moves the stream cursor by a uint32_t representation of the length.
+*/
+static void move_length(basic_cdr_stream& str, size_t length, size_t bound)
 {
   //throw an exception if we attempt to move the cursor for a length field in excess of the supplied bound
   if (bound &&
     length > bound)
     throw 2;  //replace throw
 
-  incr(str, uint32_t(length));
+  move(str, uint32_t(length));
 }
 
+/**
+* Bounded vector length read and resize combo function.
+*
+* Reads the length field from str into seq_length, but only increases the size of 
+* toread by at most N if this is not 0.
+*/
 template<typename T, size_t N>
-void read_vec_resize(basic_cdr_stream& str, idl_bounded_sequence<T, N>& toread, uint32_t& seq_length)
+void read_vec_resize(basic_cdr_stream& str, idl_sequence<T, N>& toread, uint32_t& seq_length)
 {
   //the length of the entries contained in the stream is read, but...
   read_length(str, seq_length);
@@ -136,10 +229,22 @@ void read_vec_resize(basic_cdr_stream& str, idl_bounded_sequence<T, N>& toread, 
   toread.resize(read_length);
 }
 
-//string functions
+/*
+* String type stream manipulation functions
+*
+* These are "endpoints" for write functions, since compound
+* (sequence/array/constructed type) functions will decay to these
+* calls.
+*/
 
+/*
+* Bounded string read function.
+*
+* Reads the length from str, but then initializes toread with at most N characters from it.
+* It does move the cursor by length read, since that is the number of characters in the stream.
+*/
 template<size_t N>
-void read(basic_cdr_stream& str, idl_bounded_string<N>& toread)
+void read(basic_cdr_stream& str, idl_string<N>& toread)
 {
   uint32_t string_length = 0;
 
@@ -151,8 +256,14 @@ void read(basic_cdr_stream& str, idl_bounded_string<N>& toread)
   str.incr_position(string_length);
 }
 
+/**
+* Bounded string write function.
+*
+* Attempts to write the length of towrite to str, where the bound is checked.
+* Then writes the contents of towrite to str.
+*/
 template<size_t N>
-void write(basic_cdr_stream& str, const idl_bounded_string<N>& towrite)
+void write(basic_cdr_stream& str, const idl_string<N>& towrite)
 {
   size_t string_length = towrite.length() + 1;  //add 1 extra for terminating NULL
 
@@ -165,20 +276,33 @@ void write(basic_cdr_stream& str, const idl_bounded_string<N>& towrite)
   str.incr_position(string_length);
 }
 
+/**
+* Bounded string cursor move function.
+*
+* Attempts to move the cursor for the length field, where the bound is checked.
+* Then moves the cursor for the length of the string.
+*/
 template<size_t N>
-void incr(basic_cdr_stream& str, const idl_bounded_string<N>& toincr)
+void move(basic_cdr_stream& str, const idl_string<N>& toincr)
 {
   size_t string_length = toincr.length() + 1;  //add 1 extra for terminating NULL
 
-  incr_length(str, string_length, N);
+  move_length(str, string_length, N);
 
   //no check on string length necessary after this since it is already checked in incr_length
 
   str.incr_position(string_length);
 }
 
+/**
+* Bounded string cursor max move function.
+*
+* Similar to the string move function, with the additional checks that no move
+* is done if the cursor is already at its maximum position, and that the cursor
+* is set to its maximum position if the bound is equal to 0 (unbounded).
+*/
 template<size_t N>
-void max_size(basic_cdr_stream& str, const idl_bounded_string<N>& max_sz)
+void max(basic_cdr_stream& str, const idl_string<N>& max_sz)
 {
   (void)max_sz;
 
@@ -193,17 +317,31 @@ void max_size(basic_cdr_stream& str, const idl_bounded_string<N>& max_sz)
   else
   {
     //length field
-    max_size(uint32_t(0));
+    max(str, uint32_t(0));
 
     //bounded string, length maximum N+1 characters
     str.incr_position(N + 1);
   }
 }
 
-//array functions
+/**
+* Array type stream manipulation functions.
+*/
 
-//arrays of primitives
+/**
+* Arrays of primitive types.
+*
+* These are "endpoints" for write functions, since compound
+* (sequence/array/constructed type) functions will consist of these
+* calls.
+*/
 
+/**
+* Primitive array read function.
+*
+* Copies the entire array to toread with a single memcpy, since there
+* are no structures to be unpacked.
+*/
 template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
 void read(basic_cdr_stream& str, idl_array<T, N>& toread)
 {
@@ -221,6 +359,12 @@ void read(basic_cdr_stream& str, idl_array<T, N>& toread)
   str.incr_position(N * sizeof(T));
 }
 
+/**
+* Primitive array write function.
+*
+* Copies the entire array to toread with a single memcpy, since there
+* are no structures to be unpacked.
+*/
 template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
 void write(basic_cdr_stream& str, const idl_array<T, N>& towrite)
 {
@@ -243,16 +387,22 @@ void write(basic_cdr_stream& str, const idl_array<T, N>& towrite)
   }
 }
 
+/**
+* Primitive array move function.
+*/
 template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-void incr(basic_cdr_stream& str, const idl_array<T, N>& toincr)
+void move(basic_cdr_stream& str, const idl_array<T, N>& toincr)
 {
   str.align(sizeof(T), false);
 
   str.incr_position(N * sizeof(T));
 }
 
+/**
+* Primitive array max move function.
+*/
 template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-void max_size(basic_cdr_stream& str, const idl_array<T, N>& max_sz)
+void max(basic_cdr_stream& str, const idl_array<T, N>& max_sz)
 {
   (void)max_sz;
 
@@ -264,8 +414,15 @@ void max_size(basic_cdr_stream& str, const idl_array<T, N>& max_sz)
   str.incr_position(N * sizeof(T));
 }
 
-//arrays of complex types
+/**
+* Arrays of complex types.
+*
+* All these functions do is call more "derived" type functions.
+*/
 
+/**
+* Complex type array read function.
+*/
 template<typename T, size_t N>
 void read(basic_cdr_stream& str, idl_array<T, N>& toread)
 {
@@ -273,6 +430,9 @@ void read(basic_cdr_stream& str, idl_array<T, N>& toread)
     read(str, e);
 }
 
+/**
+* Complex type array write function.
+*/
 template<typename T, size_t N>
 void write(basic_cdr_stream& str, const idl_array<T, N>& towrite)
 {
@@ -280,35 +440,76 @@ void write(basic_cdr_stream& str, const idl_array<T, N>& towrite)
     write(str, e);
 }
 
+/**
+* Complex type array move function.
+*/
 template<typename T, size_t N>
-void incr(basic_cdr_stream& str, const idl_array<T, N>& toincr)
+void move(basic_cdr_stream& str, const idl_array<T, N>& toincr)
 {
   for (const auto& e : toincr)
-    incr(str, e);
+    move(str, e);
 }
 
+/**
+* Complex type array max function.
+*/
 template<typename T, size_t N>
-void max_size(basic_cdr_stream& str, const idl_array<T, N>& max_sz)
+void max(basic_cdr_stream& str, const idl_array<T, N>& max_sz)
 {
   if (str.position() == SIZE_MAX)
     return;
 
   for (const auto & e:max_sz)
-    max_size(str, e);
+    max(str, e);
 }
 
-//sequence functions
+/**
+* Sequence type stream manipulation functions.
+*
+* These attempt to manipulate the sequence length field,
+* and then do the appropriate actions for the sequence
+* fields.
+*/
 
-//sequences of primitives
+/**
+* Sequences of primitive types.
+*
+* These are "endpoints" for write functions, since compound
+* (sequence/array/constructed type) functions will consist of these
+* calls.
+*/
 
-//implement special read function for sequences of bools, since the std::vector<bool> is also specialized, and direct copy will not give a happy result
-
-template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-void read(basic_cdr_stream& str, idl_bounded_sequence<T, N>& toread) {
+/**
+* Read function for sequences of bools, since the std::vector<bool> is also specialized, and direct copy will not give a happy result.
+*/
+template<size_t N>
+void read(basic_cdr_stream& str, idl_sequence<bool, N>& toread) {
   uint32_t seq_length = 0;  //this is the sequence length retrieved from the stream, not the number of entities to be written to the sequence object
   read_vec_resize(str, toread, seq_length);
 
-  align(str, sizeof(T), true);
+  for (auto& b : toread)
+  {
+    if (*(str.get_cursor()))
+      b = true;
+    else
+      b = false;
+    str.incr_position(1);
+  }
+
+  if (N &&
+    seq_length > N)
+    str.incr_position(seq_length-N);
+}
+
+/**
+* Primitive sequence read function.
+*/
+template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
+void read(basic_cdr_stream& str, idl_sequence<T, N>& toread) {
+  uint32_t seq_length = 0;  //this is the sequence length retrieved from the stream, not the number of entities to be written to the sequence object
+  read_vec_resize(str, toread, seq_length);
+
+  str.align(sizeof(T), false);
 
   memcpy(toread.data(), str.get_cursor(), toread.size() * sizeof(T));
 
@@ -322,10 +523,29 @@ void read(basic_cdr_stream& str, idl_bounded_sequence<T, N>& toread) {
   str.incr_position(seq_length * sizeof(T));
 }
 
-//implement special write function for sequences of bools, since the std::vector<bool> is also specialized, and direct copy will not give a happy result
+/**
+* Write function for sequences of bools, since the std::vector<bool> is also specialized, and direct copy will not give a happy result.
+*/
+template<size_t N>
+void write(basic_cdr_stream& str, const idl_sequence<bool, N>& towrite) {
+  write_length(str, towrite.size(), N);
 
+  //no check on length necessary after this point, it is done in the write_length function
+
+  str.alignment(1);
+
+  for (const auto& b : towrite)
+  {
+    *(str.get_cursor()) = b ? 0x1 : 0x0;
+    str.incr_position(1);
+  }
+}
+
+/**
+* Primitive sequence write function.
+*/
 template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-void write(basic_cdr_stream& str, const idl_bounded_sequence<T, N>& towrite) {
+void write(basic_cdr_stream& str, const idl_sequence<T, N>& towrite) {
   write_length(str, towrite.size(), N);
 
   //no check on length necessary after this point, it is done in the write_length function
@@ -349,9 +569,12 @@ void write(basic_cdr_stream& str, const idl_bounded_sequence<T, N>& towrite) {
   }
 }
 
+/**
+* Primitive sequence move function.
+*/
 template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-void incr(basic_cdr_stream& str, const idl_bounded_sequence<T, N>& toincr) {
-  incr_length(str, toincr.size(), N);
+void move(basic_cdr_stream& str, const idl_sequence<T, N>& toincr) {
+  move_length(str, toincr.size(), N);
 
   //no check on length necessary after this point, it is done in the incr_length function
 
@@ -360,9 +583,12 @@ void incr(basic_cdr_stream& str, const idl_bounded_sequence<T, N>& toincr) {
   str.incr_position(toincr.size() * sizeof(T));
 }
 
+/**
+* Primitive sequence max function.
+*/
 template<typename T, size_t N, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
-void max_size(basic_cdr_stream& str, const idl_bounded_sequence<T, N>& max_sz) {
-  if (m_position == SIZE_MAX)
+void max(basic_cdr_stream& str, const idl_sequence<T, N>& max_sz) {
+  if (str.position() == SIZE_MAX)
     return;
 
   if (N == 0)
@@ -371,7 +597,7 @@ void max_size(basic_cdr_stream& str, const idl_bounded_sequence<T, N>& max_sz) {
   }
   else
   {
-    max_size(str, uint32_t(0));
+    max(str, uint32_t(0));
 
     str.align(sizeof(T), false);
 
@@ -379,10 +605,17 @@ void max_size(basic_cdr_stream& str, const idl_bounded_sequence<T, N>& max_sz) {
   }
 }
 
-//sequences of complex types
+/*
+* Sequences of complex types stream manipulation functions.
+*
+* These functions just call the more basic implementation functions.
+*/
 
+/**
+* Complex type sequence read function.
+*/
 template<typename T, size_t N>
-void read(basic_cdr_stream& str, idl_bounded_sequence<T, N>& toread) {
+void read(basic_cdr_stream& str, idl_sequence<T, N>& toread) {
   uint32_t seq_length = 0;  //this is the sequence length of entities in the stream, not the number of entities to be read to the sequence
   read_vec_resize(str, toread, seq_length);
 
@@ -397,8 +630,11 @@ void read(basic_cdr_stream& str, idl_bounded_sequence<T, N>& toread) {
   }
 }
 
+/**
+* Complex type sequence write function.
+*/
 template<typename T, size_t N>
-void write(basic_cdr_stream& str, const idl_bounded_sequence<T, N>& towrite) {
+void write(basic_cdr_stream& str, const idl_sequence<T, N>& towrite) {
   write_length(str, towrite.size(), N);
 
   //no check on length necessary after this point, it is done in the write_length function
@@ -407,22 +643,28 @@ void write(basic_cdr_stream& str, const idl_bounded_sequence<T, N>& towrite) {
     write(str, e);
 }
 
+/**
+* Complex type sequence read function.
+*/
 template<typename T, size_t N>
-void incr(basic_cdr_stream& str, const idl_bounded_sequence<T, N>& toincr) {
-  incr_length(str, toincr.size(), N);
+void move(basic_cdr_stream& str, const idl_sequence<T, N>& toincr) {
+  move_length(str, toincr.size(), N);
 
   //no check on length necessary after this point, it is done in the incr_length function
 
   for (const auto& e : toincr)
-    incr(str, e);
+    move(str, e);
 }
 
+/**
+* Complex type sequence read function.
+*/
 template<typename T, size_t N>
-void max_size(basic_cdr_stream& str, const idl_bounded_sequence<T, N>& max_sz)
+void max(basic_cdr_stream& str, const idl_sequence<T, N>& max_sz)
 {
   (void)max_sz;
 
-  if (m_position == SIZE_MAX)
+  if (str.position() == SIZE_MAX)
     return;
 
   if (N == 0)
@@ -431,11 +673,11 @@ void max_size(basic_cdr_stream& str, const idl_bounded_sequence<T, N>& max_sz)
   }
   else
   {
-    max_size(str, uint32_t(0));
+    max(str, uint32_t(0));
 
     T dummy;
     for (size_t i = 0; i < N; i++)
-      max_size(str, T);
+      max(str, dummy);
   }
 }
 

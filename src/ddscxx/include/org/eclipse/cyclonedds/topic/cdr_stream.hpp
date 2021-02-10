@@ -19,6 +19,9 @@
 #include <stdexcept>
 #include <dds/core/macros.hpp>
 
+/**
+* Byte swapping function, is only enabled for arithmetic (base) types.
+*/
 template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
 void byte_swap(T& toswap) {
     union { T a; uint16_t u2; uint32_t u4; uint64_t u8; } u;
@@ -44,6 +47,9 @@ void byte_swap(T& toswap) {
     toswap = u.a;
 }
 
+/**
+* Sets value of to to from, will thereafter swap the bytes of to, is sw equals true.
+*/
 template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value> >
 void transfer_and_swap(const T& from, T& to, bool sw) {
 
@@ -54,31 +60,98 @@ void transfer_and_swap(const T& from, T& to, bool sw) {
     byte_swap(to);
 }
 
+/**
+* Endianness types.
+*/
 enum class endianness {
     little_endian = DDSRT_LITTLE_ENDIAN,
     big_endian = DDSRT_BIG_ENDIAN
 };
 
+/**
+* Returns the endianness of the local system.
+*/
 constexpr endianness native_endianness() { return endianness(DDSRT_ENDIAN); }
 
+/**
+* Base cdr_stream class, implements the functions which all "real" cdr stream implementations will use.
+*/
 class OMG_DDS_API cdr_stream {
 public:
+    /**
+    * Constructor.
+    * Sets the stream endianness to end, and maximum alignment to max_align.
+    * Local endianness is implicitly set to the local endianness value.
+    */
     cdr_stream(endianness end, size_t max_align) : m_stream_endianness(end), m_max_alignment(max_align) { ; }
 
+    /**
+    * Returns the current stream alignment.
+    */
+    size_t alignment() const { return m_current_alignment; }
+
+    /**
+    * Sets the new stream alignment.
+    */
+    size_t alignment(size_t newalignment) { return m_current_alignment = newalignment; }
+
+    /**
+    * Returns the current cursor offset.
+    */
     size_t position() const { return m_position; }
 
+    /**
+    * Sets the current position offset to newposition if it is not at SIZE_MAX.
+    * Returns the position value after this operation.
+    */
     size_t position(size_t newposition) { if (m_position != SIZE_MAX) m_position = newposition; return m_position; }
 
-    size_t incr_position(size_t incr_by) { if (m_position != SIZE_MAX) return (m_position += incr_by); }
+    /**
+    * Moves the current position offset by incr_by if it is not at SIZE_MAX.
+    * Returns the position value after this operation.
+    */
+    size_t incr_position(size_t incr_by) { if (m_position != SIZE_MAX) m_position += incr_by; return m_position; }
 
+    /**
+    * Resets the current cursor position and alignment to 0.
+    */
     void reset_position() { m_position = 0; m_current_alignment = 0; }
 
+    /**
+    * Sets the buffer pointer to toset.
+    * As a side effect, the current position and alignment are reset, since these are not associated with the new buffer.
+    */
     void set_buffer(void* toset);
 
-    const char* get_cursor() const { return m_position != SIZE_MAX && m_buffer != nullptr ? m_buffer + m_position : nullptr; }
+    /**
+    * Gets the current cursor pointer.
+    * If the current position is SIZE_MAX or the buffer pointer is not set, it returns nullptr.
+    */
+    char* get_cursor() const { return ((m_position != SIZE_MAX && m_buffer != nullptr) ? (m_buffer + m_position) : nullptr); }
 
+    /**
+    * Returns the endianness of the local system.
+    */
+    endianness local_endianness() const { return m_local_endianness; }
+
+    /**
+    * Returns the endianness of the stream.
+    */
+    endianness stream_endianness() const { return m_stream_endianness; }
+
+    /**
+    * Returns true if the stream endianness does not match the local endianness.
+    */
     bool swap_endianness() const { return m_stream_endianness == m_local_endianness; }
 
+    /**
+    * Aligns the current stream to newalignment: moves the cursor be at newalignment;
+    * Aligns to maximum m_max_alignment (which is stream-type specific).
+    *
+    * Zeroes the bytes the cursor is moved if add_zeroes is true.
+    *
+    * Nothing happens if the stream is already aligned to newalignment.
+    */
     size_t align(size_t newalignment, bool add_zeroes);
 
 protected:

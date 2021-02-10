@@ -20,10 +20,13 @@ void cdr_stream::set_buffer(void* toset) {
 }
 
 size_t cdr_stream::align(size_t newalignment, bool add_zeroes) {
+  if (m_current_alignment == newalignment)
+    return 0;
+
   m_current_alignment = std::min(newalignment, m_max_alignment);
 
   size_t tomove = (m_current_alignment - m_position % m_current_alignment) % m_current_alignment;
-  if (tomove != 0 &&
+  if (tomove &&
     add_zeroes &&
     m_buffer)
     memset(get_cursor(), 0, tomove);

@@ -17,20 +17,20 @@
 #include <array>
 
 template<size_t N>
-class idl_bounded_string : public std::string {
+class idl_string : public std::string {
 public:
-  idl_bounded_string() : std::string() {}
-  idl_bounded_string(const std::string& in) : std::string(in) {}
-  idl_bounded_string(const char* in) : std::string(in) {}
+  idl_string() : std::string() {}
+  idl_string(const std::string& in) : std::string(in) {}
+  idl_string(const char* in) : std::string(in) {}
 };
 
 template<typename T, size_t N>
-class idl_bounded_sequence : public std::vector<T> {
+class idl_sequence : public std::vector<T> {
 public:
-  idl_bounded_sequence() : std::vector<T>() {}
-  idl_bounded_sequence(const std::vector<T>& in) : std::vector<T>(in) {}
+  idl_sequence() : std::vector<T>() {}
+  idl_sequence(const std::vector<T>& in) : std::vector<T>(in) {}
   template<typename U>
-  idl_bounded_sequence(const U& in) : std::vector<T>() { for (const auto& e : in) this->emplace_back(e); }
+  idl_sequence(const U& in) : std::vector<T>() { for (const auto& e : in) this->emplace_back(e); }
 };
 
 template<typename T, size_t N>

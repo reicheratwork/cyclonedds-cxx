@@ -160,23 +160,6 @@ emit_member(
 }
 
 static idl_retcode_t
-generate_streamer_interfaces(idl_backend_ctx ctx)
-{
-  idl_indent_incr(ctx);
-  idl_file_out_printf(ctx, "size_t write_struct(void* data, size_t position) const;\n");
-  idl_file_out_printf(ctx, "size_t write_size(size_t offset) const;\n");
-  idl_file_out_printf(ctx, "size_t max_size(size_t offset) const;\n");
-  idl_file_out_printf(ctx, "size_t read_struct(const void* data, size_t position);\n");
-  idl_file_out_printf(ctx, "size_t key_size(size_t position) const;\n");
-  idl_file_out_printf(ctx, "size_t key_max_size(size_t position) const;\n");
-  idl_file_out_printf(ctx, "size_t key_write(void* data, size_t position) const;\n");
-  idl_file_out_printf(ctx, "size_t key_read(const void* data, size_t position);\n");
-  idl_file_out_printf(ctx, "bool key(ddsi_keyhash_t& hash) const;\n");
-  idl_indent_decr(ctx);
-  return IDL_RETCODE_OK;
-}
-
-static idl_retcode_t
 emit_struct(
   const idl_pstate_t* pstate,
   const bool revisit,
@@ -297,9 +280,6 @@ emit_struct(
   idl_file_out_printf(ctx, "\n");
 
   idl_indent_decr(ctx);
-
-  /*streamer interfaces*/
-  generate_streamer_interfaces(ctx);
 
   idl_file_out_printf(ctx, "};\n\n");
 
@@ -1397,7 +1377,6 @@ emit_union(
   union_generate_discr_getter_setter(ctx);
   union_generate_branch_getters_setters(ctx);
   union_generate_implicit_default_setter(ctx);
-  generate_streamer_interfaces(ctx);
 
   idl_file_out_printf(ctx, "};\n\n");
   idl_reset_custom_context(ctx);
@@ -1473,7 +1452,6 @@ idl_generate_include_statements(idl_backend_ctx ctx, const idl_pstate_t *parse_t
   idl_file_out_printf(ctx, "#include <cstddef>\n");
   idl_file_out_printf(ctx, "#include <cstdint>\n\n");
   idl_file_out_printf(ctx, "#include \"dds/dds.hpp\"\n");
-  idl_file_out_printf(ctx, "#include \"dds/ddsi/ddsi_keyhash.h\"\n\n");
 
   idl_visitor_t visitor;
 

@@ -138,7 +138,7 @@ get_cpp11_templ_type(const idl_node_t *node)
     break;
   case IDL_STRING:
     {
-      uint64_t bound = ((const idl_sequence_t*)node)->maximum;
+      uint64_t bound = ((const idl_string_t*)node)->maximum;
       char* boundval = NULL;
       idl_asprintf(&boundval, "%"PRIu64, bound);
 

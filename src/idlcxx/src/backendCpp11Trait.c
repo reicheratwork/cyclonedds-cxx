@@ -153,8 +153,7 @@ idl_backendGenerateTrait(idl_backend_ctx ctx, const idl_pstate_t *parse_tree)
   idl_retcode_t result = IDL_RETCODE_OK;
 
   idl_file_out_printf(ctx, "#include \"org/eclipse/cyclonedds/topic/TopicTraits.hpp\"\n");
-  idl_file_out_printf(ctx, "#include \"org/eclipse/cyclonedds/topic/DataRepresentation.hpp\"\n");
-  idl_file_out_printf(ctx, "#include \"org/eclipse/cyclonedds/topic/datatopic.hpp\"\n\n");
+  idl_file_out_printf(ctx, "#include \"org/eclipse/cyclonedds/topic/DataRepresentation.hpp\"\n\n");
   idl_file_out_printf(ctx, "namespace org { namespace eclipse { namespace cyclonedds { namespace topic {\n");
 
   idl_visitor_t visitor;
