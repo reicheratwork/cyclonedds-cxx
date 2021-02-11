@@ -12,10 +12,15 @@
 #ifndef IDL_TOKEN_REPLACE_H
 #define IDL_TOKEN_REPLACE_H
 
+#include "idlcxx/export.h"
+
+IDLCXX_EXPORT
 int idl_replace_tokens_with_indices(char** output, const char* input, const char** token_names, const char **token_flags);
 
+IDLCXX_EXPORT
 int idl_replace_tokens_default(char** output, const char* input);
 
+IDLCXX_EXPORT
 int idl_replace_indices_with_values(char** output, const char* fmt, ...);
 
 #endif

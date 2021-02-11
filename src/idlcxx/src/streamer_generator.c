@@ -1865,6 +1865,8 @@ void idl_streamers_generate(const idl_pstate_t* tree, idl_streamer_output_t* str
 
   format_impl_stream(0, ctx, "#include \"org/eclipse/cyclonedds/topic/hash.hpp\"\n\n");
 
+  const char *srcs[] = { tree->sources ? tree->sources->path->name : NULL, NULL };
+
   idl_visitor_t visitor;
   memset(&visitor, 0, sizeof(visitor));
   visitor.visit = IDL_MODULE | IDL_TYPEDEF | IDL_STRUCT | IDL_UNION | IDL_MEMBER | IDL_CASE | IDL_CASE_LABEL;
@@ -1876,13 +1878,9 @@ void idl_streamers_generate(const idl_pstate_t* tree, idl_streamer_output_t* str
   visitor.accept[IDL_ACCEPT_CASE] = &process_case;
   visitor.accept[IDL_ACCEPT_CASE_LABEL] = &process_case_label;
   if (tree->sources)
-  {
-    visitor.sources = malloc(sizeof(char*) * 2);
-    visitor.sources[0] = tree->sources->path->name;
-    visitor.sources[1] = NULL;
-  }
+    visitor.sources = srcs;
+
   idl_visit(tree, tree->root, &visitor, &ctx);
 
-  free(visitor.sources);
   close_context(ctx, str);
 }

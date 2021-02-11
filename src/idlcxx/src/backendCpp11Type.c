@@ -199,12 +199,10 @@ emit_struct(
   memset(&visitor, 0, sizeof(visitor));
   visitor.visit = IDL_MEMBER;
   visitor.accept[IDL_ACCEPT_MEMBER] = &emit_member;
+  const char* srcs[] = { pstate->sources ? pstate->sources->path->name : NULL, NULL };
   if (pstate->sources)
-  {
-    visitor.sources = malloc(sizeof(char*) * 2);
-    visitor.sources[0] = pstate->sources->path->name;
-    visitor.sources[1] = NULL;
-  }
+    visitor.sources = srcs;
+
   if ((ret = idl_visit(pstate, struct_node->members, &visitor, strctx)))
     goto fail;
 
@@ -306,7 +304,6 @@ emit_struct(
   idl_file_out_printf(ctx, "};\n\n");
 
 fail:
-  free(visitor.sources);
   cleanup_cpp11_struct_state(strctx);
 
   return ret;
@@ -637,12 +634,10 @@ emit_case(
   memset(&visitor, 0, sizeof(visitor));
   visitor.visit = IDL_CASE_LABEL;
   visitor.accept[IDL_ACCEPT_CASE_LABEL] = &count_labels;
+  const char* srcs[] = { pstate->sources ? pstate->sources->path->name : NULL, NULL };
   if (pstate->sources)
-  {
-    visitor.sources = malloc(sizeof(char*) * 2);
-    visitor.sources[0] = pstate->sources->path->name;
-    visitor.sources[1] = NULL;
-  }
+    visitor.sources = srcs;
+
   if ((result = idl_visit(pstate, case_node->case_labels, &visitor, &case_labels)))
     goto fail;
 
@@ -668,7 +663,6 @@ emit_case(
     goto fail;
 
 fail:
-  free(visitor.sources);
   ++(union_ctx->case_count);
   return IDL_RETCODE_OK;
 }
@@ -1368,12 +1362,10 @@ emit_union(
   memset(&visitor, 0, sizeof(visitor));
   visitor.visit = IDL_CASE;
   visitor.accept[IDL_ACCEPT_CASE] = &count_cases;
+  const char* srcs[] = { pstate->sources ? pstate->sources->path->name : NULL, NULL };
   if (pstate->sources)
-  {
-    visitor.sources = malloc(sizeof(char*) * 2);
-    visitor.sources[0] = pstate->sources->path->name;
-    visitor.sources[1] = NULL;
-  }
+    visitor.sources = srcs;
+
   if ((result = idl_visit(pstate, union_node->cases, &visitor, &nr_cases)))
     goto fail;
 
@@ -1411,7 +1403,6 @@ emit_union(
   idl_reset_custom_context(ctx);
 
 fail:
-  free(visitor.sources);
   for (uint32_t i = 0; i < nr_cases; ++i)
   {
     free(union_ctx.cases[i].name);
@@ -1492,12 +1483,9 @@ idl_generate_include_statements(idl_backend_ctx ctx, const idl_pstate_t *parse_t
   memset(&visitor, 0, sizeof(visitor));
   visitor.visit = ((idl_mask_t)-1);
   visitor.accept[IDL_ACCEPT] = &emit_includes;
+  const char* srcs[] = { parse_tree->sources ? parse_tree->sources->path->name : NULL, NULL };
   if (parse_tree->sources)
-  {
-    visitor.sources = malloc(sizeof(char*) * 2);
-    visitor.sources[0] = parse_tree->sources->path->name;
-    visitor.sources[1] = NULL;
-  }
+    visitor.sources = srcs;
 
   idl_retcode_t ret;
   if ((ret = idl_visit(parse_tree, parse_tree->root, &visitor, ctx)))
@@ -1545,7 +1533,6 @@ idl_generate_include_statements(idl_backend_ctx ctx, const idl_pstate_t *parse_t
   }
 
 fail:
-  free(visitor.sources);
   return ret;
 }
 
@@ -1567,15 +1554,11 @@ idl_backendGenerateType(idl_backend_ctx ctx, const idl_pstate_t *parse_tree)
   visitor.accept[IDL_ACCEPT_UNION] = &emit_union;
   visitor.accept[IDL_ACCEPT_ENUM] = &emit_enum;
   visitor.accept[IDL_ACCEPT_MODULE] = &emit_module;
+  const char* srcs[] = { parse_tree->sources ? parse_tree->sources->path->name : NULL, NULL };
   if (parse_tree->sources)
-  {
-    visitor.sources = malloc(sizeof(char*) * 2);
-    visitor.sources[0] = parse_tree->sources->path->name;
-    visitor.sources[1] = NULL;
-  }
+    visitor.sources = srcs;
   ret = idl_visit(parse_tree, parse_tree->root, &visitor, ctx);
 
-  free(visitor.sources);
   return ret;
 }
 

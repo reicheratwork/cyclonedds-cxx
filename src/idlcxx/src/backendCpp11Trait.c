@@ -56,12 +56,9 @@ generate_traits(
   memset(&visitor, 0, sizeof(visitor));
   visitor.visit = IDL_MEMBER;
   visitor.accept[IDL_ACCEPT_MEMBER] = &test_keyless;
+  const char* srcs[] = { pstate->sources ? pstate->sources->path->name : NULL, NULL };
   if (pstate->sources)
-  {
-    visitor.sources = malloc(sizeof(char*) * 2);
-    visitor.sources[0] = pstate->sources->path->name;
-    visitor.sources[1] = NULL;
-  }
+    visitor.sources = srcs;
 
   idl_retcode_t result = IDL_RETCODE_OK;
   if ((result = idl_visit(pstate, struct_node->members, &visitor, &is_keyless)))
@@ -125,7 +122,6 @@ generate_traits(
   idl_file_out_printf(ctx, "};\n");
 
 fail:
-  free(visitor.sources);
   free(struct_name);
   return result;
 }
@@ -166,12 +162,9 @@ idl_backendGenerateTrait(idl_backend_ctx ctx, const idl_pstate_t *parse_tree)
   memset(&visitor, 0, sizeof(visitor));
   visitor.visit = IDL_STRUCT;
   visitor.accept[IDL_ACCEPT_STRUCT] = &generate_traits;
+  const char* srcs[] = { parse_tree->sources ? parse_tree->sources->path->name : NULL, NULL };
   if (parse_tree->sources)
-  {
-    visitor.sources = malloc(sizeof(char*) * 2);
-    visitor.sources[0] = parse_tree->sources->path->name;
-    visitor.sources[1] = NULL;
-  }
+    visitor.sources = srcs;
 
   if ((result = idl_visit(parse_tree, parse_tree->root, &visitor, ctx)))
     goto fail;
@@ -186,7 +179,6 @@ idl_backendGenerateTrait(idl_backend_ctx ctx, const idl_pstate_t *parse_tree)
   idl_file_out_printf(ctx, "\n");
 
 fail:
-  free(visitor.sources);
   return result;
 }
 

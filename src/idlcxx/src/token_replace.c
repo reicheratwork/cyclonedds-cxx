@@ -5,13 +5,14 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <inttypes.h>
 
 #define _TOKEN_START '{'
 #define _TOKEN_END '}'
 #define _ESCAPED '%'
 
 static const char* template_token_names[] = { "{TYPE}", "{BOUND}", NULL };
-static const char* template_token_formats[] = { "s", "s", NULL };
+static const char* template_token_formats[] = { "s", PRIu64, NULL };
 
 static size_t istok(const char* str, size_t len, const char** token_names)
 {
@@ -40,7 +41,7 @@ int idl_replace_tokens_with_indices(char **output, const char* input, const char
     if (tok) {
       if (input[src] == _TOKEN_END && (num = istok(input + tok, src - tok, token_names))) {
         const char* flag = token_flags[num - 1];
-        len += (size_t)snprintf(buf, sizeof(buf), FMT, num, flag);
+        len += (size_t)idl_snprintf(buf, sizeof(buf), FMT, num, flag);
         tok = 0;
       }
       else if (input[src] == _TOKEN_END || input[src] == '\0') {
@@ -66,7 +67,7 @@ int idl_replace_tokens_with_indices(char **output, const char* input, const char
     if (tok) {
       if (input[src] == _TOKEN_END && (num = istok(input + tok, src - tok, token_names))) {
         const char* flag = token_flags[num - 1];
-        dest += (size_t)snprintf(&fmt[dest], (len - dest) + 1, FMT, num, flag);
+        dest += (size_t)idl_snprintf(&fmt[dest], (len - dest) + 1, FMT, num, flag);
         tok = 0;
       }
       else if (input[src] == _TOKEN_END || input[src] == '\0') {
@@ -102,7 +103,7 @@ int idl_replace_indices_with_values(char** output, const char* fmt, ...)
 
   va_list args_copy;
   va_copy(args_copy, args);
-  int wb = vsnprintf(*output,
+  int wb = idl_vsnprintf(*output,
     0,
     fmt,
     args);
@@ -122,7 +123,7 @@ int idl_replace_indices_with_values(char** output, const char* fmt, ...)
     return -2;
   }
 
-  wb = vsnprintf(temp,
+  wb = idl_vsnprintf(temp,
     writtenbytes,
     fmt,
     args_copy);
