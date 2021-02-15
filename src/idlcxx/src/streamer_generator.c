@@ -469,9 +469,19 @@ fail1:
 }
 
 static idl_retcode_t
-print_inherit_spec(context_t* ctx,
-  idl_inherit_spec_t* ispec)
+process_inherit_spec(const idl_pstate_t* pstate,
+  const bool revisit,
+  const idl_path_t* path,
+  const void* node,
+  void* user_data)
 {
+  (void)pstate;
+  (void)revisit;
+  (void)path;
+
+  context_t* ctx = (context_t*)user_data;
+  const idl_inherit_spec_t* ispec = (const idl_inherit_spec_t*)node;
+
   idl_retcode_t returnval = IDL_RETCODE_NO_MEMORY;
 
   ctx->key_entries++;
@@ -529,12 +539,6 @@ process_struct_definition(const idl_pstate_t* pstate,
   else
   {
     print_constructed_type_open(ctx, node);
-    idl_struct_t* _struct = (idl_struct_t*)node;
-
-    if (_struct->inherit_spec &&
-        (returnval = print_inherit_spec(ctx, _struct->inherit_spec)))
-        goto fail;
-
     returnval = IDL_VISIT_REVISIT;
   }
 
@@ -683,12 +687,13 @@ void idl_streamers_generate(const idl_pstate_t* tree,
 
   idl_visitor_t visitor;
   memset(&visitor, 0, sizeof(visitor));
-  visitor.visit = IDL_STRUCT | IDL_UNION | IDL_MEMBER | IDL_CASE | IDL_CASE_LABEL;
+  visitor.visit = IDL_STRUCT | IDL_UNION | IDL_MEMBER | IDL_CASE | IDL_CASE_LABEL | IDL_INHERIT_SPEC;
   visitor.accept[IDL_ACCEPT_STRUCT] = &process_struct_definition;
   visitor.accept[IDL_ACCEPT_UNION] = &process_union_definition;
   visitor.accept[IDL_ACCEPT_MEMBER] = &process_member;
   visitor.accept[IDL_ACCEPT_CASE] = &process_case;
   visitor.accept[IDL_ACCEPT_CASE_LABEL] = &process_case_label;
+  visitor.accept[IDL_ACCEPT_INHERIT_SPEC] = &process_inherit_spec;
   if (tree->sources)
     visitor.sources = srcs;
 
