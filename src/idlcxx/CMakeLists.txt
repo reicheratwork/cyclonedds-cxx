@@ -52,8 +52,8 @@ install(
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}/idlcxx"
   COMPONENT idlcxx)
 
+include(Generate.cmake)
+
 if(BUILD_TESTING)
   add_subdirectory(tests)
 endif()
-
-include(Generate.cmake)

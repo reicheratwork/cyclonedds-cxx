@@ -85,3 +85,5 @@ foreach(test ${tests})
     endif()
   endforeach()
 endforeach()
+
+add_subdirectory(compile_generated)

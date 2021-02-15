@@ -1,0 +1,9 @@
+module N
+{
+struct S {
+double dbl;
+long l;
+string str;
+};
+#pragma keylist S l
+};
