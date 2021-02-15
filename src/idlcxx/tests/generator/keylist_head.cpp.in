@@ -1,0 +1,280 @@
+template<typename T>
+void write(T& str, const ::s_1& instance)
+{
+  write(str, instance.c());
+  write(str, instance.l());
+  write(str, instance.d());
+}
+
+template<typename T>
+void write(T& str, const ::s_2& instance)
+{
+  write(str, instance.s_1_1());
+  write(str, instance.s_1_2());
+}
+
+template<typename T>
+void write(T& str, const ::s_3& instance)
+{
+  write(str, instance.s_2_1());
+  write(str, instance.s_2_2());
+}
+
+template<typename T>
+void write(T& str, const ::s_4& instance)
+{
+  write(str, instance.s_3_1());
+  write(str, instance.s_3_2());
+}
+
+template<typename T>
+void write(T& str, const ::s_5& instance)
+{
+  write(str, instance.s_4_1());
+  write(str, instance.s_4_2());
+}
+
+template<typename T>
+void read(T& str, ::s_1& instance)
+{
+  read(str, instance.c());
+  read(str, instance.l());
+  read(str, instance.d());
+}
+
+template<typename T>
+void read(T& str, ::s_2& instance)
+{
+  read(str, instance.s_1_1());
+  read(str, instance.s_1_2());
+}
+
+template<typename T>
+void read(T& str, ::s_3& instance)
+{
+  read(str, instance.s_2_1());
+  read(str, instance.s_2_2());
+}
+
+template<typename T>
+void read(T& str, ::s_4& instance)
+{
+  read(str, instance.s_3_1());
+  read(str, instance.s_3_2());
+}
+
+template<typename T>
+void read(T& str, ::s_5& instance)
+{
+  read(str, instance.s_4_1());
+  read(str, instance.s_4_2());
+}
+
+template<typename T>
+void move(T& str, const ::s_1& instance)
+{
+  move(str, instance.c());
+  move(str, instance.l());
+  move(str, instance.d());
+}
+
+template<typename T>
+void move(T& str, const ::s_2& instance)
+{
+  move(str, instance.s_1_1());
+  move(str, instance.s_1_2());
+}
+
+template<typename T>
+void move(T& str, const ::s_3& instance)
+{
+  move(str, instance.s_2_1());
+  move(str, instance.s_2_2());
+}
+
+template<typename T>
+void move(T& str, const ::s_4& instance)
+{
+  move(str, instance.s_3_1());
+  move(str, instance.s_3_2());
+}
+
+template<typename T>
+void move(T& str, const ::s_5& instance)
+{
+  move(str, instance.s_4_1());
+  move(str, instance.s_4_2());
+}
+
+template<typename T>
+void max(T& str, const ::s_1& instance)
+{
+  max(str, instance.c());
+  max(str, instance.l());
+  max(str, instance.d());
+}
+
+template<typename T>
+void max(T& str, const ::s_2& instance)
+{
+  max(str, instance.s_1_1());
+  max(str, instance.s_1_2());
+}
+
+template<typename T>
+void max(T& str, const ::s_3& instance)
+{
+  max(str, instance.s_2_1());
+  max(str, instance.s_2_2());
+}
+
+template<typename T>
+void max(T& str, const ::s_4& instance)
+{
+  max(str, instance.s_3_1());
+  max(str, instance.s_3_2());
+}
+
+template<typename T>
+void max(T& str, const ::s_5& instance)
+{
+  max(str, instance.s_4_1());
+  max(str, instance.s_4_2());
+}
+
+template<typename T>
+void key_write(T& str, const ::s_1& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_write(T& str, const ::s_2& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_write(T& str, const ::s_3& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_write(T& str, const ::s_4& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_write(T& str, const ::s_5& instance)
+{
+  write(str, instance.s_4_2().s_3_1().s_2_2().s_1_1().l());
+}
+
+template<typename T>
+void key_read(T& str, ::s_1& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_read(T& str, ::s_2& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_read(T& str, ::s_3& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_read(T& str, ::s_4& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_read(T& str, ::s_5& instance)
+{
+  read(str, instance.s_4_2().s_3_1().s_2_2().s_1_1().l());
+}
+
+template<typename T>
+void key_move(T& str, const ::s_1& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_move(T& str, const ::s_2& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_move(T& str, const ::s_3& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_move(T& str, const ::s_4& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_move(T& str, const ::s_5& instance)
+{
+  move(str, instance.s_4_2().s_3_1().s_2_2().s_1_1().l());
+}
+
+template<typename T>
+void key_max(T& str, const ::s_1& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_max(T& str, const ::s_2& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_max(T& str, const ::s_3& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_max(T& str, const ::s_4& instance)
+{
+  (void)str;
+  (void)instance;
+}
+
+template<typename T>
+void key_max(T& str, const ::s_5& instance)
+{
+  max(str, instance.s_4_2().s_3_1().s_2_2().s_1_1().l());
+}
+

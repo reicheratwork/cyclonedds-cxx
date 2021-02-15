@@ -37,7 +37,8 @@ set(xxd_input
   ${generator_dir}/keys_typedef_header.cpp.in
   ${generator_dir}/sequence_head.cpp.in
   ${generator_dir}/struct_inheritance_head.cpp.in
-  ${generator_dir}/union_head.cpp.in)
+  ${generator_dir}/union_head.cpp.in
+  ${generator_dir}/keylist_head.cpp.in)
 
 foreach(input ${xxd_input})
   get_filename_component(name ${input} NAME_WE)

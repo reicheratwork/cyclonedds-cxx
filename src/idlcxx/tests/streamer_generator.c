@@ -28,6 +28,7 @@ extern const unsigned char keys_typedef_header_cpp_in[];
 extern const unsigned char keys_union_implicit_head_cpp_in[];
 extern const unsigned char struct_inheritance_head_cpp_in[];
 extern const unsigned char typedef_resolution_header_cpp_in[];
+extern const unsigned char keylist_head_cpp_in[];
 
 #include "idlcxx/streamer_generator.h"
 #include "idl/processor.h"
@@ -324,7 +325,7 @@ void test_keys_union_implicit()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(IDL4, IDL_FLAG_ANNOTATIONS, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -353,7 +354,7 @@ void test_keys_struct_explicit()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(IDL4, IDL_FLAG_ANNOTATIONS, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -382,7 +383,7 @@ void test_keys_struct_implicit()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(IDL4, IDL_FLAG_ANNOTATIONS, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -407,7 +408,7 @@ void test_keys_typedef()
 
   idl_pstate_t* tree = NULL;
   idl_builtin_annotation_t annots = { NULL,NULL,NULL };
-  idl_create_pstate(IDL4, IDL_FLAG_ANNOTATIONS, &annots, &tree);
+  idl_create_pstate(IDL4, 0u, &annots, &tree);
 
   idl_parse_string(tree, str);
 
@@ -417,6 +418,54 @@ void test_keys_typedef()
   CU_ASSERT_STRING_EQUAL("", get_ostream_buffer(get_idl_streamer_impl_buf(generated)));
   CU_ASSERT_STRING_EQUAL(keys_typedef_header_cpp_in, get_ostream_buffer(get_idl_streamer_head_buf(generated)));
   
+  destruct_idl_streamer_output(generated);
+  idl_delete_pstate(tree);
+}
+
+void test_keylist()
+{
+  const char* str =
+    "struct s_1 {\n"\
+    "char c;\n"\
+    "long l;\n"\
+    "double d;\n"\
+    "};\n"\
+    "struct s_2 {\n"\
+    "s_1 s_1_1;\n"\
+    "s_1 s_1_2;\n"\
+    "};\n"\
+    "struct s_3 {\n"\
+    "s_2 s_2_1;\n"\
+    "s_2 s_2_2;\n"\
+    "};\n"\
+    "struct s_4 {\n"\
+    "s_3 s_3_1;\n"\
+    "s_3 s_3_2;\n"\
+    "};\n"\
+    "struct s_5 {\n"\
+    "s_4 s_4_1;\n"\
+    "s_4 s_4_2;\n"\
+    "};\n"\
+    "#pragma keylist s_5 s_4_2.s_3_1.s_2_2.s_1_1.l\n";
+
+  idl_pstate_t* tree = NULL;
+  idl_builtin_annotation_t annots = { NULL,NULL,NULL };
+  idl_create_pstate(IDL35, 0u, &annots, &tree);
+
+  idl_parse_string(tree, str);
+
+  idl_streamer_output_t* generated = create_idl_streamer_output();
+
+  idl_streamers_generate(tree, generated);
+
+  FILE* l = fopen("keylist.txt", "w"), * f = fopen("keyflag.txt", "w");
+  fprintf(l, "%s", keylist_head_cpp_in);
+  fprintf(f, "%s", get_ostream_buffer(get_idl_streamer_head_buf(generated)));
+  fclose(l);
+  fclose(f);
+
+  CU_ASSERT_STRING_EQUAL(keylist_head_cpp_in, get_ostream_buffer(get_idl_streamer_head_buf(generated)));
+
   destruct_idl_streamer_output(generated);
   idl_delete_pstate(tree);
 }
@@ -489,4 +538,9 @@ CU_Test(streamer_generator, key_union_implicit)
 CU_Test(streamer_generator, key_typedef)
 {
   test_keys_typedef();
+}
+
+CU_Test(streamer_generator, keylist)
+{
+  test_keylist();
 }

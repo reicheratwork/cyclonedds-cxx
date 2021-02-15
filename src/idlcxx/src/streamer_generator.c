@@ -73,11 +73,12 @@ if (key) {format_key_read_stream(indent,ctx, __VA_ARGS__);}
 #define open_block "{\n"
 #define close_block "}\n"
 #define close_function close_block "\n"
-#define const_ref_cast "dynamic_cast<const %s&>(instance)"
-#define ref_cast "dynamic_cast<%s&>(instance)"
-#define member_access "instance.%s()"
+#define instance_name "instance"
+#define const_ref_cast "dynamic_cast<const %s&>(" instance_name ")"
+#define ref_cast "dynamic_cast<%s&>(" instance_name ")"
+#define member_access "%s.%s()"
 #define ignore_str "(void)str;\n"
-#define ignore_instance "(void)instance;\n"
+#define ignore_instance "(void)" instance_name ";\n"
 #define write_instance "write(str, %s);\n"
 #define read_instance "read(str, %s);\n"
 #define move_instance "move(str, %s);\n"
@@ -237,7 +238,7 @@ generate_accessor(idl_declarator_t* decl)
     if (!cpp11name)
       return NULL;
 
-    idl_asprintf(&accessor, member_access, cpp11name);
+    idl_asprintf(&accessor, member_access, instance_name, cpp11name);
     free(cpp11name);
   }
   else
@@ -330,7 +331,7 @@ process_member(const idl_pstate_t* pstate,
 
   context_t* ctx = (context_t*)user_data;
   idl_member_t* mem = (idl_member_t*)node;
-  return process_instance(ctx, mem->declarators, mem->type_spec, mem->key);
+  return process_instance(ctx, mem->declarators, mem->type_spec, mem->key && pstate->version == IDL4);
 }
 
 static void
@@ -367,23 +368,23 @@ print_constructed_type_open(context_t* ctx,
   char* struct_name = get_cpp11_fully_scoped_name(node);
 
   format_write_stream(1, ctx, true, template_decl);
-  format_write_stream(1, ctx, false, "void write(T& str, const %s& instance)\n", struct_name);
-  format_key_write_stream(1, ctx, "void key_write(T& str, const %s& instance)\n", struct_name);
+  format_write_stream(1, ctx, false, "void write(T& str, const %s& " instance_name ")\n", struct_name);
+  format_key_write_stream(1, ctx, "void key_write(T& str, const %s& " instance_name ")\n", struct_name);
   format_write_stream(1, ctx, true, open_block);
 
   format_read_stream(1, ctx, true, template_decl);
-  format_read_stream(1, ctx, false, "void read(T& str, %s& instance)\n", struct_name);
-  format_key_read_stream(1, ctx, "void key_read(T& str, %s& instance)\n", struct_name);
+  format_read_stream(1, ctx, false, "void read(T& str, %s& " instance_name ")\n", struct_name);
+  format_key_read_stream(1, ctx, "void key_read(T& str, %s& " instance_name ")\n", struct_name);
   format_read_stream(1, ctx, true, open_block);
 
   format_move_stream(1, ctx, true, template_decl);
-  format_move_stream(1, ctx, false, "void move(T& str, const %s& instance)\n", struct_name);
-  format_key_move_stream(1, ctx, "void key_move(T& str, const %s& instance)\n", struct_name);
+  format_move_stream(1, ctx, false, "void move(T& str, const %s& " instance_name ")\n", struct_name);
+  format_key_move_stream(1, ctx, "void key_move(T& str, const %s& " instance_name ")\n", struct_name);
   format_move_stream(1, ctx, true, open_block);
 
   format_max_stream(1, ctx, true, template_decl);
-  format_max_stream(1, ctx, false, "void max(T& str, const %s& instance)\n", struct_name);
-  format_key_max_stream(1, ctx, "void key_max(T& str, const %s& instance)\n", struct_name);
+  format_max_stream(1, ctx, false, "void max(T& str, const %s& " instance_name ")\n", struct_name);
+  format_key_max_stream(1, ctx, "void key_max(T& str, const %s& " instance_name ")\n", struct_name);
   format_max_stream(1, ctx, true, open_block);
 
   ctx->depth++;
@@ -428,7 +429,7 @@ process_case(const idl_pstate_t* pstate,
     }
 
     char* cpp11accessor = NULL;
-    if (idl_asprintf(&cpp11accessor, member_access, cpp11name) == -1)
+    if (idl_asprintf(&cpp11accessor, member_access, instance_name, cpp11name) == -1)
       goto fail3;
 
     format_write_stream(1, ctx, false, write_instance, cpp11accessor);
@@ -516,6 +517,56 @@ fail1:
 }
 
 static idl_retcode_t
+process_keylist(context_t* ctx,
+  const idl_keylist_t* keylist)
+{
+  idl_retcode_t returnval = IDL_VISIT_REVISIT;
+
+  const idl_key_t* key = keylist->keys;
+  while (key)
+  {
+    ctx->key_entries++;
+
+    char* accessor = idl_strdup(instance_name);
+    for (size_t fn = 0; fn < key->field_name->length; fn++)
+    {
+      char* temp = NULL;
+      if (idl_asprintf(&temp, member_access, accessor, key->field_name->names[fn]->identifier) == -1)
+      {
+        returnval = IDL_RETCODE_NO_MEMORY;
+        goto fail;
+      }
+
+      free(accessor);
+      accessor = temp;
+    }
+
+    /*
+    if ((idl_is_struct(spec) || idl_is_union(spec)) && has_keys(spec))
+    {
+      format_key_write_stream(1, ctx, key_write_instance, accessor);
+      format_key_read_stream(1, ctx, key_read_instance, accessor);
+      format_key_move_stream(1, ctx, key_move_instance, accessor);
+      format_key_max_stream(1, ctx, key_max_instance, accessor);
+    }
+    else
+    */
+    {
+      format_key_write_stream(1, ctx, write_instance, accessor);
+      format_key_read_stream(1, ctx, read_instance, accessor);
+      format_key_move_stream(1, ctx, move_instance, accessor);
+      format_key_max_stream(1, ctx, max_instance, accessor);
+    }
+
+    key = (const idl_key_t*)key->node.next;
+  fail:
+    free(accessor);
+  }
+
+  return returnval;
+}
+
+static idl_retcode_t
 process_struct_definition(const idl_pstate_t* pstate,
   const bool revisit,
   const idl_path_t* path,
@@ -525,25 +576,24 @@ process_struct_definition(const idl_pstate_t* pstate,
   (void)pstate;
   (void)path;
 
-  idl_retcode_t returnval = IDL_RETCODE_NO_MEMORY;
+  idl_retcode_t returnval = IDL_RETCODE_OK;
   context_t* ctx = (context_t*)user_data;
-  char* cpp11name = get_cpp11_name(idl_identifier(node));
-  if (!cpp11name)
-    goto fail;
 
   if (revisit)
   {
     print_constructed_type_close(ctx);
-    returnval = IDL_RETCODE_OK;
   }
   else
   {
     print_constructed_type_open(ctx, node);
-    returnval = IDL_VISIT_REVISIT;
+
+    if (pstate->version == IDL35 &&
+      ((idl_struct_t*)node)->keylist)
+      returnval = process_keylist(ctx, (idl_keylist_t*)((idl_struct_t*)node)->keylist);
+    else
+      returnval = IDL_VISIT_REVISIT;
   }
 
-  free(cpp11name);
-fail:
   return returnval;
 }
 
