@@ -16,6 +16,7 @@
 #include <org/eclipse/cyclonedds/core/type_helpers.hpp>
 #include <stdint.h>
 #include <stdexcept>
+#include <stack>
 #include <dds/core/macros.hpp>
 
 namespace org {
@@ -115,10 +116,50 @@ constexpr endianness native_endianness() { return endianness(DDSRT_ENDIAN); }
  * @var serialization_status::write_bound_exceeded The serialization has encountered a field which has exceeded the bounds set for it.
  * @var serialization_status::read_bound_exceeded The serialization has encountered a field which has exceeded the bounds set for it.
  */
-enum class serialization_status {
+enum serialization_status {
   move_bound_exceeded   = 0x1 << 0,
   write_bound_exceeded  = 0x1 << 1,
-  read_bound_exceeded   = 0x1 << 2
+  read_bound_exceeded   = 0x1 << 2,
+  invalid_pl_entry      = 0x1 << 3
+};
+
+enum bit_bound {
+  bb_unset,
+  bb_8_bits,
+  bb_16_bits,
+  bb_32_bits,
+  bb_64_bits
+};
+
+enum extensibility {
+  ext_unset,
+  ext_final,
+  ext_appendable,
+  ext_mutable
+};
+
+enum fixed_size {
+  other,
+  one,
+  two,
+  four,
+  eight
+};
+
+struct entity_properties {
+  size_t offset;
+  uint32_t member_id;
+  uint32_t member_length;
+  bool must_understand,
+       implementation_extension,
+       is_optional,
+       is_list_entry,
+       is_last,
+       ignore;
+  extensibility member_extensibility,
+                parent_extensibility;
+  bit_bound member_bit_bound;
+  fixed_size member_fixed_size;
 };
 
 /**
@@ -303,8 +344,18 @@ public:
      * @retval true If the serialization status of the stream HAS reached one of the serialization errors which it is not set to ignore.
      */
     bool abort_status() const { return m_status & m_fault_mask; }
-protected:
 
+    virtual void next_entry(const entity_properties &props) { incr_position(props.member_length); }
+
+    virtual bool structure_is_list(extensibility ext) const = 0;
+
+    virtual entity_properties read_header() = 0;
+
+    virtual void push_entity(const entity_properties &props) = 0;
+
+    virtual void pop_entity() = 0;
+
+protected:
     endianness m_stream_endianness, //the endianness of the stream
         m_local_endianness = native_endianness();  //the local endianness
     size_t m_position = 0,  //the current offset position in the stream
@@ -313,6 +364,7 @@ protected:
     char* m_buffer = nullptr;  //the current buffer in use
     uint64_t m_status = 0,  //the current status of streaming
              m_fault_mask;  //the mask for statuses that will causes streaming to be aborted
+    std::stack<entity_properties> m_headers;
 };
 
 }

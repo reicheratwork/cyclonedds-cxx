@@ -9,10 +9,10 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR BSD-3-Clause
  */
-#ifndef BASIC_CDR_SERIALIZATION_HPP_
-#define BASIC_CDR_SERIALIZATION_HPP_
+#ifndef EXTENDED_CDR_SERIALIZATION_V2_HPP_
+#define EXTENDED_CDR_SERIALIZATION_V2_HPP_
 
-#include "cdr_stream.hpp"
+#include "basic_cdr_ser.hpp"
 #include <org/eclipse/cyclonedds/core/type_helpers.hpp>
 #include <dds/core/Exception.hpp>
 #include <cassert>
@@ -25,11 +25,11 @@ namespace cdr {
 
 /**
  * @brief
- * Implementation of the basic cdr stream.
+ * Implementation of the extended cdr version1 stream.
  *
  * This type of cdr stream has a maximum alignment of 8 bytes.
  */
-class basic_cdr_stream : public cdr_stream {
+class xcdr_v2_stream : public cdr_stream {
 public:
   /**
    * @brief
@@ -40,7 +40,7 @@ public:
    * @param[in] end The endianness to set for the data stream, default to the local system endianness.
    * @param[in] ignore_faults Bitmask for ignoring faults, can be composed of bit fields from the serialization_status enumerator.
    */
-  basic_cdr_stream(endianness end = native_endianness(), uint64_t ignore_faults = 0x0) : cdr_stream(end, 8, ignore_faults) { ; }
+  xcdr_v2_stream(endianness end = native_endianness(), uint64_t ignore_faults = 0x0) : cdr_stream(end, 8, ignore_faults) { ; }
 
   bool structure_is_list(extensibility ext) const;
 
@@ -48,11 +48,31 @@ public:
 
   void push_entity(const entity_properties &props);
 
-  void write_header_fixed(const entity_properties &props, size_t N = 0);
-
   void pop_entity();
 
   void move_header(const entity_properties &props);
+
+  void write_d_header(const entity_properties &props);
+
+  void write_em_header(const entity_properties &props);
+
+  void finish_d_header();
+
+  void finish_em_header();
+
+private:
+
+    static const uint32_t bytes_1         = uint32_t(0),
+                          bytes_2         = uint32_t(1) << 28,
+                          bytes_4         = uint32_t(2) << 28,
+                          bytes_8         = uint32_t(3) << 28,
+                          nextint         = uint32_t(4) << 28,
+                          nextint_times_1 = uint32_t(5) << 28,
+                          nextint_times_4 = uint32_t(6) << 28,
+                          nextint_times_8 = uint32_t(7) << 28,
+                          lc_mask         = uint32_t(7) << 28,
+                          id_mask         = 0x0FFFFFFF,
+                          must_understand = uint32_t(1) << 31;
 };
 
 /**
@@ -79,7 +99,7 @@ public:
  * @param[in] props The properties of the parameter.
  */
 template<typename T, std::enable_if_t<std::is_arithmetic<T>::value && !std::is_enum<T>::value, bool> = true >
-void read(basic_cdr_stream &str, T& toread, const entity_properties &props = entity_properties())
+void read(xcdr_v2_stream &str, T& toread, const entity_properties &props = entity_properties())
 {
   (void) props;
 
@@ -109,7 +129,7 @@ void read(basic_cdr_stream &str, T& toread, const entity_properties &props = ent
  * @param[in] props The properties of the parameter.
  */
 template<typename T, std::enable_if_t<std::is_arithmetic<T>::value && !std::is_enum<T>::value, bool> = true >
-void write(basic_cdr_stream& str, const T& towrite, const entity_properties &props = entity_properties())
+void write(xcdr_v2_stream& str, const T& towrite, const entity_properties &props = entity_properties())
 {
   if (str.abort_status())
     return;
@@ -139,9 +159,9 @@ void write(basic_cdr_stream& str, const T& towrite, const entity_properties &pro
  * @param[in] props The properties of the parameter.
  */
 template<typename T, std::enable_if_t<std::is_arithmetic<T>::value && !std::is_enum<T>::value, bool> = true >
-void move(basic_cdr_stream& str, const T& toincr, const entity_properties &props = entity_properties())
+void move(xcdr_v2_stream& str, const T& toincr, const entity_properties &props = entity_properties())
 {
-  (void) toincr;
+  (void)toincr;
 
   if (str.abort_status())
     return;
@@ -172,9 +192,10 @@ void move(basic_cdr_stream& str, const T& toincr, const entity_properties &props
  * @param[in] props The properties of the parameter.
  */
 template<typename T, std::enable_if_t<std::is_arithmetic<T>::value && !std::is_enum<T>::value, bool> = true >
-void max(basic_cdr_stream& str, const T& max_sz, const entity_properties &props = entity_properties())
+void max(xcdr_v2_stream& str, const T& max_sz, const entity_properties &props = entity_properties())
 {
-  if (str.position() == SIZE_MAX)
+  if (str.abort_status() ||
+      str.position() == SIZE_MAX)
     return;
 
   move(str, max_sz, props);
@@ -200,8 +221,19 @@ void max(basic_cdr_stream& str, const T& max_sz, const entity_properties &props 
  * @param[in] props The properties of the parameter.
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-void read(basic_cdr_stream& str, T& toread, const entity_properties &props = entity_properties()) {
-  read(str, *reinterpret_cast<uint32_t*>(&toread), props);
+void read(xcdr_v2_stream& str, T& toread, const entity_properties &props = entity_properties()) {
+  switch (props.member_bit_bound)
+  {
+    case bb_8_bits:
+      read(str, *reinterpret_cast<uint8_t*>(&toread), props);
+      break;
+    case bb_16_bits:
+      read(str, *reinterpret_cast<uint16_t*>(&toread), props);
+      break;
+    case bb_32_bits:
+      read(str, *reinterpret_cast<uint32_t*>(&toread), props);
+      break;
+  }
 }
 
 /**
@@ -213,8 +245,19 @@ void read(basic_cdr_stream& str, T& toread, const entity_properties &props = ent
  * @param[in] props The properties of the parameter.
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-void write(basic_cdr_stream& str, const T& towrite, const entity_properties &props = entity_properties()) {
-  write(str, static_cast<uint32_t>(towrite), props);
+void write(xcdr_v2_stream& str, const T& towrite, const entity_properties &props = entity_properties()) {
+  switch (props.member_bit_bound)
+  {
+    case bb_8_bits:
+      write(str, static_cast<int8_t>(towrite), props);
+      break;
+    case bb_16_bits:
+      write(str, static_cast<int16_t>(towrite), props);
+      break;
+    case bb_32_bits:
+      write(str, static_cast<int32_t>(towrite), props);
+      break;
+  }
 }
 
 /**
@@ -226,8 +269,19 @@ void write(basic_cdr_stream& str, const T& towrite, const entity_properties &pro
  * @param[in] props The properties of the parameter.
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-void move(basic_cdr_stream& str, const T& toincr, const entity_properties &props = entity_properties()) {
-  move(str, static_cast<uint32_t>(toincr), props);
+void move(xcdr_v2_stream& str, const T& toincr, const entity_properties &props = entity_properties()) {
+  switch (props.member_bit_bound)
+  {
+    case bb_8_bits:
+      move(str, static_cast<int8_t>(toincr), props);
+      break;
+    case bb_16_bits:
+      move(str, static_cast<int16_t>(toincr), props);
+      break;
+    case bb_32_bits:
+      move(str, static_cast<int32_t>(toincr), props);
+      break;
+  }
 }
 
 /**
@@ -239,8 +293,19 @@ void move(basic_cdr_stream& str, const T& toincr, const entity_properties &props
  * @param[in] props The properties of the parameter.
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-void max(basic_cdr_stream& str, const T& max_sz, const entity_properties &props = entity_properties()) {
-  max(str, static_cast<uint32_t>(max_sz), props);
+void max(xcdr_v2_stream& str, const T& max_sz, const entity_properties &props = entity_properties()) {
+  switch (props.member_bit_bound)
+  {
+    case bb_8_bits:
+      max(str,static_cast<int8_t>(max_sz), props);
+      break;
+    case bb_16_bits:
+      max(str, static_cast<int16_t>(max_sz), props);
+      break;
+    case bb_32_bits:
+      max(str, static_cast<int32_t>(max_sz), props);
+      break;
+  }
 }
 
  /**
@@ -266,7 +331,7 @@ void max(basic_cdr_stream& str, const T& max_sz, const entity_properties &props 
  * @param[in] props The properties of the parameter.
  */
 template<typename T>
-void read_string(basic_cdr_stream& str, T& toread, size_t N, const entity_properties &props = entity_properties())
+void read_string(xcdr_v2_stream& str, T& toread, size_t N, const entity_properties &props = entity_properties())
 {
   (void) props;
 
@@ -305,7 +370,7 @@ void read_string(basic_cdr_stream& str, T& toread, size_t N, const entity_proper
  * @param[in] props The properties of the parameter.
  */
 template<typename T>
-void write_string(basic_cdr_stream& str, const T& towrite, size_t N, const entity_properties &props = entity_properties())
+void write_string(xcdr_v2_stream& str, const T& towrite, size_t N, const entity_properties &props = entity_properties())
 {
   if (str.abort_status())
     return;
@@ -348,13 +413,10 @@ void write_string(basic_cdr_stream& str, const T& towrite, size_t N, const entit
  * @param[in] props The properties of the parameter.
  */
 template<typename T>
-void move_string(basic_cdr_stream& str, const T& toincr, size_t N, const entity_properties &props = entity_properties())
+void move_string(xcdr_v2_stream& str, const T& toincr, size_t N, const entity_properties &props = entity_properties())
 {
   if (str.abort_status())
     return;
-
-  if (str.structure_is_list(props.parent_extensibility))
-    str.move_header(props);
 
   size_t string_length = toincr.length() + 1;  //add 1 extra for terminating NULL
 
@@ -363,6 +425,9 @@ void move_string(basic_cdr_stream& str, const T& toincr, size_t N, const entity_
     if (str.status(serialization_status::move_bound_exceeded))
       return;
   }
+
+  if (str.structure_is_list(props.parent_extensibility))
+    str.move_header(props);
 
   move(str, uint32_t(string_length));
 
@@ -386,13 +451,14 @@ void move_string(basic_cdr_stream& str, const T& toincr, size_t N, const entity_
  * @param[in] props The properties of the parameter.
  */
 template<typename T>
-void max_string(basic_cdr_stream& str, const T& max_sz, size_t N, const entity_properties &props = entity_properties())
+void max_string(xcdr_v2_stream& str, const T& max_sz, size_t N, const entity_properties &props = entity_properties())
 {
   (void)max_sz;
 
   if (str.abort_status() ||
       str.position() == SIZE_MAX)
     return;
+
 
   if (N == 0)
   {
@@ -401,6 +467,7 @@ void max_string(basic_cdr_stream& str, const T& max_sz, size_t N, const entity_p
   }
   else
   {
+    //add header field length if in a parameter list
     if (str.structure_is_list(props.parent_extensibility))
       str.move_header(props);
 
