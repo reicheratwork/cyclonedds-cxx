@@ -24,6 +24,8 @@
 #include "dds/ddsi/q_xmsg.h"
 #include "dds/ddsi/ddsi_serdata.h"
 #include "org/eclipse/cyclonedds/core/cdr/basic_cdr_ser.hpp"
+#include "org/eclipse/cyclonedds/core/cdr/extended_cdr_v1_ser.hpp"
+#include "org/eclipse/cyclonedds/core/cdr/extended_cdr_v2_ser.hpp"
 #include "dds/ddsi/ddsi_keyhash.h"
 #include "org/eclipse/cyclonedds/topic/hash.hpp"
 #include "dds/features.hpp"
@@ -46,7 +48,7 @@ template<class streamer, typename T>
 bool to_key(streamer& str, const T& tokey, ddsi_keyhash_t& hash)
 {
   str.reset_position();
-  key_move(str, tokey);
+  move(str, tokey, true);
   size_t sz = str.position();
   size_t padding = 16 - sz % 16;
   if (sz != 0 && padding == 16) padding = 0;
@@ -57,12 +59,12 @@ bool to_key(streamer& str, const T& tokey, ddsi_keyhash_t& hash)
    * since, this may be different between nodes, and if this value is used
    * for global lookups or the like, this
    * may cause discrepancies. */
-  key_write(str, tokey);
+  write(str, tokey, true);
   static bool (*fptr)(const std::vector<unsigned char>&, ddsi_keyhash_t&) = NULL;
   if (fptr == NULL)
   {
     str.set_buffer(nullptr);
-    key_max(str, tokey);
+    max(str, tokey, true);
     if (str.position() <= 16)
     {
       //bind to unmodified function which just copies buffer into the keyhash
@@ -157,29 +159,12 @@ public:
       T *t = m_t.load(std::memory_order_acquire);
       if (t == nullptr) {
         t = new T();
-        endianness stream_endianness  = endianness::big_endian;
-        if (*(static_cast<unsigned char*>(data())+1) == 0x1)
-          stream_endianness = endianness::little_endian;
 
-        org::eclipse::cyclonedds::core::cdr::basic_cdr_stream str;
+        org::eclipse::cyclonedds::core::cdr::basic_cdr_stream str(*(static_cast<unsigned char*>(data())+1) == 0x1 ? endianness::little_endian : endianness::big_endian);
         str.set_buffer(calc_offset(data(),4));
-        switch (kind)
-        {
-          case SDK_KEY:
-            if (swap_necessary(stream_endianness))
-              key_read_swapped(str,*t);
-            else
-              key_read(str,*t);
-            break;
-          case SDK_DATA:
-            if (swap_necessary(stream_endianness))
-              read_swapped(str,*t);
-            else
-              read(str,*t);
-            break;
-          case SDK_EMPTY:
-            assert(0);
-        }
+        if (kind == SDK_EMPTY)
+          assert(0);
+        read(str,*t, kind == SDK_KEY);
 
         if (str.abort_status()) {
           delete t;
@@ -363,10 +348,7 @@ ddsi_serdata *serdata_from_sample(
   unsigned char *ptr = nullptr;
   size_t sz = 0;
 
-  if (kind == SDK_KEY)
-    key_move(str, msg);
-  else
-    move(str, msg);
+  move(str, msg, kind == SDK_KEY);
 
   if (str.abort_status())
     goto failure;
@@ -379,17 +361,9 @@ ddsi_serdata *serdata_from_sample(
     *(ptr + 1) = 0x1;
 
   str.set_buffer(calc_offset(d->data(), 4));
-  switch (kind)
-  {
-  case SDK_KEY:
-    key_write(str, msg);
-    break;
-  case SDK_DATA:
-    write(str, msg);
-    break;
-  case SDK_EMPTY:
+  if (kind == SDK_EMPTY)
     assert(0);
-  }
+  write(str, msg, kind == SDK_KEY);
 
   if (str.abort_status())
     goto failure;
@@ -440,17 +414,10 @@ bool serdata_to_sample(
   (void)buflim;
   auto ptr = static_cast<const ddscxx_serdata<T>*>(dcmn);
 
-  endianness stream_endianness = endianness::big_endian;
-  if (*(static_cast<unsigned char*>(ptr->data())+1) == 0x1)
-    stream_endianness = endianness::little_endian;
-
-  org::eclipse::cyclonedds::core::cdr::basic_cdr_stream str;
+  org::eclipse::cyclonedds::core::cdr::basic_cdr_stream str(*(static_cast<unsigned char*>(ptr->data())+1) == 0x1 ? endianness::little_endian : endianness::big_endian);
   str.set_buffer(calc_offset(ptr->data(), 4));
   auto& msg = *static_cast<T*>(sample);
-  if (swap_necessary(stream_endianness))
-    read_swapped(str, msg);
-  else
-    read(str, msg);
+  read(str, msg, false);
   return str.abort_status(); //is true this the correct return value for failure state??
 }
 
@@ -471,7 +438,7 @@ ddsi_serdata *serdata_to_untyped(const ddsi_serdata* dcmn)
   if (t == nullptr)
     goto failure;
 
-  key_move(str, *t);
+  move(str, *t, true);
   if (str.abort_status())
     goto failure;
   d1->resize(4 + str.position());
@@ -482,7 +449,7 @@ ddsi_serdata *serdata_to_untyped(const ddsi_serdata* dcmn)
     *(ptr + 1) = 0x1;
 
   str.set_buffer(calc_offset(d1->data(), 4));  //4 offset due to header field
-  key_write(str, *t);
+  write(str, *t, true);
   if (str.abort_status())
     goto failure;
 
@@ -511,16 +478,10 @@ bool serdata_untyped_to_sample(
 
   T* ptr = static_cast<T*>(sample);
 
-  basic_cdr_stream str;
-  endianness stream_endianness = endianness::big_endian;
-  if (*(static_cast<unsigned char*>(d->data())+1) == 0x1)
-    stream_endianness = endianness::little_endian;
+  basic_cdr_stream str(*(static_cast<unsigned char*>(d->data())+1) == 0x1 ? endianness::little_endian : endianness::big_endian);
 
   str.set_buffer(calc_offset(d->data(), 4));
-  if (swap_necessary(stream_endianness))
-    key_read_swapped(str, *ptr);
-  else
-    key_read(str, *ptr);
+  read(str, *ptr, true);
 
   return !str.abort_status();  //is true the correct value for no errors in streaming?
 }
