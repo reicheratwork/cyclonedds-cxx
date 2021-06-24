@@ -52,17 +52,19 @@ function(IDLCXX_GENERATE)
   foreach(_file ${_files})
     get_filename_component(_name ${_file} NAME_WE)
     set(_header "${_dir}/${_name}.hpp")
+    set(_source "${_dir}/${_name}.cpp")
     list(APPEND _headers "${_header}")
+    list(APPEND _sources "${_source}")
     add_custom_command(
-      OUTPUT   "${_header}"
+      OUTPUT   "${_source}" "${_header}"
       COMMAND  CycloneDDS::idlc
       ARGS     -l $<TARGET_FILE:CycloneDDS-CXX::idlcxx> ${IDLCXX_ARGS} ${_file}
       DEPENDS  ${_files} CycloneDDS::idlc CycloneDDS-CXX::idlcxx)
   endforeach()
 
-  add_custom_target("${_target}_generate" DEPENDS ${_headers})
+  add_custom_target("${_target}_generate" DEPENDS "${_sources}" "${_headers}")
   add_library(${_target} INTERFACE)
-  target_sources(${_target} INTERFACE ${_headers})
+  target_sources(${_target} INTERFACE ${_sources} ${_headers})
   target_include_directories(${_target} INTERFACE "${_dir}")
   add_dependencies(${_target} "${_target}_generate")
 endfunction()
