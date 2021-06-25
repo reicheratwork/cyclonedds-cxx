@@ -18,20 +18,11 @@ namespace cyclonedds {
 namespace core {
 namespace cdr {
 
-bool xcdr_v1_stream::structure_is_list(extensibility ext) const
-{
-  return ext == ext_mutable;
-}
-
 entity_properties xcdr_v1_stream::read_header()
 {
   entity_properties props;
 
-  if (abort_status())
-    return props;
-
   align(4, false);
-
 
   uint16_t smallid, smalllength;
 
@@ -73,31 +64,29 @@ entity_properties xcdr_v1_stream::read_header()
 
 void xcdr_v1_stream::push_entity(const entity_properties &props)
 {
-  write_header_fixed(props, 0);
-
-  m_headers.push(props);
-  m_headers.top().offset = position()-24;
+  if (header_necessary(props))
+    write_header(props, 0);
 }
 
-void xcdr_v1_stream::write_header_fixed(const entity_properties &props, size_t N)
+void xcdr_v1_stream::write_header(const entity_properties &props, size_t N)
 {
-  if (abort_status())
-    return;
+  uint16_t smallid = (pid_extended | pid_flag_must_understand), smalllength = 8;
+  uint32_t largeid = (props.member_id & pl_extended_mask);
 
   align(4, true);
-
-  uint16_t smallid = pid_extended | pid_flag_must_understand, smalllength = 8;
-  uint32_t largeid = props.member_id & pl_extended_mask;
-
   write(*this, smallid);
   write(*this, smalllength);
   write(*this, largeid);
+  if (N == 0) {
+    m_headers.push(props);
+    m_headers.top().offset = position();
+  }
   write(*this, static_cast<uint32_t>(N));
 }
 
-void xcdr_v1_stream::pop_entity()
+void xcdr_v1_stream::pop_entity(const entity_properties &props)
 {
-  if (abort_status())
+  if (!header_necessary(props))
     return;
 
   assert(m_headers.size());
@@ -114,16 +103,30 @@ void xcdr_v1_stream::pop_entity()
   m_current_alignment = end_of_entity_alignment;
 }
 
-void xcdr_v1_stream::move_header(const entity_properties &props)
+void xcdr_v1_stream::move_entity(const entity_properties &props)
 {
-  (void) props;
-
-  if (abort_status())
+  if (!header_necessary(props))
     return;
 
   align(4, false);
 
   incr_position(24);
+}
+
+bool xcdr_v1_stream::header_necessary(const entity_properties &props)
+{
+  return props.parent_extensibility == ext_mutable
+      || props.is_optional;
+}
+
+void xcdr_v1_stream::open_struct(const entity_properties &props)
+{
+  (void) props;
+}
+
+void xcdr_v1_stream::close_struct(const entity_properties &props)
+{
+  (void) props;
 }
 
 }

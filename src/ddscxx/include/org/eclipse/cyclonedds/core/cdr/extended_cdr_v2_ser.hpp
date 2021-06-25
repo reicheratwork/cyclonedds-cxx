@@ -42,37 +42,43 @@ public:
    */
   xcdr_v2_stream(endianness end = native_endianness(), uint64_t ignore_faults = 0x0) : cdr_stream(end, 8, ignore_faults) { ; }
 
-  bool structure_is_list(extensibility ext) const;
-
   entity_properties read_header();
 
   void push_entity(const entity_properties &props);
 
-  void pop_entity();
+  void pop_entity(const entity_properties &props);
 
-  void move_header(const entity_properties &props);
+  void move_entity(const entity_properties &props);
 
   void write_d_header(const entity_properties &props);
 
-  void write_em_header(const entity_properties &props);
+  void write_em_header(const entity_properties &props, size_t N = 0);
+
+  void move_d_header();
 
   void finish_d_header();
 
   void finish_em_header();
 
-private:
+  bool d_header_necessary(const entity_properties &props);
 
-    static const uint32_t bytes_1         = uint32_t(0),
-                          bytes_2         = uint32_t(1) << 28,
-                          bytes_4         = uint32_t(2) << 28,
-                          bytes_8         = uint32_t(3) << 28,
-                          nextint         = uint32_t(4) << 28,
-                          nextint_times_1 = uint32_t(5) << 28,
-                          nextint_times_4 = uint32_t(6) << 28,
-                          nextint_times_8 = uint32_t(7) << 28,
-                          lc_mask         = uint32_t(7) << 28,
-                          id_mask         = 0x0FFFFFFF,
-                          must_understand = uint32_t(1) << 31;
+  bool em_header_necessary(const entity_properties &props);
+
+  void open_struct(const entity_properties &props);
+
+  void close_struct(const entity_properties &props);
+
+  static const uint32_t bytes_1         = uint32_t(0),
+                        bytes_2         = uint32_t(1) << 28,
+                        bytes_4         = uint32_t(2) << 28,
+                        bytes_8         = uint32_t(3) << 28,
+                        nextint         = uint32_t(4) << 28,
+                        nextint_times_1 = uint32_t(5) << 28,
+                        nextint_times_4 = uint32_t(6) << 28,
+                        nextint_times_8 = uint32_t(7) << 28,
+                        lc_mask         = uint32_t(7) << 28,
+                        id_mask         = 0x0FFFFFFF,
+                        must_understand = uint32_t(1) << 31;
 };
 
 /**
@@ -134,8 +140,8 @@ void write(xcdr_v2_stream& str, const T& towrite, const entity_properties &props
   if (str.abort_status())
     return;
 
-  if (str.structure_is_list(props.parent_extensibility))
-    str.write_header_fixed(props, sizeof(T));
+  if (str.em_header_necessary(props))
+    str.write_em_header(props,sizeof(T));
 
   char *cursor = str.get_cursor();
   str.align(sizeof(T), true);
@@ -166,8 +172,7 @@ void move(xcdr_v2_stream& str, const T& toincr, const entity_properties &props =
   if (str.abort_status())
     return;
 
-  if (str.structure_is_list(props.parent_extensibility))
-    str.move_header(props);
+  str.move_entity(props);
 
   str.align(sizeof(T), false);
 
@@ -194,8 +199,7 @@ void move(xcdr_v2_stream& str, const T& toincr, const entity_properties &props =
 template<typename T, std::enable_if_t<std::is_arithmetic<T>::value && !std::is_enum<T>::value, bool> = true >
 void max(xcdr_v2_stream& str, const T& max_sz, const entity_properties &props = entity_properties())
 {
-  if (str.abort_status() ||
-      str.position() == SIZE_MAX)
+  if (str.position() == SIZE_MAX)
     return;
 
   move(str, max_sz, props);
@@ -222,7 +226,7 @@ void max(xcdr_v2_stream& str, const T& max_sz, const entity_properties &props = 
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
 void read(xcdr_v2_stream& str, T& toread, const entity_properties &props = entity_properties()) {
-  switch (props.member_bit_bound)
+  switch (props.entity_bit_bound)
   {
     case bb_8_bits:
       read(str, *reinterpret_cast<uint8_t*>(&toread), props);
@@ -246,7 +250,7 @@ void read(xcdr_v2_stream& str, T& toread, const entity_properties &props = entit
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
 void write(xcdr_v2_stream& str, const T& towrite, const entity_properties &props = entity_properties()) {
-  switch (props.member_bit_bound)
+  switch (props.entity_bit_bound)
   {
     case bb_8_bits:
       write(str, static_cast<int8_t>(towrite), props);
@@ -270,7 +274,7 @@ void write(xcdr_v2_stream& str, const T& towrite, const entity_properties &props
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
 void move(xcdr_v2_stream& str, const T& toincr, const entity_properties &props = entity_properties()) {
-  switch (props.member_bit_bound)
+  switch (props.entity_bit_bound)
   {
     case bb_8_bits:
       move(str, static_cast<int8_t>(toincr), props);
@@ -294,7 +298,7 @@ void move(xcdr_v2_stream& str, const T& toincr, const entity_properties &props =
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
 void max(xcdr_v2_stream& str, const T& max_sz, const entity_properties &props = entity_properties()) {
-  switch (props.member_bit_bound)
+  switch (props.entity_bit_bound)
   {
     case bb_8_bits:
       max(str,static_cast<int8_t>(max_sz), props);
@@ -375,16 +379,14 @@ void write_string(xcdr_v2_stream& str, const T& towrite, size_t N, const entity_
   if (str.abort_status())
     return;
 
-  if (str.structure_is_list(props.parent_extensibility))
-    str.push_entity(props);
-
   size_t string_length = towrite.length() + 1;  //add 1 extra for terminating NULL
-
   if (N &&
       string_length > N) {
     if (str.status(serialization_status::write_bound_exceeded))
       return;
   }
+
+  str.push_entity(props);
 
   write(str, uint32_t(string_length));
 
@@ -395,8 +397,8 @@ void write_string(xcdr_v2_stream& str, const T& towrite, size_t N, const entity_
   //aligned to chars
   str.alignment(1);
 
-  if (str.structure_is_list(props.parent_extensibility))
-    str.pop_entity();
+  str.pop_entity(props);
+
 }
 
 /**
@@ -419,17 +421,15 @@ void move_string(xcdr_v2_stream& str, const T& toincr, size_t N, const entity_pr
     return;
 
   size_t string_length = toincr.length() + 1;  //add 1 extra for terminating NULL
-
   if (N &&
       string_length > N) {
     if (str.status(serialization_status::move_bound_exceeded))
       return;
   }
 
-  if (str.structure_is_list(props.parent_extensibility))
-    str.move_header(props);
+  str.move_entity(props);
 
-  move(str, uint32_t(string_length));
+  move(str, uint32_t());
 
   str.incr_position(string_length);
 
@@ -453,33 +453,13 @@ void move_string(xcdr_v2_stream& str, const T& toincr, size_t N, const entity_pr
 template<typename T>
 void max_string(xcdr_v2_stream& str, const T& max_sz, size_t N, const entity_properties &props = entity_properties())
 {
-  (void)max_sz;
-
-  if (str.abort_status() ||
-      str.position() == SIZE_MAX)
+  if (str.position() == SIZE_MAX)
     return;
 
-
   if (N == 0)
-  {
-    //unbounded string, theoretical length unlimited
-    str.position(SIZE_MAX);
-  }
+    str.position(SIZE_MAX); //unbounded string, theoretical length unlimited
   else
-  {
-    //add header field length if in a parameter list
-    if (str.structure_is_list(props.parent_extensibility))
-      str.move_header(props);
-
-    //length field
-    max(str, uint32_t(0));
-
-    //bounded string, length maximum N+1 characters
-    str.incr_position(N + 1);
-
-    //aligned to chars
-    str.alignment(1);
-  }
+    move_string(str, max_sz, N, props);
 }
 
 }

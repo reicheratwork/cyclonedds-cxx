@@ -42,17 +42,21 @@ public:
    */
   basic_cdr_stream(endianness end = native_endianness(), uint64_t ignore_faults = 0x0) : cdr_stream(end, 8, ignore_faults) { ; }
 
-  bool structure_is_list(extensibility ext) const;
-
   entity_properties read_header();
 
   void push_entity(const entity_properties &props);
 
-  void write_header_fixed(const entity_properties &props, size_t N = 0);
+  void write_header(const entity_properties &props, size_t N = 0);
 
-  void pop_entity();
+  bool header_necessary(const entity_properties &props);
 
-  void move_header(const entity_properties &props);
+  void pop_entity(const entity_properties &props);
+
+  void move_entity(const entity_properties &props);
+
+  void open_struct(const entity_properties &props);
+
+  void close_struct(const entity_properties &props);
 };
 
 /**
@@ -114,8 +118,8 @@ void write(basic_cdr_stream& str, const T& towrite, const entity_properties &pro
   if (str.abort_status())
     return;
 
-  if (str.structure_is_list(props.parent_extensibility))
-    str.write_header_fixed(props, sizeof(T));
+  if (str.header_necessary(props))
+    str.write_header(props,sizeof(T));
 
   char *cursor = str.get_cursor();
   str.align(sizeof(T), true);
@@ -146,8 +150,7 @@ void move(basic_cdr_stream& str, const T& toincr, const entity_properties &props
   if (str.abort_status())
     return;
 
-  if (str.structure_is_list(props.parent_extensibility))
-    str.move_header(props);
+  str.move_entity(props);
 
   str.align(sizeof(T), false);
 
@@ -274,7 +277,6 @@ void read_string(basic_cdr_stream& str, T& toread, size_t N, const entity_proper
     return;
 
   uint32_t string_length = 0;
-
   read(str, string_length);
 
   if (N &&
@@ -310,9 +312,6 @@ void write_string(basic_cdr_stream& str, const T& towrite, size_t N, const entit
   if (str.abort_status())
     return;
 
-  if (str.structure_is_list(props.parent_extensibility))
-    str.push_entity(props);
-
   size_t string_length = towrite.length() + 1;  //add 1 extra for terminating NULL
 
   if (N &&
@@ -320,6 +319,8 @@ void write_string(basic_cdr_stream& str, const T& towrite, size_t N, const entit
     if (str.status(serialization_status::write_bound_exceeded))
       return;
   }
+
+  str.push_entity(props);
 
   write(str, uint32_t(string_length));
 
@@ -330,8 +331,7 @@ void write_string(basic_cdr_stream& str, const T& towrite, size_t N, const entit
   //aligned to chars
   str.alignment(1);
 
-  if (str.structure_is_list(props.parent_extensibility))
-    str.pop_entity();
+  str.pop_entity(props);
 }
 
 /**
@@ -353,9 +353,6 @@ void move_string(basic_cdr_stream& str, const T& toincr, size_t N, const entity_
   if (str.abort_status())
     return;
 
-  if (str.structure_is_list(props.parent_extensibility))
-    str.move_header(props);
-
   size_t string_length = toincr.length() + 1;  //add 1 extra for terminating NULL
 
   if (N &&
@@ -363,6 +360,8 @@ void move_string(basic_cdr_stream& str, const T& toincr, size_t N, const entity_
     if (str.status(serialization_status::move_bound_exceeded))
       return;
   }
+
+  str.move_entity(props);
 
   move(str, uint32_t(string_length));
 
@@ -388,31 +387,13 @@ void move_string(basic_cdr_stream& str, const T& toincr, size_t N, const entity_
 template<typename T>
 void max_string(basic_cdr_stream& str, const T& max_sz, size_t N, const entity_properties &props = entity_properties())
 {
-  (void)max_sz;
-
-  if (str.abort_status() ||
-      str.position() == SIZE_MAX)
+  if (str.position() == SIZE_MAX)
     return;
 
   if (N == 0)
-  {
-    //unbounded string, theoretical length unlimited
-    str.position(SIZE_MAX);
-  }
+    str.position(SIZE_MAX); //unbounded string, theoretical length unlimited
   else
-  {
-    if (str.structure_is_list(props.parent_extensibility))
-      str.move_header(props);
-
-    //length field
-    max(str, uint32_t(0));
-
-    //bounded string, length maximum N+1 characters
-    str.incr_position(N + 1);
-
-    //aligned to chars
-    str.alignment(1);
-  }
+    move_string(str, N, max_sz, props);
 }
 
 }

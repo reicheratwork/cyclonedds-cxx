@@ -132,34 +132,36 @@ enum bit_bound {
 };
 
 enum extensibility {
-  ext_unset,
   ext_final,
   ext_appendable,
   ext_mutable
 };
 
-enum fixed_size {
-  other,
-  one,
-  two,
-  four,
-  eight
-};
-
 struct entity_properties {
-  size_t offset;
-  uint32_t member_id;
-  uint32_t member_length;
-  bool must_understand,
-       implementation_extension,
-       is_optional,
-       is_list_entry,
-       is_last,
-       ignore;
-  extensibility member_extensibility,
-                parent_extensibility;
-  bit_bound member_bit_bound;
-  fixed_size member_fixed_size;
+  entity_properties() {;}
+
+  entity_properties(extensibility e_ex,
+                    uint32_t m_id = 0,
+                    bool i_op = false,
+                    extensibility p_ex = ext_final,
+                    bit_bound b_b = bb_unset):
+    entity_extensibility(e_ex),
+    parent_extensibility(p_ex),
+    member_id(m_id),
+    is_optional(i_op),
+    entity_bit_bound(b_b) {;}
+
+  extensibility entity_extensibility = ext_final,
+                parent_extensibility = ext_final;
+  size_t offset = 0;
+  uint32_t member_id = 0;
+  uint32_t member_length = 0;
+  bool must_understand = true,
+       implementation_extension = false,
+       is_last = false,
+       ignore = false,
+       is_optional = false;
+  bit_bound entity_bit_bound = bb_unset;
 };
 
 /**
@@ -345,16 +347,21 @@ public:
      */
     bool abort_status() const { return m_status & m_fault_mask; }
 
-    virtual void next_entry(const entity_properties &props) { incr_position(props.member_length); }
+    void next_entry(const entity_properties &props) { incr_position(props.member_length); }
 
-    virtual bool structure_is_list(extensibility ext) const = 0;
+/*
+    entity_properties read_header();
 
-    virtual entity_properties read_header() = 0;
+    void push_entity(const entity_properties &props);
 
-    virtual void push_entity(const entity_properties &props) = 0;
+    void pop_entity(const entity_properties &props);
 
-    virtual void pop_entity() = 0;
+    void move_entity(const entity_properties &props);
 
+    void open_struct(const entity_properties &props);
+
+    void close_struct(const entity_properties &props);
+*/
 protected:
     endianness m_stream_endianness, //the endianness of the stream
         m_local_endianness = native_endianness();  //the local endianness

@@ -18,103 +18,87 @@ namespace cyclonedds {
 namespace core {
 namespace cdr {
 
-bool xcdr_v2_stream::structure_is_list(extensibility ext) const
-{
-  return ext == ext_mutable;
-}
-
 entity_properties xcdr_v2_stream::read_header()
 {
   entity_properties props;
 
-  if (abort_status())
-    return props;
+  uint32_t emheader = 0;
+  read(*this,emheader);
 
-  
+  uint32_t factor = 0;
+  props.must_understand = emheader & must_understand;
+  props.member_id = emheader & id_mask;
+  switch (emheader & lc_mask)
+  {
+    case bytes_1:
+      props.member_length = 1;
+      break;
+    case bytes_2:
+      props.member_length = 2;
+      break;
+    case bytes_4:
+      props.member_length = 4;
+      break;
+    case bytes_8:
+      props.member_length = 8;
+      break;
+    case nextint:
+    case nextint_times_1:
+      factor = 1;
+      break;
+    case nextint_times_4:
+      factor = 4;
+      break;
+    case nextint_times_8:
+      factor = 8;
+      break;
+  }
+
+  if (factor)
+  {
+    uint32_t next_int = 0;
+    read(*this,next_int);
+    props.member_length = factor * next_int;
+  }
 
   return props;
 }
 
 void xcdr_v2_stream::push_entity(const entity_properties &props)
 {
-  if (props.member_extensibility == ext_appendable ||
-      props.member_extensibility == ext_mutable)
-    write_d_header(props);
-
-  if (props.parent_extensibility == ext_mutable)
+  if (em_header_necessary(props))
     write_em_header(props);
 }
 
-void xcdr_v2_stream::pop_entity()
+void xcdr_v2_stream::pop_entity(const entity_properties &props)
 {
-  assert(m_headers.size() >= 2);
-
-  if (m_headers.top().parent_extensibility == ext_mutable)
+  if (em_header_necessary(props))
     finish_em_header();
-
-  if (m_headers.top().member_extensibility == ext_appendable ||
-      m_headers.top().member_extensibility == ext_mutable)
-    finish_d_header();
 }
-
-void xcdr_v2_stream::move_header(const entity_properties &props)
-{
-  (void) props;
-
-  if (abort_status())
-    return;
-}
-
 
 void xcdr_v2_stream::write_d_header(const entity_properties &props)
 {
-  if (abort_status())
-    return;
-
   m_headers.push(props);
   m_headers.top().offset = position();
 
-  uint32_t dheader(0);
-  write(*this,dheader);
+  write(*this, uint32_t(0));
 }
 
-void xcdr_v2_stream::write_em_header(const entity_properties &props)
+void xcdr_v2_stream::write_em_header(const entity_properties &props, size_t N)
 {
-  if (abort_status())
-    return;
+  uint32_t mheader = (props.must_understand ? must_understand : 0)
+                     + (id_mask & props.member_id) + nextint;
 
-  m_headers.push(props);
-  m_headers.top().offset = position();
-
-  uint32_t mheader = (props.must_understand ? must_understand : 0) + (id_mask & props.member_id);
-  switch (m_headers.top().member_fixed_size)
-  {
-    case one:
-      mheader += bytes_1;
-      break;
-    case two:
-      mheader += bytes_2;
-      break;
-    case four:
-      mheader += bytes_4;
-      break;
-    case eight:
-      mheader += bytes_8;
-      break;
-    default:
-      mheader += nextint;
-  }
   write(*this, mheader);
-
-  if (m_headers.top().member_fixed_size == other)
-    write(*this, uint32_t(0));
+  if (N == 0) {
+    m_headers.push(props);
+    m_headers.top().offset = position();
+  }
+  write(*this, static_cast<uint32_t>(N));
 }
 
 void xcdr_v2_stream::finish_d_header()
 {
-  if (abort_status())
-    return;
-
   assert(m_headers.size());
 
   size_t header_pos = m_headers.top().offset, current_pos = position();
@@ -131,24 +115,55 @@ void xcdr_v2_stream::finish_d_header()
 
 void xcdr_v2_stream::finish_em_header()
 {
-  if (abort_status())
-    return;
-
   assert(m_headers.size());
 
-  if (m_headers.top().member_fixed_size == other)
-  {
-    size_t header_pos = m_headers.top().offset, current_pos = position();
-    size_t current_alignment = alignment();
-    alignment(4);
-    position(header_pos+4);
-    write(*this,static_cast<uint32_t>(current_pos-header_pos-8));
+  size_t header_pos = m_headers.top().offset, current_pos = position();
+  size_t current_alignment = alignment();
+  alignment(4);
+  position(header_pos);
+  write(*this,static_cast<uint32_t>(current_pos-header_pos-4));
 
-    alignment(current_alignment);
-    position(current_pos);
-  }
+  alignment(current_alignment);
+  position(current_pos);
 
   m_headers.pop();
+}
+
+bool xcdr_v2_stream::d_header_necessary(const entity_properties &props)
+{
+  return props.entity_extensibility == ext_appendable
+      || props.entity_extensibility == ext_mutable;
+}
+
+bool xcdr_v2_stream::em_header_necessary(const entity_properties &props)
+{
+  return props.parent_extensibility == ext_mutable;
+}
+
+void xcdr_v2_stream::move_d_header()
+{
+  move(*this,uint32_t());
+}
+
+void xcdr_v2_stream::move_entity(const entity_properties &props)
+{
+  if (!em_header_necessary(props))
+    return;
+
+  move(*this,uint32_t());
+  move(*this,uint32_t());
+}
+
+void xcdr_v2_stream::open_struct(const entity_properties &props)
+{
+  if (d_header_necessary(props))
+    write_d_header(props);
+}
+
+void xcdr_v2_stream::close_struct(const entity_properties &props)
+{
+  if (d_header_necessary(props))
+    finish_d_header();
 }
 
 }

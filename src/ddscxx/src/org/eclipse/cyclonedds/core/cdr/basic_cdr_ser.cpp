@@ -23,34 +23,48 @@ entity_properties basic_cdr_stream::read_header()
   return entity_properties();
 }
 
-bool basic_cdr_stream::structure_is_list(extensibility ext) const
+void basic_cdr_stream::push_entity(const entity_properties &props)
 {
-  (void) ext;
+  if (header_necessary(props))
+    write_header(props, 0);
+}
+
+void basic_cdr_stream::write_header(const entity_properties &props, size_t N)
+{
+  if (N == 0) {
+    m_headers.push(props);
+    m_headers.top().offset = position();
+  }
+}
+
+bool basic_cdr_stream::header_necessary(const entity_properties &props)
+{
+  (void) props;
+
   return false;
 }
 
-void basic_cdr_stream::push_entity(const entity_properties &props)
+void basic_cdr_stream::pop_entity(const entity_properties &props)
 {
-  write_header_fixed(props);
+  if (!header_necessary(props))
+    return;
 
-  m_headers.push(props);
-  m_headers.top().offset = position();
-}
-
-void basic_cdr_stream::write_header_fixed(const entity_properties &props, size_t N)
-{
-  (void) props;
-  (void) N;
-}
-
-void basic_cdr_stream::pop_entity()
-{
   assert(m_headers.size());
 
   m_headers.pop();
 }
 
-void basic_cdr_stream::move_header(const entity_properties &props)
+void basic_cdr_stream::move_entity(const entity_properties &props)
+{
+  (void) props;
+}
+
+void basic_cdr_stream::open_struct(const entity_properties &props)
+{
+  (void) props;
+}
+
+void basic_cdr_stream::close_struct(const entity_properties &props)
 {
   (void) props;
 }
