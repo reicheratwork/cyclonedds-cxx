@@ -48,10 +48,11 @@ public:
    *
    * Determines whether a header is necessary for this entity through em_header_necessary, and if it is, handles the header.
    *
-   * @param[in] it Iterator to the member to start.
+   * @param[in] prop Properties of the member to start.
    * @param[in] mode The mode of the stream for starting the member.
+   * @param[in] present Whether the entity represented by prop is present, if it is an optional entity.
    */
-  void start_member(std::vector<entity_properties_t>::iterator it, stream_mode mode);
+  void start_member(entity_properties_t &prop, stream_mode mode, bool present);
 
   /**
    * @brief
@@ -59,10 +60,11 @@ public:
    *
    * Determines whether a header is necessary for this entity through em_header_necessary, and if it is, completes the previous header.
    *
-   * @param[in] it Iterator to the member to finish
+   * @param[in] prop Properties of the member to finish.
    * @param[in] mode The mode of the stream for finishing the member.
+   * @param[in] present Whether the entity represented by prop is present, if it is an optional entity.
    */
-  void finish_member(std::vector<entity_properties_t>::iterator it, stream_mode mode);
+  void finish_member(entity_properties_t &prop, stream_mode mode, bool present);
 
   /**
    * @brief
@@ -157,8 +159,9 @@ private:
    * This function creates a placeholder for this boolean, which will be filled later with finish_optional_tag.
    *
    * @param[out] props The entity to write the optional flag for.
+   * @param[in] present Whether the entity represented by prop is present.
    */
-  void write_optional_tag(entity_properties_t &props);
+  void write_optional_tag(entity_properties_t &props, bool present);
 
   /**
    * @brief
@@ -168,18 +171,6 @@ private:
    * preceded by a single boolean, indicating its presence or absence.
    */
   void move_optional_tag();
-
-  /**
-   * @brief
-   * Finishes the optional flag
-   *
-   * In the case of an optional field, but not a parameter list, the xcdrv2 spec states that this field should
-   * preceded by a single boolean, indicating its presence or absence.
-   * This function fills in the placeholder created by write_optional_tag.
-   *
-   * @param[out] props The entity to write the optional flag for.
-   */
-  void finish_optional_tag(entity_properties_t &props);
 
   /**
    * @brief

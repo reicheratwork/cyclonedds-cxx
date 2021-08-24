@@ -47,7 +47,7 @@ public:
    *
    * As the basic cdr stream does not have anything that requires delimiting between entities, this function does nothing.
    */
-  void start_member(std::vector<entity_properties_t>::iterator, stream_mode) {;}
+  void start_member(entity_properties_t &, stream_mode, bool) {;}
 
   /**
    * @brief
@@ -55,7 +55,7 @@ public:
    *
    * As the basic cdr stream does not have anything that requires delimiting between entities, this function does nothing.
    */
-  void finish_member(std::vector<entity_properties_t>::iterator, stream_mode) {;}
+  void finish_member(entity_properties_t &, stream_mode, bool) {;}
 
   /**
    * @brief

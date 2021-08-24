@@ -125,7 +125,8 @@ enum serialization_status {
   read_bound_exceeded   = 0x1 << 2,
   invalid_pl_entry      = 0x1 << 3,
   invalid_dl_entry      = 0x1 << 4,
-  illegal_field_value   = 0x1 << 5
+  illegal_field_value   = 0x1 << 5,
+  unsupported_property  = 0x1 << 6
 };
 
 /**
@@ -142,6 +143,7 @@ public:
      *
      * Sets the stream endianness to end, and maximum alignment to max_align.
      *
+     * @param[in] end The endianness to set for the data stream, default to the local system endianness.
      * @param[in] max_align The maximum size that the stream will align CDR primitives to.
      * @param[in] ignore_faults Bitmask for ignoring faults, can be composed of bit fields from the serialization_status enumerator.
      */
@@ -357,10 +359,11 @@ public:
      * Depending on the implementation and mode headers may be read from/written to the stream.
      * This function is to be implemented in cdr streaming implementations.
      *
-     * @param[in] it The iterator of the entry in the list to start.
+     * @param[in] prop Properties of the entity to start.
      * @param[in] mode The mode in which the entity is started.
+     * @param[in] present Whether the entity represented by prop is present, if it is an optional entity.
      */
-    virtual void start_member(std::vector<entity_properties_t>::iterator it, stream_mode mode) = 0;
+    virtual void start_member(entity_properties_t &prop, stream_mode mode, bool present) = 0;
 
     /**
      * @brief
@@ -370,10 +373,11 @@ public:
      * Depending on the implementation and mode header length fields may be completed.
      * This function is to be implemented in cdr streaming implementations.
      *
-     * @param[in] it The iterator of the entry in the list to finish.
+     * @param[in] prop Properties of the entity to finish.
      * @param[in] mode The mode in which the entity is finished.
+     * @param[in] present Whether the entity represented by prop is present, if it is an optional entity.
      */
-    virtual void finish_member(std::vector<entity_properties_t>::iterator it, stream_mode mode) = 0;
+    virtual void finish_member(entity_properties_t &prop, stream_mode mode, bool present) = 0;
 
     /**
      * @brief
@@ -440,12 +444,11 @@ protected:
      *
      * @param[in, out] props The property tree to get the next entity from.
      * @param[in] as_key Whether to take the key entities, or the normal member entities.
-     * @param[in] mode Which mode to push/pop entities.
      * @param[in, out] firstcall Whether it is the first time calling the function for props, will store first iterator if true, and then set to false.
      *
      * @return The next entity to be processed, or the final entity if the current tree level does not hold more entities.
      */
-    entity_properties_t& next_prop(entity_properties_t &props, bool as_key, stream_mode mode, bool &firstcall);
+    entity_properties_t& next_prop(entity_properties_t &props, bool as_key, bool &firstcall);
 
     endianness m_stream_endianness,               //the endianness of the stream
         m_local_endianness = native_endianness(); //the local endianness

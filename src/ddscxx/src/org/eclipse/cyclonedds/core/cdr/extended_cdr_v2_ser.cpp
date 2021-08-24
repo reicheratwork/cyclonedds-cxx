@@ -31,61 +31,51 @@ const uint32_t xcdr_v2_stream::lc_mask         = uint32_t(0x70000000);
 const uint32_t xcdr_v2_stream::id_mask         = uint32_t(0x0FFFFFFF);
 const uint32_t xcdr_v2_stream::must_understand = uint32_t(0x80000000);
 
-void xcdr_v2_stream::start_member(std::vector<entity_properties_t>::iterator it, stream_mode mode)
+void xcdr_v2_stream::start_member(entity_properties_t &prop, stream_mode mode, bool present)
 {
   switch (mode) {
     case stream_mode::write:
-      if (em_header_necessary(*it))
-        write_em_header(*it);
-      else if (it->is_optional)
-        write_optional_tag(*it);
+      if (em_header_necessary(prop)) {
+        if (present)
+          write_em_header(prop);
+      } else if (prop.is_optional) {
+        write_optional_tag(prop, present);
+      }
       break;
     case stream_mode::move:
     case stream_mode::max:
-      if (em_header_necessary(*it))
-        move_em_header(*it);
-      else if (it->is_optional)
+      if (em_header_necessary(prop)) {
+        if (present)
+          move_em_header(prop);
+      } else if (prop.is_optional) {
         move_optional_tag();
+      }
       break;
     default:
       break;
   }
 }
 
-void xcdr_v2_stream::finish_member(std::vector<entity_properties_t>::iterator it, stream_mode mode)
+void xcdr_v2_stream::finish_member(entity_properties_t &prop, stream_mode mode, bool present)
 {
   if (mode == stream_mode::write) {
-    it->e_sz = static_cast<uint32_t>(position()-it->e_off);
-    if (em_header_necessary(*it))
-      finish_em_header(*it);
-    else if (it->is_optional)
-      finish_optional_tag(*it);
+    prop.e_sz = static_cast<uint32_t>(position()-prop.e_off);
+    if (em_header_necessary(prop)) {
+      if (present)
+        finish_em_header(prop);
+    }
   }
 }
 
-void xcdr_v2_stream::write_optional_tag(entity_properties_t &props)
+void xcdr_v2_stream::write_optional_tag(entity_properties_t &props, bool present)
 {
-  write(*this, uint8_t(0));
+  write(*this, present ? uint8_t(1) : uint8_t(0));
   props.e_off = position();
 }
 
 void xcdr_v2_stream::move_optional_tag()
 {
   move(*this, uint8_t(0));
-}
-
-void xcdr_v2_stream::finish_optional_tag(entity_properties_t &props)
-{
-  if (props.e_sz != 0) {
-    auto current_position = position();
-    auto current_alignment = alignment();
-
-    position(props.e_off - 1);
-    write(*this, uint8_t(1));
-
-    position(current_position);
-    alignment(current_alignment);
-  }
 }
 
 void xcdr_v2_stream::skip_entity(const entity_properties_t &props)
@@ -107,11 +97,11 @@ bool xcdr_v2_stream::bytes_available(const entity_properties_t &props)
 entity_properties_t& xcdr_v2_stream::next_entity(entity_properties_t &props, bool as_key, stream_mode mode, bool &firstcall)
 {
   if (mode != stream_mode::read)
-    return next_prop(props, as_key, mode, firstcall);
+    return next_prop(props, as_key, firstcall);
 
   if (!list_necessary(props)) {
     while (1) {  //using while loop to prevent recursive calling, which could lead to stack overflow
-      auto &prop = next_prop(props, as_key, mode, firstcall);
+      auto &prop = next_prop(props, as_key, firstcall);
 
       if (!prop)
         return prop;

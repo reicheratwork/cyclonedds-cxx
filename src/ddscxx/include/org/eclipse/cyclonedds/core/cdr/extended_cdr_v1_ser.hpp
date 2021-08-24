@@ -48,10 +48,11 @@ public:
    *
    * Determines whether a header is necessary for this entity through header_necessary, and if it is, handles the header.
    *
-   * @param[in] it Iterator to the member to start.
+   * @param[in] prop Properties of the member to start.
    * @param[in] mode The mode of the stream for starting the member.
+   * @param[in] present Whether the entity represented by prop is present, if it is an optional entity.
    */
-  void start_member(std::vector<entity_properties_t>::iterator it, stream_mode mode);
+  void start_member(entity_properties_t &prop, stream_mode mode, bool present);
 
   /**
    * @brief
@@ -59,10 +60,11 @@ public:
    *
    * Determines whether a header is necessary for this entity through header_necessary, and if it is, completes the previous header.
    *
-   * @param[in] it Iterator to the member to finish
+   * @param[in] prop Properties of the member to finish.
    * @param[in] mode The mode of the stream for finishing the member.
+   * @param[in] present Whether the entity represented by prop is present, if it is an optional entity.
    */
-  void finish_member(std::vector<entity_properties_t>::iterator it, stream_mode mode);
+  void finish_member(entity_properties_t &prop, stream_mode mode, bool present);
 
   /**
    * @brief

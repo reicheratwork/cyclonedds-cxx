@@ -472,6 +472,25 @@ int get_cpp11_value(
   abort();
 }
 
+bool is_optional(
+  const void *node)
+{
+  const idl_node_t *nd = node;
+  const idl_annotation_appl_t *appl = NULL;
+  IDL_FOREACH(appl, nd->annotations) {
+    if (strcmp(appl->annotation->name->identifier, "optional") == 0) {
+      if (appl->parameters
+       && appl->parameters->const_expr
+       && idl_mask(appl->parameters->const_expr) == (IDL_LITERAL | IDL_BOOL)) {
+        const idl_literal_t *lit = appl->parameters->const_expr;
+        return lit->value.bln;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
 static char *
 figure_guard(const char *file)
 {
@@ -553,6 +572,26 @@ register_union(
 }
 
 static idl_retcode_t
+register_optional(
+  const idl_pstate_t *pstate,
+  bool revisit,
+  const idl_path_t *path,
+  const void *node,
+  void *user_data)
+{
+  (void)pstate;
+  (void)revisit;
+  (void)path;
+
+  struct generator *gen = user_data;
+
+  if (idl_is_member(node) && ((const idl_member_t*)node)->optional.value)
+    gen->uses_optional = true;
+
+  return IDL_RETCODE_OK;
+}
+
+static idl_retcode_t
 register_types(
   const idl_pstate_t *pstate,
   bool revisit,
@@ -607,8 +646,6 @@ register_types(
     gen->uses_integers = true;
   }
 
-  /* FIXME: add support for @optional */
-
   return IDL_RETCODE_OK;
 }
 
@@ -617,14 +654,14 @@ generate_includes(const idl_pstate_t *pstate, struct generator *generator)
 {
   idl_retcode_t ret;
   idl_visitor_t visitor;
-  bool inc = false;
   const char *sources[] = { NULL, NULL };
   const idl_source_t *include, *source = pstate->sources;
 
   /* determine which "system" headers to include */
   memset(&visitor, 0, sizeof(visitor));
-  visitor.visit = IDL_DECLARATOR | IDL_SEQUENCE | IDL_UNION | IDL_CONST;
+  visitor.visit = IDL_DECLARATOR | IDL_SEQUENCE | IDL_UNION | IDL_MEMBER | IDL_CONST;
   visitor.accept[IDL_ACCEPT_DECLARATOR] = &register_types;
+  visitor.accept[IDL_ACCEPT_MEMBER] = &register_optional;
   visitor.accept[IDL_ACCEPT_SEQUENCE] = &register_types;
   visitor.accept[IDL_ACCEPT_CONST] = &register_types;
   visitor.accept[IDL_ACCEPT_UNION] = &register_union;
@@ -648,14 +685,13 @@ generate_includes(const idl_pstate_t *pstate, struct generator *generator)
     }
     if (cnt < 0 || fputs("\n", generator->header.handle) < 0)
       return IDL_RETCODE_NO_MEMORY;
-    inc = true;
   }
 
   if (idl_fprintf(generator->header.handle, "#include <algorithm>\n") < 0)
     return IDL_RETCODE_NO_MEMORY;
 
   { int len = 0;
-    const char *incs[7];
+    const char *incs[8];
 
     if (generator->uses_integers)
       incs[len++] = "<cstdint>";
@@ -671,6 +707,8 @@ generate_includes(const idl_pstate_t *pstate, struct generator *generator)
       incs[len++] = generator->bounded_string_include;
     if (generator->uses_union)
       incs[len++] = generator->union_include;
+    if (generator->uses_optional)
+      incs[len++] = generator->optional_include;
 
     for (int i=0, j; i < len; i++) {
       for (j=0; j < i && strcmp(incs[i], incs[j]) != 0; j++) ;
@@ -679,11 +717,10 @@ generate_includes(const idl_pstate_t *pstate, struct generator *generator)
       const char *fmt = "#include %s\n";
       if (idl_fprintf(generator->header.handle, fmt, incs[i]) < 0)
         return IDL_RETCODE_NO_MEMORY;
-      inc = true;
     }
   }
 
-  if (inc && fputs("\n", generator->header.handle) < 0)
+  if (fputs("\n", generator->header.handle) < 0)
     return IDL_RETCODE_NO_MEMORY;
 
   return IDL_RETCODE_OK;
@@ -730,6 +767,8 @@ const char *str_tmpl = "std::string";
 const char *str_inc = "<string>";
 const char *bnd_str_tmpl = "std::string";
 const char *bnd_str_inc = "<string>";
+const char *opt_tmpl = "std::optional";
+const char *opt_inc = "<optional>";
 const char *uni_tmpl = "std::variant";
 const char *uni_get_tmpl = "std::get";
 const char *uni_inc = "<variant>";
@@ -802,6 +841,8 @@ idl_retcode_t generate(const idl_pstate_t *pstate)
     goto err_str;
   if (makefmtp(&gen.bounded_string_format, bnd_str_tmpl, bnd_str_toks, bnd_str_flags) < 0)
     goto err_bnd_str;
+  if (makefmtp(&gen.optional_format, opt_tmpl, NULL, NULL) < 0)
+    goto err_opt;
   if (makefmtp(&gen.union_format, uni_tmpl, NULL, NULL) < 0)
     goto err_uni;
   if (makefmtp(&gen.union_getter_format, uni_get_tmpl, NULL, NULL) < 0)
@@ -812,6 +853,7 @@ idl_retcode_t generate(const idl_pstate_t *pstate)
   gen.bounded_sequence_include = bnd_seq_inc;
   gen.string_include = str_inc;
   gen.bounded_string_include = bnd_str_inc;
+  gen.optional_include = opt_inc;
   gen.union_include = uni_inc;
 
   ret = generate_nosetup(pstate, &gen);
@@ -820,6 +862,8 @@ idl_retcode_t generate(const idl_pstate_t *pstate)
 err_uni_get:
   free(gen.union_format);
 err_uni:
+  free(gen.optional_format);
+err_opt:
   free(gen.bounded_string_format);
 err_bnd_str:
   free(gen.string_format);
@@ -882,7 +926,7 @@ static const idlc_option_t *opts[] = {
   &(idlc_option_t) {
     IDLC_STRING, { .string = &bnd_str_tmpl },
     'f', "bounded-string-template", "ns_name::string<{BOUND} ...>",
-    "Template to use for strings instead of std::string<{BOUND}>. \"{BOUND}\" "
+    "Template to use for strings instead of std::string. \"{BOUND}\" "
     "tags are replaced by the repective maximum value, other text is copied "
     "verbatim. (default: std::string)"
   },
@@ -890,6 +934,16 @@ static const idlc_option_t *opts[] = {
     IDLC_STRING, { .string = &bnd_str_inc },
     'f', "bounded-string-include", "<header>",
     "Header to include if template for bounded-string-template is used."
+  },
+  &(idlc_option_t) {
+    IDLC_STRING, { .string = &opt_tmpl },
+    'f', "optional-template", "ns_name::optional<...>",
+    "Template to use for optionals instead of std::optional."
+  },
+  &(idlc_option_t) {
+    IDLC_STRING, { .string = &opt_inc },
+    'f', "optional-include", "<header>",
+    "Header to include if template for optional-template is used."
   },
   &(idlc_option_t) {
     IDLC_STRING, { .string = &arr_tmpl },

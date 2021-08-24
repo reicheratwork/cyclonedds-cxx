@@ -20,7 +20,11 @@ namespace cdr {
 
 entity_properties_t& basic_cdr_stream::next_entity(entity_properties_t &props, bool as_key, stream_mode mode, bool &firstcall)
 {
-  return next_prop(props, as_key, mode, firstcall);
+  (void) mode;
+  auto &prop = next_prop(props, as_key, firstcall);
+  if (prop.is_optional)
+    status(unsupported_property);
+  return prop;
 }
 
 }

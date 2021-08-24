@@ -92,7 +92,8 @@ enum instance_mask {
   TYPEDEF           = 0x1 << 0,
   UNION_BRANCH      = 0x1 << 1,
   SEQUENCE          = 0x1 << 2,
-  ARRAY             = 0x1 << 3
+  ARRAY             = 0x1 << 3,
+  OPTIONAL          = 0x1 << 4
 };
 
 struct instance_location {
@@ -104,12 +105,17 @@ typedef struct instance_location instance_location_t;
 static int get_instance_accessor(char* str, size_t size, const void* node, void* user_data)
 {
   instance_location_t loc = *(instance_location_t *)user_data;
+
   if (loc.type & TYPEDEF) {
     return idl_snprintf(str, size, "%s", loc.parent);
   } else {
+    const char *opt = "";
+    if (loc.type & OPTIONAL)
+      opt = "*";
+
     const idl_declarator_t* decl = (const idl_declarator_t*)node;
     const char* name = get_cpp11_name(decl);
-    return idl_snprintf(str, size, "%s.%s()", loc.parent, name);
+    return idl_snprintf(str, size, "%s%s.%s()", opt, loc.parent, name);
   }
 }
 
@@ -522,7 +528,6 @@ unroll_array(
   return IDL_RETCODE_OK;
 }
 
-
 static idl_retcode_t
 insert_array_primitives_copy(
   struct streams *streams,
@@ -645,15 +650,7 @@ generate_entity_properties(
       return IDL_RETCODE_NO_MEMORY;
   }
 
-  const char *opt = "false";
-  const idl_annotation_appl_t *annappl = NULL;
-  IDL_FOREACH(annappl, nd->annotations) {
-    if (annappl->annotation
-     && annappl->annotation->name
-     && 0 == strcmp(annappl->annotation->name->identifier,"optional"))
-      opt = "true";
-  }
-
+  const char *opt = (idl_is_member(nd) && ((const idl_member_t*)nd)->optional.value) ? "true" : "false";
   if (putf(&streams->props, "(%1$"PRIu32",%2$"PRIu32",%3$s)%4$s;\n",
       sequence_id,
       member_id,
@@ -751,6 +748,66 @@ generate_entity_properties(
 }
 
 static idl_retcode_t
+add_member_start(
+  const idl_member_t *mem,
+  const idl_declarator_t *decl,
+  struct streams *streams)
+{
+  instance_location_t loc = {.parent = "instance"};
+  char *accessor = NULL;
+  char *type = NULL;
+
+  const idl_type_spec_t *type_spec = NULL;
+  if (idl_is_array(decl))
+    type_spec = decl;
+  else
+    type_spec = idl_type_spec(decl);
+
+  if (IDL_PRINTA(&accessor, get_instance_accessor, decl, &loc) < 0
+   || IDL_PRINTA(&type, get_cpp11_type, type_spec, streams->generator) < 0)
+    return IDL_RETCODE_NO_MEMORY;
+
+  if (multi_putf(streams, ALL, "      streamer.start_member(prop, cdr_stream::stream_mode::{T}, "))
+    return IDL_RETCODE_NO_MEMORY;
+
+  if (mem->optional.value) {
+    if (multi_putf(streams, ALL, "%1$s.has_value());\n", accessor)
+     || multi_putf(streams, (WRITE|MOVE), "      if (%1$s.has_value()) {\n", accessor)
+     || putf(&streams->read, "      %1$s = %2$s();\n", accessor, type))
+      return IDL_RETCODE_NO_MEMORY;
+  } else {
+  if (multi_putf(streams, ALL, "true);\n"))
+    return IDL_RETCODE_NO_MEMORY;
+  }
+
+  return IDL_RETCODE_OK;
+}
+
+static idl_retcode_t
+add_member_finish(
+  const idl_member_t *mem,
+  const idl_declarator_t *decl,
+  struct streams *streams)
+{
+  if (mem->optional.value) {
+    instance_location_t loc = {.parent = "instance"};
+    char *accessor = NULL;
+    if (IDL_PRINTA(&accessor, get_instance_accessor, decl, &loc) < 0
+     || multi_putf(streams, (WRITE|MOVE), "      }\n")
+     || multi_putf(streams, ALL, "      streamer.finish_member(prop, cdr_stream::stream_mode::{T}, %1$s.has_value());\n", accessor))
+      return IDL_RETCODE_NO_MEMORY;
+  } else {
+    if (multi_putf(streams, ALL, "      streamer.finish_member(prop, cdr_stream::stream_mode::{T}, true);\n"))
+      return IDL_RETCODE_NO_MEMORY;
+  }
+
+  if (multi_putf(streams, ALL, "      break;\n"))
+    return IDL_RETCODE_NO_MEMORY;
+
+  return IDL_RETCODE_OK;
+}
+
+static idl_retcode_t
 process_member(
   const idl_pstate_t* pstate,
   const bool revisit,
@@ -765,7 +822,6 @@ process_member(
   const idl_member_t *mem = node;
   const idl_declarator_t *declarator = NULL;
   const idl_type_spec_t *type_spec = mem->type_spec;
-  instance_location_t loc = {.parent = "instance"};
 
   IDL_FOREACH(declarator, mem->declarators) {
     //generate case
@@ -779,8 +835,13 @@ process_member(
     uint64_t id2 = streams->sequence_id + id1;
 
     if (multi_putf(streams, ALL, fmt, id1)
-     || ((id2 != id1) && multi_putf(streams, ALL, fmt, id2)))
+     || ((id2 != id1) && multi_putf(streams, ALL, fmt, id2))
+     || add_member_start(mem, declarator, streams))
       return IDL_RETCODE_NO_MEMORY;
+
+    instance_location_t loc = {.parent = "instance"};
+    if (mem->optional.value)
+      loc.type |= OPTIONAL;
 
     if (generate_entity_properties(mem->node.parent, type_spec, streams, "props.m_members_by_seq", mem_id, streams->sequence_id))
       return IDL_RETCODE_NO_MEMORY;
@@ -791,9 +852,8 @@ process_member(
         generate_entity_properties(mem->node.parent, type_spec, streams, "props.m_keys_by_seq", mem_id, streams->sequence_id))
       return IDL_RETCODE_NO_MEMORY;
 
-    fmt = "      break;\n";
     if (process_entity(pstate, streams, declarator, type_spec, loc)
-     || multi_putf(streams, ALL, fmt))
+     || add_member_finish(mem, declarator, streams))
       return IDL_RETCODE_NO_MEMORY;
 
     streams->sequence_id++;

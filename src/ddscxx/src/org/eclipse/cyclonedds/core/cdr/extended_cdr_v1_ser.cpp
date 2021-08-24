@@ -30,28 +30,39 @@ const uint32_t xcdr_v1_stream::pl_extended_mask                 = 0x0FFFFFFF;
 const uint32_t xcdr_v1_stream::pl_extended_flag_impl_extension  = 0x80000000;
 const uint32_t xcdr_v1_stream::pl_extended_flag_must_understand = 0x40000000;
 
-void xcdr_v1_stream::start_member(std::vector<entity_properties_t>::iterator it, stream_mode mode)
+void xcdr_v1_stream::start_member(entity_properties_t &prop, stream_mode mode, bool present)
 {
-  if (!header_necessary(*it))
+  if (!header_necessary(prop))
+    return;
+
+  if (prop.p_ext == ext_mutable && !present)
     return;
 
   switch (mode) {
     case stream_mode::write:
-      write_header(*it);
+      write_header(prop);
       break;
     case stream_mode::move:
     case stream_mode::max:
-      move_header(*it);
+      move_header(prop);
       break;
     default:
       break;
   }
 }
 
-void xcdr_v1_stream::finish_member(std::vector<entity_properties_t>::iterator it, stream_mode mode)
+void xcdr_v1_stream::finish_member(entity_properties_t &prop, stream_mode mode, bool present)
 {
-  if (header_necessary(*it) && mode == stream_mode::write)
-      finish_write_header(*it);
+  if (mode != stream_mode::write)
+    return;
+
+  if (!header_necessary(prop))
+    return;
+
+  if (prop.p_ext == ext_mutable && !present)
+    return;
+
+  finish_write_header(prop);
 }
 
 void xcdr_v1_stream::skip_entity(const entity_properties_t &props)
@@ -62,11 +73,11 @@ void xcdr_v1_stream::skip_entity(const entity_properties_t &props)
 entity_properties_t& xcdr_v1_stream::next_entity(entity_properties_t &props, bool as_key, stream_mode mode, bool &firstcall)
 {
   if (mode != stream_mode::read)
-    return next_prop(props, as_key, mode, firstcall);
+    return next_prop(props, as_key, firstcall);
 
   if (!list_necessary(props)) {
     while (1) {  //using while loop to prevent recursive calling, which could lead to stack overflow
-      auto &prop = next_prop(props, as_key, mode, firstcall);
+      auto &prop = next_prop(props, as_key, firstcall);
 
       entity_properties_t temp;
       if (prop.is_optional) {
