@@ -182,52 +182,78 @@ static idl_retcode_t flush(struct generator* gen, struct streams* streams)
 #define MAX (1u<<3)
 #define CONST (WRITE | MOVE | MAX)
 #define ALL (CONST | READ)
-#define NOMAX (ALL | ~MAX)
+#define NOMAX (ALL & ~MAX)
 
 //mapping of streaming flags and token replacements
-static struct { uint32_t id; const char *T; const char *C; size_t O; } map[] = {
-  { WRITE, "write", "const ", offsetof(struct streams, write) },
-  { READ,  "read",  "",       offsetof(struct streams, read) },
-  { MOVE,  "move",  "const ", offsetof(struct streams, move) },
-  { MAX,   "max",   "const ", offsetof(struct streams, max) }
+static char tokens[2] = {'T', 'C'};
+
+static struct { uint32_t id; size_t O; const char *token_replacements[2]; } map[] = {
+  { WRITE, offsetof(struct streams, write), {"write", "const "} },
+  { READ,  offsetof(struct streams, read),  {"read",  ""} },
+  { MOVE,  offsetof(struct streams, move),  {"move",  "const "} },
+  { MAX,   offsetof(struct streams, max),   {"max",   "const "} }
 };
 
-/* scan over string looking for {T} and {C} */
-static size_t makeff(char *str, size_t size, const char *fmt)
+/* scan over string looking for {tok} */
+static idl_retcode_t print_until_token(struct streams *out, uint32_t mask, const char *fmt, size_t *fmt_position)
 {
-  size_t src = 0, dest = 0, ntoks = 0;
-  do {
-    if (fmt[src] == '{'
-     && fmt[src+2] == '}'
-     && (fmt[src+1] == 'T'
-      || fmt[src+1] == 'C'))
-        ntoks++;
-  } while (fmt[src++]);
-
-  if (str && src + ntoks <= size) {
-    src = 0;
-    do {
-      if (fmt[src] == '{'
-       && fmt[src+2] == '}') {
-        if (fmt[src+1] == 'T') {
-          memcpy(str+dest,"%1$s",4);
-          src += 3;
-          dest += 4;
-        } else if (fmt[src+1] == 'C') {
-          memcpy(str+dest,"%2$s",4);
-          src += 3;
-          dest += 4;
-        } else {
-          str[dest++] = fmt[src++];
-        }
-      } else {
-        str[dest++] = fmt[src++];
-      }
-    } while (fmt[src]);
-    str[dest] = '\0';
+  int err = 0;
+  size_t start_pos = *fmt_position;
+  bool end_found = false;
+  while (!end_found) {
+    if (fmt[*fmt_position] == '\0') {
+      end_found = true;
+    }
+    if (fmt[*fmt_position] == '{') {
+      for (size_t i = 0, n = sizeof(tokens)/sizeof(tokens[0]); i < n; i++)
+        if (fmt[*fmt_position+1] == tokens[i])
+          end_found = true;
+    }
+    if (!end_found)
+      (void)(*fmt_position)++;
   }
 
-  return src+ntoks;
+  size_t sub_len = *fmt_position-start_pos;
+  if (sub_len) {
+    char *substring = NULL;
+    if ((substring = malloc(sub_len+1))) {
+      memcpy(substring, fmt+start_pos, sub_len);
+      substring[sub_len] = '\0';
+
+      for (uint32_t i=0, n=(sizeof(map)/sizeof(map[0])); i < n && !err; i++) {
+        if (!(map[i].id & mask))
+          continue;
+
+        if (putf((idl_buffer_t*)((char*)out+map[i].O), substring))
+          err = 1;
+      }
+      free (substring);
+    } else {
+      err = 1;
+    }
+  }
+
+  return err ? IDL_RETCODE_NO_MEMORY : IDL_RETCODE_OK;
+}
+
+static idl_retcode_t replace_token(struct streams *out, uint32_t mask, const char *fmt, size_t *fmt_position) {
+  int err = 0;
+
+  for (size_t i = 0, ntoks = sizeof(tokens)/sizeof(tokens[0]); i < ntoks && !err; i++) {
+    if (fmt[*fmt_position+1] != tokens[i])
+      continue;
+
+    for (uint32_t j=0, n=(sizeof(map)/sizeof(map[0])); j < n && !err; j++) {
+      if (!(map[j].id & mask))
+        continue;
+
+      if (putf((idl_buffer_t*)((char*)out+map[j].O), map[j].token_replacements[i]))
+        err = 1;
+    }
+  }
+
+  *fmt_position += 3;
+  return err ? IDL_RETCODE_NO_MEMORY : IDL_RETCODE_OK;
 }
 
 static idl_retcode_t multi_putf(struct streams *out, uint32_t mask, const char *fmt, ...)
@@ -260,19 +286,14 @@ static idl_retcode_t multi_putf(struct streams *out, uint32_t mask, const char *
   va_end(ap);
 
   if (!err) {
-    char *posargs = NULL;
-    size_t plen = makeff(posargs, 0, withtokens);
-    if ((posargs = malloc(plen))) {
-      err = (0 == makeff(posargs, plen, withtokens));
-      for (uint32_t i=0, n=(sizeof(map)/sizeof(map[0])); i < n && !err; i++) {
-        if (!(map[i].id & mask))
-          continue;
-
-        err = (putf((idl_buffer_t*)((char*)out+map[i].O), posargs, map[i].T, map[i].C) != IDL_RETCODE_OK);
+    size_t str_pos = 0;
+    while (!err && withtokens[str_pos]) {
+      if (print_until_token(out, mask, withtokens, &str_pos))
+        err = 1;
+      if (!err && withtokens[str_pos]) {
+        if (replace_token(out, mask, withtokens, &str_pos))
+          err = 1;
       }
-      free(posargs);
-    } else {
-      err = 1;
     }
   }
 
