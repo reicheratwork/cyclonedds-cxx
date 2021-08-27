@@ -849,7 +849,7 @@ process_member(
     const char *fmt =
       "      case %"PRIu64":\n";
 
-    uint32_t mem_id = (mem->id.annotation == IDL_ID) ? mem->id.value : streams->sequence_id;  //need rework on id fields in the idl parser
+    uint32_t mem_id = (mem->id.annotation != IDL_AUTOID) ? mem->id.value : streams->sequence_id;  //need rework on id fields in the idl parser
     mem_id %= 268435456;  //endianness independent dropping of the 4 most significant bits
 
     uint64_t id1 = ((uint64_t)mem_id) << 32;
@@ -1036,10 +1036,27 @@ process_key(
     const idl_member_t *mem = (const idl_member_t *)((const idl_node_t *)decl)->parent;
     type_spec = mem->type_spec;
 
-    if (putf(&streams->props, "      ptr->m_keys_by_seq.clear();\n")
-     || generate_entity_properties((const idl_node_t*)_struct,type_spec,streams,"  ptr->m_keys_by_seq",mem->id.value,sequence_id)
-     || putf(&streams->props, "      ptr = &(ptr->m_keys_by_seq.back());\n"))
+    if (i != 0
+     && putf(&streams->props, "      ptr->m_keys_by_seq.clear();\n"
+                              "      ptr->m_members_by_seq.clear();\n"
+                              "      ptr->m_keys_by_id.clear();\n"
+                              "      ptr->m_members_by_id.clear();\n"))
       return IDL_RETCODE_NO_MEMORY;
+
+    uint32_t mem_id = (mem->id.annotation != IDL_AUTOID) ? mem->id.value : sequence_id;  //need rework on id fields in the idl parser
+    mem_id %= 268435456;  //endianness independent dropping of the 4 most significant bits
+
+    if (generate_entity_properties((const idl_node_t*)_struct,type_spec,streams,"  ptr->m_keys_by_seq", mem_id, sequence_id))
+      return IDL_RETCODE_NO_MEMORY;
+
+    if (i != 0) {
+      if (putf(&streams->props, "      ptr->m_keys_by_seq.push_back(final_entry());\n"
+                                "      ptr = &(*(++(ptr->m_keys_by_seq.rbegin())));\n"))
+        return IDL_RETCODE_NO_MEMORY;
+    } else {
+      if (putf(&streams->props, "      ptr = &(*((ptr->m_keys_by_seq.rbegin())));\n"))
+        return IDL_RETCODE_NO_MEMORY;
+    }
 
     _struct = type_spec;
   }
@@ -1056,6 +1073,9 @@ process_keylist(
   const idl_struct_t *_struct)
 {
   const idl_key_t *key = NULL;
+
+  if (putf(&streams->props, "    props.m_keys_by_seq.clear();\n"))
+    return IDL_RETCODE_NO_MEMORY;
 
   IDL_FOREACH(key, _struct->keylist->keys) {
     if (process_key(streams, _struct, key))
@@ -1145,10 +1165,7 @@ print_constructed_type_close(struct streams *streams)
   const char *pfmt =
     "    props.m_members_by_seq.push_back(final_entry());\n"
     "    props.m_keys_by_seq.push_back(final_entry());\n"
-    "    props.m_keys_by_id = props.m_keys_by_seq;\n"
-    "    props.m_members_by_id = props.m_members_by_seq;\n"
-    "    std::sort(props.m_keys_by_id.begin(), props.m_keys_by_id.end(), entity_properties::member_id_comp);\n"
-    "    std::sort(props.m_members_by_id.begin(), props.m_members_by_id.end(), entity_properties::member_id_comp);\n"
+    "    props.created_sorted();\n"
     "    initialized = true;\n"
     "  }\n"
     "  return props;\n"

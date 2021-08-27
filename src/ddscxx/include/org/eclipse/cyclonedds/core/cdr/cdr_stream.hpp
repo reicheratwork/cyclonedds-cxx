@@ -463,7 +463,7 @@ protected:
     entity_properties_t m_current_header;
 
     DDSCXX_WARNING_MSVC_OFF(4251)
-    std::stack<std::vector<entity_properties_t>::iterator> m_stack; //current iterators the stream is working over
+    std::stack<proplist::iterator> m_stack; //current iterators the stream is working over
     DDSCXX_WARNING_MSVC_ON(4251)
 };
 

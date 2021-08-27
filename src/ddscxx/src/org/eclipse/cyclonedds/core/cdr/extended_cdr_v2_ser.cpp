@@ -118,7 +118,7 @@ entity_properties_t& xcdr_v2_stream::next_entity(entity_properties_t &props, boo
         return prop;
     }
   } else {
-    std::vector<entity_properties_t> *ptr = NULL;
+    proplist *ptr = NULL;
     if (as_key)
       ptr = &props.m_keys_by_id;
     else

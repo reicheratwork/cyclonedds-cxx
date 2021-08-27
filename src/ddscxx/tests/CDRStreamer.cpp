@@ -697,8 +697,8 @@ TEST_F(CDRStreamer, cdr_union)
 
 TEST_F(CDRStreamer, cdr_pragma)
 {
-  pragma_keys PS(sub_2(sub_1(123,234),sub_1(345,456)),sub_2(sub_1(567,678),sub_1(789,890))),
-              PS_key_test(sub_2(sub_1(0,0),sub_1(345,456)),sub_2(sub_1(0,678),sub_1(0,0)));
+  pragma_keys PS(sub_2(sub_1(123,234),sub_1(345,456)),sub_2(sub_1(567,678),sub_1(789,890)));
+  pragma_keys PS_key_test(sub_2(sub_1(0,0),sub_1(345,456)),sub_2(sub_1(0,678),sub_1(0,0)));
 
   bytes PS_basic_normal {
       0, 0, 0, 123/*pragma_keys.c.s_1.l_1*/,

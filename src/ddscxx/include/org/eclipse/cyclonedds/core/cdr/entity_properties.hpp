@@ -12,10 +12,9 @@
 #ifndef ENTITY_PROPERTIES_HPP_
 #define ENTITY_PROPERTIES_HPP_
 
-#include <org/eclipse/cyclonedds/core/type_helpers.hpp>
 #include <dds/core/macros.hpp>
 #include <cstdint>
-#include <vector>
+#include <list>
 
 namespace org {
 namespace eclipse {
@@ -65,6 +64,8 @@ enum extensibility {
 };
 
 typedef struct entity_properties entity_properties_t;
+typedef std::list<entity_properties_t> proplist;
+
 
 /**
  * @brief
@@ -101,14 +102,17 @@ struct OMG_DDS_API entity_properties
   bit_bound e_bb = bb_unset; /**< The minimum number of bytes necessary to represent this entity/bitmask.*/
 
   DDSCXX_WARNING_MSVC_OFF(4251)
-  std::vector<entity_properties_t> m_members_by_seq; /**< Fields in normal streaming mode, ordered by their declaration.*/
-  std::vector<entity_properties_t> m_keys_by_seq; /**< Fields in key streaming mode, ordered by their declaration.*/
-  std::vector<entity_properties_t> m_members_by_id; /**< Fields in normal streaming mode, ordered by their member id.*/
-  std::vector<entity_properties_t> m_keys_by_id; /**< Fields in key streaming mode, ordered by their member id.*/
+  proplist m_members_by_seq; /**< Fields in normal streaming mode, ordered by their declaration.*/
+  proplist m_keys_by_seq; /**< Fields in key streaming mode, ordered by their declaration.*/
+  proplist m_members_by_id; /**< Fields in normal streaming mode, ordered by their member id.*/
+  proplist m_keys_by_id; /**< Fields in key streaming mode, ordered by their member id.*/
   DDSCXX_WARNING_MSVC_ON(4251)
 
   operator bool() const {return !is_last;}
   static bool member_id_comp(const entity_properties_t &lhs, const entity_properties_t &rhs);
+  void created_sorted();
+  static proplist sort_proplist(const proplist &in, bool (*comp)(const entity_properties_t &lhs, const entity_properties_t &rhs));
+  void merge(const entity_properties_t &other);
   void set_member_props(uint32_t sequence_id, uint32_t member_id, bool optional);
   void print(bool recurse = true, size_t depth = 0, const char *prefix = "") const;
 };

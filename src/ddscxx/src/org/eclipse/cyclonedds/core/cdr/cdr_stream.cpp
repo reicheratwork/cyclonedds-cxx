@@ -10,7 +10,6 @@
  * SPDX-License-Identifier: EPL-2.0 OR BSD-3-Clause
  */
 #include <cstring>
-#include <algorithm>
 #include <assert.h>
 
 #include <org/eclipse/cyclonedds/core/cdr/cdr_stream.hpp>
@@ -51,7 +50,8 @@ size_t cdr_stream::align(size_t newalignment, bool add_zeroes)
 entity_properties_t& cdr_stream::next_prop(entity_properties_t &props, bool as_key, bool &firstcall)
 {
   if (firstcall) {
-    auto it = as_key ?
+    auto it = as_key ||
+              0 == props.m_members_by_seq.size() ?  //this is to check whether we are checking the properties of a #pragma keylist tree entry
               props.m_keys_by_seq.begin() :
               props.m_members_by_seq.begin();
     m_stack.push(it);
@@ -65,7 +65,7 @@ entity_properties_t& cdr_stream::next_prop(entity_properties_t &props, bool as_k
     m_stack.top()++;
 
   entity_properties_t &entity = *m_stack.top();
-  if (!entity)  //we have reached the end of the list
+  if (!entity) //we have reached the end of the list
     m_stack.pop();
 
   return entity;

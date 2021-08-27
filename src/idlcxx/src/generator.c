@@ -687,9 +687,6 @@ generate_includes(const idl_pstate_t *pstate, struct generator *generator)
       return IDL_RETCODE_NO_MEMORY;
   }
 
-  if (idl_fprintf(generator->header.handle, "#include <algorithm>\n") < 0)
-    return IDL_RETCODE_NO_MEMORY;
-
   { int len = 0;
     const char *incs[8];
 
