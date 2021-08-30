@@ -472,25 +472,6 @@ int get_cpp11_value(
   abort();
 }
 
-bool is_optional(
-  const void *node)
-{
-  const idl_node_t *nd = node;
-  const idl_annotation_appl_t *appl = NULL;
-  IDL_FOREACH(appl, nd->annotations) {
-    if (strcmp(appl->annotation->name->identifier, "optional") == 0) {
-      if (appl->parameters
-       && appl->parameters->const_expr
-       && idl_mask(appl->parameters->const_expr) == (IDL_LITERAL | IDL_BOOL)) {
-        const idl_literal_t *lit = appl->parameters->const_expr;
-        return lit->value.bln;
-      }
-      return true;
-    }
-  }
-  return false;
-}
-
 static char *
 figure_guard(const char *file)
 {

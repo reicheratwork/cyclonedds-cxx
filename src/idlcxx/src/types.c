@@ -57,7 +57,7 @@ emit_member(
     return IDL_RETCODE_NO_MEMORY;
 
   fmt = " %1$s %2$s_%3$s%4$s;\n";
-  if (is_optional(idl_parent(node))) {
+  if (idl_is_optional(node)) {
     fmt = " %5$s<%1$s> %2$s_%3$s%4$s;\n";
     value = NULL;
   }
@@ -102,7 +102,7 @@ emit_parameter(
 
   simple = idl_mask(idl_unalias(type_spec, 0)) & (IDL_BASE_TYPE|IDL_ENUM);
   sep = is_first(node) ? "" : ",\n";
-  if (is_optional(idl_parent(node))) {
+  if (idl_is_optional(node)) {
     fmt = "%1$s    const %4$s<%2$s>& %3$s";
   } else {
     fmt = simple ? "%1$s    %2$s %3$s"
