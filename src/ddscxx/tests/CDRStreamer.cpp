@@ -728,3 +728,125 @@ TEST_F(CDRStreamer, cdr_pragma)
   write_test(PS, PS_basic_normal, PS_basic_key, xcdr_v1)
   write_test(PS, PS_basic_normal, PS_basic_key, xcdr_v2)
 }
+
+/*verifying reads/writes of a struct containing enums*/
+
+TEST_F(CDRStreamer, cdr_enum)
+{
+  enum_struct ES(enum_8::second_8, enum_16::third_16, enum_32::fourth_32);
+
+  /*basic cdr treats all enums as 32 bit integers*/
+  bytes ES_basic_normal {
+      0, 0, 0 ,1 /*enum_struct.c*/,
+      0, 0, 0, 2 /*enum_struct.b*/,
+      0, 0, 0, 3 /*enum_struct.a*/
+      };
+  bytes ES_basic_key {
+      0, 0, 0, 1 /*enum_struct.c*/
+      };
+  /*xcdr_v1 and xcdr_v2 treat bitbounded enums in the same manner*/
+  bytes ES_xcdr_v1_normal {
+      1 /*enum_struct.c*/,
+      0 /*padding bytes (1)*/,
+      0, 2 /*enum_struct.b*/,
+      0, 0, 0, 3 /*enum_struct.a*/
+      };
+  bytes ES_xcdr_v1_key {
+      1 /*enum_struct.c*/
+      };
+
+  //currently the bit_bound field is not being parsed, so enums are written as 32-bit integers
+  (void) ES_xcdr_v1_normal;
+  (void) ES_xcdr_v1_key;
+
+  stream_test(ES, ES_basic_normal, ES_basic_key, ES_basic_normal, ES_basic_key, ES_basic_normal, ES_basic_key)
+}
+
+/*verifying reads/writes of structs containing optional fields*/
+
+TEST_F(CDRStreamer, cdr_optional)
+{
+  optional_final_struct OFS('a', 'b', std::nullopt);
+  optional_appendable_struct OAS('a', 'b', std::nullopt);
+  optional_mutable_struct OMS('a', 'b', std::nullopt);
+
+  /*no basic cdr, since it does not support optional fields*/
+  bytes OFS_xcdr_v1_normal {
+    64, 0, 0, 1 /*optional_final_struct.a.mheader*/,
+    'a'/*optional_final_struct.a*/,
+    'b'/*optional_final_struct.b*/,
+    0, 0/*padding bytes (2)*/,
+    64, 2, 0, 0 /*optional_final_struct.c.mheader*/
+    };
+  bytes OFS_xcdr_v1_key {
+    64, 2, 0, 0 /*optional_final_struct.c.mheader*/
+    };
+  bytes OMS_xcdr_v1_normal {
+    64, 0, 0, 1 /*optional_mutable_struct.a.mheader*/,
+    'a'/*optional_mutable_struct.a*/,
+    0, 0, 0/*padding bytes (3)*/,
+    64, 1, 0, 1 /*optional_mutable_struct.b.mheader*/,
+    'b'/*optional_mutable_struct.b*/,
+    0, 0, 0/*padding bytes (3)*/,
+    127, 2, 0, 0 /*optional_mutable_struct list termination header*/
+    };
+  bytes OMS_xcdr_v1_key {
+    127, 2, 0, 0 /*optional_mutable_struct list termination header*/
+    };
+  bytes OFS_xcdr_v2_normal {
+    1/*optional_final_struct.a.is_present*/,
+    'a'/*optional_final_struct.a*/,
+    'b'/*optional_final_struct.b*/,
+    0/*optional_final_struct.c.is_present*/
+    };
+  bytes OFS_xcdr_v2_key {
+    0/*optional_final_struct.c.is_present*/
+    };
+  bytes OAS_xcdr_v2_normal {
+    0, 0, 0, 4/*dheader*/,
+    1/*optional_final_struct.a.is_present*/,
+    'a'/*optional_final_struct.a*/,
+    'b'/*optional_final_struct.b*/,
+    0/*optional_final_struct.c.is_present*/
+    };
+  bytes OAS_xcdr_v2_key {
+    0, 0, 0, 1/*dheader*/,
+    0/*optional_final_struct.c.is_present*/
+    };
+  bytes OMS_xcdr_v2_normal {
+    0, 0, 0, 13/*dheader*/,
+    128, 0, 0, 0 /*derived.c.emheader*/,
+    'a'/*optional_final_struct.a*/,
+    0, 0, 0/*padding bytes (3)*/,
+    128, 0, 0, 1 /*derived.c.emheader*/,
+    'b'/*optional_final_struct.b*/
+    };
+  bytes OMS_xcdr_v2_key {
+    0, 0, 0, 0/*dheader*/
+    };
+
+  /* basic cdr does not support optional fields,
+     therefore the streamer should enter error status
+     when the streamer is asked to write them */
+  bytes in_bytes {'a', 'b', 'c'};
+  optional_final_struct out_struct;
+  basic_cdr_stream b(endianness::big_endian);
+  b.set_buffer(in_bytes.data());
+  read(b, out_struct, false);
+
+  ASSERT_EQ(b.status(), uint64_t(serialization_status::unsupported_property));
+
+  bytes out_bytes(3, 0);
+  b.set_buffer(out_bytes.data());
+  write(b, OFS, false);
+
+  ASSERT_EQ(b.status(), uint64_t(serialization_status::unsupported_property));
+
+  readwrite_test(OFS, OFS_xcdr_v1_normal, OFS_xcdr_v1_key, xcdr_v1)
+  readwrite_test(OAS, OFS_xcdr_v1_normal, OFS_xcdr_v1_key, xcdr_v1)
+  readwrite_test(OMS, OMS_xcdr_v1_normal, OMS_xcdr_v1_key, xcdr_v1)
+
+  readwrite_test(OFS, OFS_xcdr_v2_normal, OFS_xcdr_v2_key, xcdr_v2)
+  readwrite_test(OAS, OAS_xcdr_v2_normal, OAS_xcdr_v2_key, xcdr_v2)
+  readwrite_test(OMS, OMS_xcdr_v2_normal, OMS_xcdr_v2_key, xcdr_v2)
+}
