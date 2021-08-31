@@ -492,21 +492,29 @@ unroll_sequence(const idl_pstate_t* pstate,
                                "      if (se_%1$u > %3$u &&\n"
                                "          streamer.status(serialization_status::{T}_bound_exceeded))\n"
                                "        return;\n"\
-                               "      {T}(streamer, se_%1$u);\n"
+                               "      {T}(streamer, se_%1$u);\n"\
+                               "      if (se_%1$u > 0)\n"\
+                               "      {\n"
                              : "      {\n"\
                                "      uint32_t se_%1$u = uint32_t(%2$s.size());\n"\
-                               "      {T}(streamer, se_%1$u);\n";
+                               "      {T}(streamer, se_%1$u);\n"\
+                               "      if (se_%1$u > 0)\n"\
+                               "      {\n";
   const char* rfmt = maximum ? "      {\n"\
                                "      uint32_t se_%1$u = 0;\n"\
                                "      read(streamer, se_%1$u);\n"\
                                "      if (se_%1$u > %3$u &&\n"
                                "          streamer.status(serialization_status::read_bound_exceeded))\n"
                                "        return;\n"\
-                               "      %2$s.resize(se_%1$u);\n"
+                               "      %2$s.resize(se_%1$u);\n"\
+                               "      if (se_%1$u > 0)\n"\
+                               "      {\n"
                              : "      {\n"\
                                "      uint32_t se_%1$u = 0;\n"\
                                "      read(streamer, se_%1$u);\n"\
-                               "      %2$s.resize(se_%1$u);\n";
+                               "      %2$s.resize(se_%1$u);\n"\
+                               "      if (se_%1$u > 0)\n"\
+                               "      {\n";
   const char* mfmt = "      {\n"\
                      "      uint32_t se_%1$u = %2$u;\n"\
                      "      max(streamer, uint32_t(0));\n";
@@ -520,7 +528,8 @@ unroll_sequence(const idl_pstate_t* pstate,
     return IDL_RETCODE_NO_MEMORY;
 
   //close sequence
-  if (multi_putf(streams, ALL, "      }  //end sequence\n"))
+  if (multi_putf(streams, NOMAX,  "      }\n")
+   || multi_putf(streams, ALL, "      }  //end sequence\n"))
     return IDL_RETCODE_NO_MEMORY;
 
   if (maximum == 0
