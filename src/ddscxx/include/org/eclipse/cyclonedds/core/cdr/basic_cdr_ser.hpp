@@ -119,9 +119,7 @@ public:
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
 void read(basic_cdr_stream& str, T& toread, size_t N = 1) {
-  T *ptr = &toread;
-  for (size_t i = 0; i < N; i++, ptr++)
-    read(str, *reinterpret_cast<uint32_t*>(ptr));
+  read_enum_impl<basic_cdr_stream,T,uint32_t>(str, toread, N);
 }
 
 /**
@@ -134,9 +132,7 @@ void read(basic_cdr_stream& str, T& toread, size_t N = 1) {
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
 void write(basic_cdr_stream& str, const T& towrite, size_t N = 1) {
-  const T *ptr = &towrite;
-  for (size_t i = 0; i < N; i++, ptr++)
-    write(str, *reinterpret_cast<const uint32_t*>(ptr));
+  write_enum_impl<basic_cdr_stream,T,uint32_t>(str, towrite, N);
 }
 
 /**

@@ -30,6 +30,21 @@ namespace cdr {
 
 /**
  * @brief
+ * Enum conversion and validation function template forward declaration.
+ *
+ * This function is generated for each enumerated class encountered in the parsed .idl files.
+ * Converts an integer value to the corresponding enum class value, or its default value
+ * if there is no enum equivalent to the int.
+ *
+ * @param[in] in The integer to convert to the enumerated class.
+ *
+ * @return The enumerator representation of in.
+ */
+template<typename E>
+E enum_conversion(uint32_t in);
+
+/**
+ * @brief
  * Byte swapping function, is only enabled for arithmetic (base) types.
  *
  * Determines the number of bytes to swap by the size of the template parameter.
@@ -517,6 +532,33 @@ void read(S &str, T& toread, size_t N = 1)
 
 /**
  * @brief
+ * Enum type read function implementation.
+ *
+ * Uses the template parameter I to determine the stream-end read type,
+ * this type is determined by the stream implementation.
+ * Reads the enums as type I from the stream.
+ * Each read entity is verified by the enum's conversion version.
+ * This function is only enabled for enum types.
+ *
+ * @param[in, out] str The stream which is read from.
+ * @param[out] toread The variable to read.
+ * @param[in] N The number of entities to read.
+ */
+template<typename S, typename T, typename I, std::enable_if_t<std::is_integral<I>::value
+                                               && std::is_enum<T>::value
+                                               && std::is_base_of<cdr_stream, S>::value, bool> = true>
+void read_enum_impl(S& str, T& toread, size_t N) {
+  T *ptr = &toread;
+  I holder = 0;
+  for (size_t i = 0; i < N; i++, ptr++)
+  {
+    read(str, holder);
+    *ptr = enum_conversion<T>(holder);
+  }
+}
+
+/**
+ * @brief
  * Primitive type write function.
  *
  * Aligns str to the type to be written.
@@ -552,6 +594,34 @@ void write(S& str, const T& towrite, size_t N = 1)
   }
 
   str.incr_position(sizeof(T)*N);
+}
+
+/**
+ * @brief
+ * Enum type write function implementation.
+ *
+ * Uses the template parameter I to determine the stream-end write type,
+ * this type is determined by the stream implementation.
+ * Writes the enums as type I to the stream.
+ * If the enums have the same size as the integer stream type, they are written
+ * as a block, otherwise they are copied one by one.
+ * This function is only enabled for enum types.
+ *
+ * @param[in, out] str The stream which is written to.
+ * @param[in] towrite The variable to write.
+ * @param[in] N The number of entities to write.
+ */
+template<typename S, typename T, typename I, std::enable_if_t<std::is_integral<I>::value
+                                               && std::is_enum<T>::value
+                                               && std::is_base_of<cdr_stream, S>::value, bool> = true>
+void write_enum_impl(S& str, const T& towrite, size_t N) {
+  const T *ptr = &towrite;
+  if (sizeof(T) == sizeof(I)) {
+      write(str, *reinterpret_cast<const I*>(ptr), N);
+  } else {
+    for (size_t i = 0; i < N; i++, ptr++)
+      write(str, *reinterpret_cast<const I*>(ptr));
+  }
 }
 
 /**

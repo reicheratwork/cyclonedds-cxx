@@ -234,23 +234,19 @@ private:
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
 void read(xcdr_v1_stream& str, T& toread, size_t N = 1) {
-  T *ptr = &toread;
-  for (size_t i = 0; i < N; i++, ptr++)
+  switch (str.top_of_stack().e_bb)
   {
-    switch (str.top_of_stack().e_bb)
-    {
-      case bb_8_bits:
-        read(str, *reinterpret_cast<uint8_t*>(ptr));
-        break;
-      case bb_16_bits:
-        read(str, *reinterpret_cast<uint16_t*>(ptr));
-        break;
-      case bb_32_bits:
-        read(str, *reinterpret_cast<uint32_t*>(ptr));
-        break;
-      default:
-        assert(false);
-    }
+    case bb_8_bits:
+      read_enum_impl<xcdr_v1_stream,T,uint8_t>(str, toread, N);
+      break;
+    case bb_16_bits:
+      read_enum_impl<xcdr_v1_stream,T,uint16_t>(str, toread, N);
+      break;
+    case bb_32_bits:
+      read_enum_impl<xcdr_v1_stream,T,uint32_t>(str, toread, N);
+      break;
+    default:
+      assert(false);
   }
 }
 
@@ -264,23 +260,19 @@ void read(xcdr_v1_stream& str, T& toread, size_t N = 1) {
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
 void write(xcdr_v1_stream& str, const T& towrite, size_t N = 1) {
-  const T *ptr = &towrite;
-  for (size_t i = 0; i < N; i++, ptr++)
+  switch (str.top_of_stack().e_bb)
   {
-    switch (str.top_of_stack().e_bb)
-    {
-      case bb_8_bits:
-        write(str, *reinterpret_cast<const uint8_t*>(ptr));
-        break;
-      case bb_16_bits:
-        write(str, *reinterpret_cast<const uint16_t*>(ptr));
-        break;
-      case bb_32_bits:
-        write(str, *reinterpret_cast<const uint32_t*>(ptr));
-        break;
-      default:
-        assert(false);
-    }
+    case bb_8_bits:
+      write_enum_impl<xcdr_v1_stream,T,uint8_t>(str, towrite, N);
+      break;
+    case bb_16_bits:
+      write_enum_impl<xcdr_v1_stream,T,uint16_t>(str, towrite, N);
+      break;
+    case bb_32_bits:
+      write_enum_impl<xcdr_v1_stream,T,uint32_t>(str, towrite, N);
+      break;
+    default:
+      assert(false);
   }
 }
 
