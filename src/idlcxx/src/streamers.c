@@ -1483,13 +1483,43 @@ process_enum(
   const char *fmt = "template<>\n"\
                     "%s enum_conversion<%s>(uint32_t in)%s";
 
-  if (putf(&str->props, fmt, fullname, fullname, " {\n  switch (in) {\n  default:\n")
+  if (putf(&str->props, fmt, fullname, fullname, " {\n  switch (in) {\n")
    || idl_fprintf(gen->header.handle, fmt, fullname, fullname, ";\n\n") < 0)
     return IDL_RETCODE_NO_MEMORY;
+
+  //array of values already encountered
+  uint32_t already_encountered[232],
+           n_already_encountered = 0,
+           default_value;
+
+  IDL_FOREACH(enumerator, _enum->enumerators) {
+    if (NULL == idl_previous(enumerator)
+     || idl_is_default(enumerator))
+      default_value = enumerator->value;
+  }
+
   IDL_FOREACH(enumerator, _enum->enumerators) {
     enum_name = get_cpp11_name(enumerator);
     value = enumerator->value;
-    if (putf(&str->props, "    case %"PRIu32":\n    return %s::%s;\n    break;\n", value, fullname, enum_name) < 0)
+    bool already_present = false;
+    for (uint32_t i = 0; i < n_already_encountered && !already_present; i++) {
+      if (value == already_encountered[i])
+        already_present = true;
+    }
+    if (already_present)
+      continue;
+
+    if (n_already_encountered >= 232)  //protection against buffer overflow in already_encountered[]
+      return IDL_RETCODE_ILLEGAL_EXPRESSION;
+    already_encountered[n_already_encountered++] = value;
+
+    if (putf(&str->props, "    %scase %"PRIu32":\n"
+                          "    return %s::%s;\n"
+                          "    break;\n",
+                          value == default_value ? "default:\n      " : "",
+                          value,
+                          fullname,
+                          enum_name) < 0)
       return IDL_RETCODE_NO_MEMORY;
   }
 
