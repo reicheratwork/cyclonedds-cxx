@@ -164,7 +164,7 @@ static idl_retcode_t flush_stream(idl_buffer_t* str, FILE* f)
 
 static idl_retcode_t flush(struct generator* gen, struct streams* streams)
 {
-  if (IDL_RETCODE_OK != flush_stream(&streams->props, gen->header.handle)
+  if (IDL_RETCODE_OK != flush_stream(&streams->props, gen->impl.handle)
    || IDL_RETCODE_OK != flush_stream(&streams->write, gen->header.handle)
    || IDL_RETCODE_OK != flush_stream(&streams->read, gen->header.handle)
    || IDL_RETCODE_OK != flush_stream(&streams->move, gen->header.handle)
@@ -1103,12 +1103,12 @@ print_constructed_type_open(struct streams *streams, const idl_node_t *node)
 
   const char *fmt =
     "template<typename T, std::enable_if_t<std::is_base_of<cdr_stream, T>::value, bool> = true >\n"
-    "void {T}(T& streamer, {C}%1$s& instance, entity_properties_t &props, bool as_key)\n"
-    "{\n";
-  const char *pfmt =
+    "void {T}(T& streamer, {C}%1$s& instance, entity_properties_t &props, bool as_key) {\n";
+  const char *pfmt1 =
     "template<>\n"
-    "inline entity_properties_t& get_type_props<%1$s>()\n"
-    "{\n"
+    "entity_properties_t& get_type_props<%s>()%s";
+  const char *pfmt2 =
+    " {\n"
     "  thread_local static bool initialized = false;\n"
     "  thread_local static entity_properties_t props;\n"
     "  if (!initialized) {\n";
@@ -1116,7 +1116,8 @@ print_constructed_type_open(struct streams *streams, const idl_node_t *node)
     "  streamer.start_struct(props,cdr_stream::stream_mode::{T});\n";
 
   if (multi_putf(streams, ALL, fmt, name)
-   || putf(&streams->props, pfmt, name))
+   || putf(&streams->props, pfmt1, name, pfmt2)
+   || idl_fprintf(streams->generator->header.handle, pfmt1, name, ";\n\n") < 0)
     return IDL_RETCODE_NO_MEMORY;
 
   if (multi_putf(streams, ALL, sfmt))
@@ -1403,7 +1404,7 @@ process_typedef_decl(
 
   static const char* fmt =
     "template<typename T, std::enable_if_t<std::is_base_of<cdr_stream, T>::value, bool> = true >\n"
-    "void {T}_%1$s(T& streamer, {C}%2$s& instance, bool as_key)\n{\n"
+    "void {T}_%1$s(T& streamer, {C}%2$s& instance, bool as_key) {\n"
     "   auto &prop = get_type_props<%3$s>();\n";
   char* name = NULL;
   if (IDL_PRINTA(&name, get_cpp11_name_typedef, declarator, streams->generator) < 0)
@@ -1464,7 +1465,8 @@ process_enum(
   const void* node,
   void* user_data)
 {
-  struct generator *gen = ((struct streams*)user_data)->generator;
+  struct streams *str = (struct streams*)user_data;
+  struct generator *gen = str->generator;
   const idl_enum_t *_enum = (const idl_enum_t *)node;
   const idl_enumerator_t *enumerator;
   uint32_t value;
@@ -1478,16 +1480,20 @@ process_enum(
   if (IDL_PRINTA(&fullname, get_cpp11_fully_scoped_name, _enum, gen) < 0)
     return IDL_RETCODE_NO_MEMORY;
 
-  if (idl_fprintf(gen->header.handle, "template<>\ninline %s org::eclipse::cyclonedds::core::cdr::enum_conversion<%s>(uint32_t in)\n{\n  switch (in) {\n    default:\n", fullname, fullname) < 0)
+  const char *fmt = "template<>\n"\
+                    "%s enum_conversion<%s>(uint32_t in)%s";
+
+  if (putf(&str->props, fmt, fullname, fullname, " {\n  switch (in) {\n  default:\n")
+   || idl_fprintf(gen->header.handle, fmt, fullname, fullname, ";\n\n") < 0)
     return IDL_RETCODE_NO_MEMORY;
   IDL_FOREACH(enumerator, _enum->enumerators) {
     enum_name = get_cpp11_name(enumerator);
     value = enumerator->value;
-    if (idl_fprintf(gen->header.handle, "    case %"PRIu32":\n    return %s::%s;\n    break;\n", value, fullname, enum_name) < 0)
+    if (putf(&str->props, "    case %"PRIu32":\n    return %s::%s;\n    break;\n", value, fullname, enum_name) < 0)
       return IDL_RETCODE_NO_MEMORY;
   }
 
-  if (idl_fprintf(gen->header.handle, "  }\n}\n\n") < 0)
+  if (putf(&str->props,"  }\n}\n\n"))
     return IDL_RETCODE_NO_MEMORY;
 
   return IDL_RETCODE_OK;
@@ -1508,12 +1514,13 @@ generate_streamers(const idl_pstate_t* pstate, struct generator *gen)
   sources[0] = pstate->sources->path->name;
   visitor.sources = sources;
 
-  if (idl_fprintf(gen->header.handle,
-                  "namespace org{\n"
-                  "namespace eclipse{\n"
-                  "namespace cyclonedds{\n"
-                  "namespace core{\n"
-                  "namespace cdr{\n\n") < 0)
+  const char *fmt = "namespace org{\n"
+                    "namespace eclipse{\n"
+                    "namespace cyclonedds{\n"
+                    "namespace core{\n"
+                    "namespace cdr{\n\n";
+  if (idl_fprintf(gen->header.handle, "%s", fmt) < 0
+   || idl_fprintf(gen->impl.handle, "%s", fmt) < 0)
     return IDL_RETCODE_NO_MEMORY;
 
   visitor.visit = IDL_STRUCT | IDL_UNION | IDL_MEMBER | IDL_CASE | IDL_CASE_LABEL | IDL_SWITCH_TYPE_SPEC | IDL_TYPEDEF | IDL_ENUM;
@@ -1530,12 +1537,13 @@ generate_streamers(const idl_pstate_t* pstate, struct generator *gen)
    || flush(gen, &streams))
     return IDL_RETCODE_NO_MEMORY;
 
-  if (idl_fprintf(gen->header.handle,
-                  "} //namespace cdr\n"
-                  "} //namespace core\n"
-                  "} //namespace cyclonedds\n"
-                  "} //namespace eclipse\n"
-                  "} //namespace org\n\n") < 0)
+  fmt = "} //namespace cdr\n"
+        "} //namespace core\n"
+        "} //namespace cyclonedds\n"
+        "} //namespace eclipse\n"
+        "} //namespace org\n\n";
+  if (idl_fprintf(gen->header.handle, "%s", fmt) < 0
+   || idl_fprintf(gen->impl.handle, "%s", fmt) < 0)
     return IDL_RETCODE_NO_MEMORY;
 
   cleanup_streams(&streams);

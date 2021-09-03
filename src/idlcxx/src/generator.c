@@ -509,6 +509,16 @@ print_header(FILE *fh, const char *in, const char *out)
   return IDL_RETCODE_OK;
 }
 
+static idl_retcode_t
+print_impl_header(FILE *fh, const char *in, const char *out, const char *hdr)
+{
+  const char *fmt = "#include \"%s\"\n\n";
+  if (print_header(fh, in, out)
+   || idl_fprintf(fh, fmt, hdr) < 0)
+    return IDL_RETCODE_NO_MEMORY;
+  return IDL_RETCODE_OK;
+}
+
 static idl_retcode_t print_guard_if(FILE* fh, const char *guard)
 {
   static const char *fmt =
@@ -669,7 +679,7 @@ generate_includes(const idl_pstate_t *pstate, struct generator *generator)
   }
 
   { int len = 0;
-    const char *incs[8];
+    const char *incs[9];
 
     if (generator->uses_integers)
       incs[len++] = "<cstdint>";
@@ -683,8 +693,10 @@ generate_includes(const idl_pstate_t *pstate, struct generator *generator)
       incs[len++] = generator->string_include;
     if (generator->uses_bounded_string)
       incs[len++] = generator->bounded_string_include;
-    if (generator->uses_union)
+    if (generator->uses_union) {
       incs[len++] = generator->union_include;
+      incs[len++] = "<dds/core/Exception.hpp>\n";
+    }
     if (generator->uses_optional)
       incs[len++] = generator->optional_include;
 
@@ -715,6 +727,8 @@ idl_retcode_t generate_nosetup(const idl_pstate_t *pstate, struct generator *gen
   if (!(guard = figure_guard(gen->header.path)))
     return IDL_RETCODE_NO_MEMORY;
   if ((ret = print_header(gen->header.handle, gen->path, gen->header.path)))
+    goto err_print;
+  if ((ret = print_impl_header(gen->impl.handle, gen->path, gen->impl.path, gen->header.path)))
     goto err_print;
   if ((ret = print_guard_if(gen->header.handle, guard)))
     goto err_print;
@@ -807,6 +821,10 @@ idl_retcode_t generate(const idl_pstate_t *pstate)
     goto err_hdr;
   if (!(gen.header.handle = idl_fopen(gen.header.path, "wb")))
     goto err_hdr_fh;
+  if (idl_asprintf(&gen.impl.path, "%s%s%s.cpp", dir, sep, basename) < 0)
+    goto err_impl;
+  if (!(gen.impl.handle = idl_fopen(gen.impl.path, "wb")))
+    goto err_impl_fh;
 
   /* generate format strings from templates */
   if (makefmtp(&gen.array_format, arr_tmpl, arr_toks, arr_flags) < 0)
@@ -852,6 +870,10 @@ err_bnd_seq:
 err_seq:
   free(gen.array_format);
 err_arr:
+  fclose(gen.impl.handle);
+err_impl_fh:
+  free(gen.impl.path);
+err_impl:
   fclose(gen.header.handle);
 err_hdr_fh:
   free(gen.header.path);

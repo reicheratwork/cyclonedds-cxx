@@ -43,6 +43,10 @@ struct generator {
     FILE *handle;
     char *path;
   } header;
+  struct {
+    FILE *handle;
+    char *path;
+  } impl;
 };
 
 const char *get_cpp11_name(const void *);
