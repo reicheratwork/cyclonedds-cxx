@@ -109,17 +109,6 @@ enum class endianness {
  */
 constexpr endianness native_endianness() { return endianness(DDSRT_ENDIAN); }
 
-
-/**
- * @brief
- * Returns whether a byte swap is necessary for an incoming data set.
- *
- * @param[in] remote The remote (incoming) data endianness.
- *
- * @return Whether the local and remote datasets have the same endianness.
- */
-inline bool swap_necessary(endianness remote) {return native_endianness() != remote;}
-
 /**
  * @brief
  * Serialization status bitmasks.
@@ -432,8 +421,9 @@ public:
      *
      * @param[in,out] props The entity whose members might be represented by a parameter list.
      * @param[in] mode The current mode which is being used.
+     * @param[in] as_key If this is to be treated as just the key stream representation.
      */
-    virtual void start_struct(entity_properties_t &props, stream_mode mode) = 0;
+    virtual void start_struct(entity_properties_t &props, stream_mode mode, bool as_key) = 0;
 
     /**
      * @brief
@@ -444,10 +434,30 @@ public:
      *
      * @param[in,out] props The entity whose members might be represented by a parameter list.
      * @param[in] mode The current mode which is being used.
+     * @param[in] as_key If this is to be treated as just the key stream representation.
      */
-    virtual void finish_struct(entity_properties_t &props, stream_mode mode) = 0;
+    virtual void finish_struct(entity_properties_t &props, stream_mode mode, bool as_key) = 0;
 
 protected:
+
+    /**
+     * @brief
+     * Member list types/
+     *
+     * @enum member_list_type Which type of list of entries is to be iterated over,
+     * used in calls to cdr_stream::next_prop.
+     *
+     * @var member_list_type::member_by_seq Member entries in order of declaration.
+     * @var member_list_type::member_by_id Member entries sorted by member id.
+     * @var member_list_type::key_by_seq Key entries in order of declaration.
+     * @var member_list_type::key_by_id Key entries sorted by member id.
+     */
+    enum class member_list_type {
+      member_by_seq,
+      member_by_id,
+      key_by_seq,
+      key_by_id
+    };
 
     /**
      * @brief
@@ -458,27 +468,29 @@ protected:
      * This function is to be implemented in cdr streaming implementations.
      *
      * @param[in, out] props The property tree to get the next entity from.
-     * @param[in] as_key Whether to take the key entities, or the normal member entities.
+     * @param[in] list_type Which list to take the next property from
      * @param[in, out] firstcall Whether it is the first time calling the function for props, will store first iterator if true, and then set to false.
      *
      * @return The next entity to be processed, or the final entity if the current tree level does not hold more entities.
      */
-    entity_properties_t& next_prop(entity_properties_t &props, bool as_key, bool &firstcall);
+    entity_properties_t& next_prop(entity_properties_t &props, member_list_type list_type, bool &firstcall);
 
-    endianness m_stream_endianness,               //the endianness of the stream
-        m_local_endianness = native_endianness(); //the local endianness
-    size_t m_position = 0,                        //the current offset position in the stream
-        m_max_alignment,                          //the maximum bytes that can be aligned to
-        m_current_alignment = 1;                  //the current alignment
-    char* m_buffer = nullptr;                     //the current buffer in use
-    uint64_t m_status = 0,                        //the current status of streaming
-             m_fault_mask;                        //the mask for statuses that will causes streaming to be aborted
+    endianness m_stream_endianness,               /**< the endianness of the stream*/
+        m_local_endianness = native_endianness(); /**< the local endianness*/
+    size_t m_position = 0,                        /**< the current offset position in the stream*/
+        m_max_alignment,                          /**< the maximum bytes that can be aligned to*/
+        m_current_alignment = 1;                  /**< the current alignment*/
+    char* m_buffer = nullptr;                     /**< the current buffer in use*/
+    uint64_t m_status = 0,                        /**< the current status of streaming*/
+             m_fault_mask;                        /**< the mask for statuses that will cause streaming
+                                                       to be aborted*/
 
-    static entity_properties_t m_final;
-    entity_properties_t m_current_header;
+    static entity_properties_t m_final;           /**< A placeholder for the final entry to be returned
+                                                       from next_prop if we are reading from a stream*/
+    entity_properties_t m_current_header;         /**< Container for headers being read from a stream*/
 
     DDSCXX_WARNING_MSVC_OFF(4251)
-    std::stack<proplist::iterator> m_stack; //current iterators the stream is working over
+    std::stack<proplist::iterator> m_stack;       /**< Stack of iterators currently being handled*/
     DDSCXX_WARNING_MSVC_ON(4251)
 };
 

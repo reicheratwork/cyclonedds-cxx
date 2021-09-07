@@ -47,13 +47,26 @@ size_t cdr_stream::align(size_t newalignment, bool add_zeroes)
   return tomove;
 }
 
-entity_properties_t& cdr_stream::next_prop(entity_properties_t &props, bool as_key, bool &firstcall)
+entity_properties_t& cdr_stream::next_prop(entity_properties_t &props, member_list_type list_type, bool &firstcall)
 {
   if (firstcall) {
-    auto it = as_key ||
-              0 == props.m_members_by_seq.size() ?  //this is to check whether we are checking the properties of a #pragma keylist tree entry
-              props.m_keys_by_seq.begin() :
-              props.m_members_by_seq.begin();
+    std::list<entity_properties_t>::iterator it;
+    switch (list_type) {
+      case member_list_type::member_by_seq:
+        it = props.m_members_by_seq.begin();
+        break;
+      case member_list_type::member_by_id:
+        it = props.m_members_by_id.begin();
+        break;
+      case member_list_type::key_by_seq:
+        it = props.m_keys_by_seq.begin();
+        break;
+      case member_list_type::key_by_id:
+        it = props.m_keys_by_id.begin();
+        break;
+      default:
+        assert(0);
+    }
     m_stack.push(it);
     firstcall = false;
     return *it;

@@ -13,8 +13,6 @@
 #define BASIC_CDR_SERIALIZATION_HPP_
 
 #include "cdr_stream.hpp"
-#include <org/eclipse/cyclonedds/core/type_helpers.hpp>
-#include <dds/core/Exception.hpp>
 
 namespace org {
 namespace eclipse {
@@ -63,7 +61,7 @@ public:
    *
    * As the basic cdr stream does not have anything that requires delimiting between entities, this function does nothing.
    */
-  void start_struct(entity_properties_t &, stream_mode) {;}
+  void start_struct(entity_properties_t &, stream_mode, bool) {;}
 
   /**
    * @brief
@@ -71,7 +69,7 @@ public:
    *
    * As the basic cdr stream does not have anything that requires delimiting between entities, this function does nothing.
    */
-  void finish_struct(entity_properties_t &, stream_mode) {;}
+  void finish_struct(entity_properties_t &, stream_mode, bool) {;}
 
   /**
    * @brief

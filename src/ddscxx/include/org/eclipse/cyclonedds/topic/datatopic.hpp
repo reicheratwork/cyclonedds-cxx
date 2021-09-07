@@ -41,7 +41,6 @@ extern "C" {
 
 using org::eclipse::cyclonedds::core::cdr::endianness;
 using org::eclipse::cyclonedds::core::cdr::native_endianness;
-using org::eclipse::cyclonedds::core::cdr::swap_necessary;
 using org::eclipse::cyclonedds::core::cdr::basic_cdr_stream;
 
 template<class streamer, typename T>

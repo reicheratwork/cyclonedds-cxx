@@ -12,10 +12,7 @@
 #ifndef EXTENDED_CDR_SERIALIZATION_V2_HPP_
 #define EXTENDED_CDR_SERIALIZATION_V2_HPP_
 
-#include "basic_cdr_ser.hpp"
-#include <org/eclipse/cyclonedds/core/type_helpers.hpp>
-#include <dds/core/Exception.hpp>
-#include <cassert>
+#include "cdr_stream.hpp"
 
 namespace org {
 namespace eclipse {
@@ -98,8 +95,9 @@ public:
    *
    * @param[in, out] props The entity whose members might be represented by a parameter list.
    * @param[in] mode The current mode which is being used.
+   * @param[in] as_key If this is to be treated as just the key stream representation.
    */
-  void start_struct(entity_properties_t &props, stream_mode mode);
+  void start_struct(entity_properties_t &props, stream_mode mode, bool as_key);
 
   /**
    * @brief
@@ -109,22 +107,23 @@ public:
    *
    * @param[in, out] props The entity whose members might be represented by a parameter list.
    * @param[in] mode The current mode which is being used.
+   * @param[in] as_key If this is to be treated as just the key stream representation.
    */
-  void finish_struct(entity_properties_t &props, stream_mode mode);
+  void finish_struct(entity_properties_t &props, stream_mode mode, bool as_key);
 
 private:
 
-  static const uint32_t bytes_1;          //length field code indicating length is 1 byte
-  static const uint32_t bytes_2;          //length field code indicating length is 2 bytes
-  static const uint32_t bytes_4;          //length field code indicating length is 4 bytes
-  static const uint32_t bytes_8;          //length field code indicating length is 8 bytes
-  static const uint32_t nextint;          //length field code indicating length is the next integer field
-  static const uint32_t nextint_times_1;  //same as nextint
-  static const uint32_t nextint_times_4;  //length field code indicating length is the next integer field times 4
-  static const uint32_t nextint_times_8;  //length field code indicating length is the next integer field times 8
-  static const uint32_t lc_mask;          //mask for length field codes
-  static const uint32_t id_mask;          //mask for member ids
-  static const uint32_t must_understand;  //must understand member field flag
+  static const uint32_t bytes_1;          /**< length field code indicating length is 1 byte*/
+  static const uint32_t bytes_2;          /**< length field code indicating length is 2 bytes*/
+  static const uint32_t bytes_4;          /**< length field code indicating length is 4 bytes*/
+  static const uint32_t bytes_8;          /**< length field code indicating length is 8 bytes*/
+  static const uint32_t nextint;          /**< length field code indicating length is the next integer field*/
+  static const uint32_t nextint_times_1;  /**< same as nextint*/
+  static const uint32_t nextint_times_4;  /**< length field code indicating length is the next integer field times 4*/
+  static const uint32_t nextint_times_8;  /**< length field code indicating length is the next integer field times 8*/
+  static const uint32_t lc_mask;          /**< mask for length field codes*/
+  static const uint32_t id_mask;          /**< mask for member ids*/
+  static const uint32_t must_understand;  /**< must understand member field flag*/
 
   /**
    * @brief
@@ -215,10 +214,11 @@ private:
    * Checks whether a D-header is necessary for the indicated entity.
    *
    * @param[in] props The entity whose properties to check.
+   * @param[in] as_key If this is to be treated as just the key stream representation.
    *
    * @return Whether the entity props needs a D-header
    */
-  bool d_header_necessary(const entity_properties_t &props);
+  static bool d_header_necessary(const entity_properties_t &props, bool as_key);
 
   /**
    * @brief
@@ -228,7 +228,7 @@ private:
    *
    * @return Whether the entity props needs a EM-header
    */
-  bool em_header_necessary(const entity_properties_t &props);
+  static bool em_header_necessary(const entity_properties_t &props);
 
   /**
    * @brief
@@ -238,10 +238,11 @@ private:
    * to read em headers from the stream.
    *
    * @param[in] props The entity whose members might be represented by a parameter list.
+   * @param[in] as_key If this is to be treated as just the key stream representation.
    *
    * @return Whether a list is necessary for this entity.
    */
-  bool list_necessary(const entity_properties_t &props) {return props.e_ext == ext_mutable;}
+  static bool list_necessary(const entity_properties_t &props, bool as_key);
 
   /**
    * @brief

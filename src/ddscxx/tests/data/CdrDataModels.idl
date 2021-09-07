@@ -103,19 +103,19 @@ module CDR_testing {
   struct optional_final_struct {
     @optional(true) char a;
     @optional(false) char b;
-    @key @optional char c;
+    @key char c;
   };
 
   @appendable struct optional_appendable_struct {
     @optional(true) char a;
     @optional(false) char b;
-    @key @optional char c;
+    @key char c;
   };
 
   @mutable struct optional_mutable_struct {
     @optional(true) char a;
     @optional(false) char b;
-    @key @optional char c;
+    @key char c;
   };
 
   //unions
@@ -129,9 +129,21 @@ module CDR_testing {
     default: string str;
   };
 
+  union un_k switch (@key char) {
+    case 'a':
+    case 'b': char c;
+    case 'c':
+    case 'd': short s;
+    case 'e':
+    case 'f': long l;
+    default: string str;
+  };
+
   struct union_struct {
-    un a;
-    un b;
     @key un c;
+  };
+
+  struct union_struct_k {
+    @key un_k c;
   };
 };

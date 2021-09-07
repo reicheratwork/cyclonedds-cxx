@@ -108,13 +108,112 @@ struct OMG_DDS_API entity_properties
   proplist m_keys_by_id; /**< Fields in key streaming mode, ordered by their member id.*/
   DDSCXX_WARNING_MSVC_ON(4251)
 
+  /**
+   * @brief
+   * Conversion to boolean operator.
+   *
+   * Checks whether the is_last flag is NOT set.
+   * Exists to make iterating over lists of entity properties easier, as the last entry of a list should be
+   * the one that converts to 'false', and the rest are all 'true'.
+   */
   operator bool() const {return !is_last;}
+
+  /**
+   * @brief
+   * Comparison function.
+   *
+   * Sorts by is_final and m_id, in that precedence.
+   * Used in sorting lists of entity_properties by member id, which makes lookup of the entity
+   * when receiving member id fields much quicker.
+   *
+   * @param[in] lhs First entity to be compared.
+   * @param[in] rhs Second entity to be compared.
+   *
+   * @return Whether lhs should be sorted before rhs.
+   */
   static bool member_id_comp(const entity_properties_t &lhs, const entity_properties_t &rhs);
-  void created_sorted();
-  static proplist sort_proplist(const proplist &in, bool (*comp)(const entity_properties_t &lhs, const entity_properties_t &rhs));
-  void merge(const entity_properties_t &other);
+
+  /**
+   * @brief
+   * Finishing function.
+   *
+   * Calls populate_empty_keys() and sort_by_member_id().
+   * Calls itself recursively on all property lists contained within, setting at_root to false.
+   *
+   * @param[in] at_root Whether this function is called on the entity itself, or a member of another entity.
+   */
+  void finish(bool at_root = true);
+
+  /**
+   * @brief
+   * Member property setting function.
+   *
+   * Sets the s_id, m_id and is_optional values.
+   * Created to not have to have a constructor with a prohibitively large number of parameters.
+   *
+   * @param[in] sequence_id Sets the s_id field.
+   * @param[in] member_id Sets the m_id field.
+   * @param[in] optional Sets the is_optional field.
+   */
   void set_member_props(uint32_t sequence_id, uint32_t member_id, bool optional);
+
+  /**
+   * @brief
+   * Entity printing function.
+   *
+   * Prints the following information of the entity:
+   * - m_id, s_id, (key)member status, which ordering is followed: sequence(declaration)/id
+   * - whether it is a list terminating entry
+   * - the extensibility of the parent and the entity itself
+   *
+   * @param[in] recurse Whether to print its own children.
+   * @param[in] depth At which depth we are printing, determining the indentation at which is printed.
+   * @param[in] prefix Which prefix preceeds the printed entity information.
+   */
   void print(bool recurse = true, size_t depth = 0, const char *prefix = "") const;
+private:
+
+  /**
+   * @brief
+   * Entity property list sorting function.
+   *
+   * Sorts the contents of a list and merges duplicate entries.
+   *
+   * @param[in] in The list to sort.
+   *
+   * @return The sorted contents of in.
+   */
+  static proplist sort_proplist(const proplist &in);
+
+  /**
+   * @brief
+   * Creates member ordered lists from the sequence ordered lists.
+   */
+  void sort_by_member_id();
+
+  /**
+   * @brief
+   * Finishes the list of key entries.
+   *
+   * This function is preparation for the sort_by_member_id function.
+   * For non-root structures, if the key list is empty (only containing a final entry or none), the key
+   * list is populated with the member list.
+   * All key list entries are set to must_understand is true, and their (parent)extensibility set to final.
+   *
+   * @param[in] at_root Whether the current call is being done on the entity itself or one of its members.
+   */
+  void finish_keys(bool at_root);
+
+  /**
+   * @brief
+   * Merges the contents of one entity into this one.
+   *
+   * The contents of the member and key list are appended to their counterparts in this object.
+   * This function should be followed by a call to sort_by_member_id to remove duplicate entries.
+   *
+   * @param[in] other The entity whose contents are to be merged into this one.
+   */
+  void merge(const entity_properties_t &other);
 };
 
 struct OMG_DDS_API final_entry: public entity_properties_t {
