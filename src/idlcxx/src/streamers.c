@@ -1097,7 +1097,7 @@ process_keylist(
 {
   const idl_key_t *key = NULL;
 
-  if (putf(&streams->props, "    props.m_keys_by_seq.clear();\n"))
+  if (putf(&streams->props, "    props.keylist_is_pragma = true;\n"))
     return IDL_RETCODE_NO_MEMORY;
 
   IDL_FOREACH(key, _struct->keylist->keys) {
@@ -1158,21 +1158,21 @@ print_constructed_type_open(struct streams *streams, const idl_node_t *node)
 static idl_retcode_t
 print_switchbox_open(struct streams *streams)
 {
-  const char *fmt =
+  const char *fmt1 =
     "  bool firstcall = true;\n"
-    "  while (auto &prop = streamer.next_entity(props, as_key, cdr_stream::stream_mode::{T}, firstcall)) {\n"
-    "    auto id = streamer.props_to_id(prop);\n"
-    "    switch (id) {\n";
-  const char *rfmt =
-    "  bool firstcall = true;\n"
-    "  while (auto &prop = streamer.next_entity(props, as_key, cdr_stream::stream_mode::read, firstcall)) {\n"
-    "    if (props.ignore)\n"
+    "  while (auto &prop = streamer.next_entity(props, as_key, cdr_stream::stream_mode::{T}, firstcall)) {\n";
+  const char *fmt2 =
+    "    if (props.ignore) {\n"
     "      streamer.skip_entity(prop);\n"
+    "      continue;\n"
+    "    }\n";
+  const char *fmt3 =
     "    auto id = streamer.props_to_id(prop);\n"
     "    switch (id) {\n";
 
-  if (multi_putf(streams, CONST, fmt)
-   || putf(&streams->read, rfmt))
+  if (multi_putf(streams, ALL, fmt1)
+   || multi_putf(streams, READ, fmt2)
+   || multi_putf(streams, ALL, fmt3))
     return IDL_RETCODE_NO_MEMORY;
 
   return IDL_RETCODE_OK;
@@ -1182,8 +1182,7 @@ static idl_retcode_t
 print_constructed_type_close(struct streams *streams)
 {
   const char *fmt =
-    "  streamer.finish_struct(props,cdr_stream::stream_mode::{T},as_key);\n";
-  const char *rfmt =
+    "  streamer.finish_struct(props,cdr_stream::stream_mode::{T},as_key);\n"
     "  (void)instance;\n"
     "}\n\n";
   const char *pfmt =
@@ -1195,8 +1194,7 @@ print_constructed_type_close(struct streams *streams)
     "  return props;\n"
     "}\n\n";
 
-  if (multi_putf(streams, CONST, fmt)
-   || multi_putf(streams, ALL, rfmt)
+  if (multi_putf(streams, ALL, fmt)
    || putf(&streams->props, pfmt))
     return IDL_RETCODE_NO_MEMORY;
 
@@ -1212,9 +1210,10 @@ print_switchbox_close(struct streams *streams)
   static const char *rfmt =
     "      default:\n"
     "      if (prop.must_understand\n"
-    "       && streamer.status(invalid_pl_entry))\n"
+    "       && streamer.status(must_understand_fail))\n"
     "        return;\n"
-    "      streamer.skip_entity(prop);\n"
+    "      else\n"
+    "        streamer.skip_entity(prop);\n"
     "      break;\n";
 
   if (putf(&streams->read, rfmt)

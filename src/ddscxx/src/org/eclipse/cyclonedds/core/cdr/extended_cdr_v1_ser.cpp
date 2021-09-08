@@ -72,12 +72,20 @@ void xcdr_v1_stream::skip_entity(const entity_properties_t &props)
 
 entity_properties_t& xcdr_v1_stream::next_entity(entity_properties_t &props, bool as_key, stream_mode mode, bool &firstcall)
 {
+  member_list_type ml = member_list_type::member_by_seq;
+  if (as_key) {
+    if (props.keylist_is_pragma)
+      ml = member_list_type::key_by_seq;
+    else
+      ml = member_list_type::key_by_id;
+  }
+
   if (mode != stream_mode::read)
-    return next_prop(props, as_key ? member_list_type::key_by_id : member_list_type::member_by_seq, firstcall);
+    return next_prop(props, ml, firstcall);
 
   if (!list_necessary(props, as_key)) {
     while (1) {  //using while loop to prevent recursive calling, which could lead to stack overflow
-      auto &prop = next_prop(props, as_key ? member_list_type::key_by_id : member_list_type::member_by_seq, firstcall);
+      auto &prop = next_prop(props, ml, firstcall);
 
       entity_properties_t temp;
       if (prop.is_optional) {
@@ -165,13 +173,13 @@ void xcdr_v1_stream::write_header(entity_properties_t &props)
 
   if (extended_header(props)) {
     uint16_t smallid = pid_extended + pid_flag_must_understand;
-    uint32_t largeid = (props.m_id & pl_extended_mask) + pl_extended_flag_must_understand;
+    uint32_t largeid = (props.m_id & pl_extended_mask) + (props.must_understand ? pl_extended_flag_must_understand : 0);
     write(*this, smallid);
     write(*this, uint16_t(8));
     write(*this, largeid);
     write(*this, uint32_t(0));  /* length field placeholder, to be completed by finish_write_header */
   } else {
-    uint16_t smallid = static_cast<uint16_t>(props.m_id + pid_flag_must_understand);
+    uint16_t smallid = static_cast<uint16_t>(props.m_id + (props.must_understand ? pid_flag_must_understand : 0));
     write(*this, smallid);
     write(*this, uint16_t(0));  /* length field placeholder, to be completed by finish_write_header */
   }

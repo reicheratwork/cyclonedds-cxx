@@ -96,12 +96,20 @@ bool xcdr_v2_stream::bytes_available(const entity_properties_t &props)
 
 entity_properties_t& xcdr_v2_stream::next_entity(entity_properties_t &props, bool as_key, stream_mode mode, bool &firstcall)
 {
+  member_list_type ml = member_list_type::member_by_seq;
+  if (as_key) {
+    if (props.keylist_is_pragma)
+      ml = member_list_type::key_by_seq;
+    else
+      ml = member_list_type::key_by_id;
+  }
+
   if (mode != stream_mode::read)
-    return next_prop(props, as_key ? member_list_type::key_by_id : member_list_type::member_by_seq, firstcall);
+    return next_prop(props, ml, firstcall);
 
   if (!list_necessary(props, as_key)) {
     while (1) {  //using while loop to prevent recursive calling, which could lead to stack overflow
-      auto &prop = next_prop(props, as_key ? member_list_type::key_by_id : member_list_type::member_by_seq, firstcall);
+      auto &prop = next_prop(props, ml, firstcall);
 
       if (!prop)
         return prop;

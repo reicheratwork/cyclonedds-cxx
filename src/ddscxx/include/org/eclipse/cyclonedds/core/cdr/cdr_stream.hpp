@@ -130,7 +130,8 @@ enum serialization_status {
   invalid_pl_entry      = 0x1 << 3,
   invalid_dl_entry      = 0x1 << 4,
   illegal_field_value   = 0x1 << 5,
-  unsupported_property  = 0x1 << 6
+  unsupported_property  = 0x1 << 6,
+  must_understand_fail  = 0x1 << 7
 };
 
 /**

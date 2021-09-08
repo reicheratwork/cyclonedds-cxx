@@ -36,30 +36,30 @@ public:
     xcdr_v2_stream x_2;
 
     bytes BS_basic_normal {
-        0, 1, 226, 64 /*basicstruct.l*/,
+        0x00, 0x01, 0xE2, 0x40 /*basicstruct.l*/,
         'g' /*basicstruct.c*/,
-        0, 0, 0 /*padding bytes (3)*/,
-        0, 0, 0, 7 /*basicstruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*basicstruct.str.c_str*/,
-        0, 0, 0, 0, 0 /*padding bytes (5)*/,
-        64, 132, 114, 145, 104, 114, 176, 33 /*basicstruct.d*/};
+        0x00, 0x00, 0x00 /*padding bytes (3)*/,
+        0x00, 0x00, 0x00, 0x07 /*basicstruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*basicstruct.str.c_str*/,
+        0x00, 0x00, 0x00, 0x00, 0x00 /*padding bytes (5)*/,
+        0x40, 0x84, 0x72, 0x91, 0x68, 0x72, 0xB0, 0x21 /*basicstruct.d*/};
     bytes BS_basic_key {'g'/*basicstruct.c*/};
+
     /*xcdrv2 is max aligned to 4 bytes*/
     bytes BS_xcdrv2_normal {
-        0, 1, 226, 64 /*basicstruct.l*/,
+        0x00, 0x01, 0xE2, 0x40 /*basicstruct.l*/,
         'g' /*basicstruct.c*/,
-        0, 0, 0 /*padding bytes (3)*/,
-        0, 0, 0, 7 /*basicstruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*basicstruct.str.c_str*/,
-        0 /*padding bytes (1)*/,
-        64, 132, 114, 145, 104, 114, 176, 33 /*basicstruct.d*/};
-
+        0x00, 0x00, 0x00 /*padding bytes (3)*/,
+        0x00, 0x00, 0x00, 0x07 /*basicstruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*basicstruct.str.c_str*/,
+        0x00 /*padding bytes (1)*/,
+        0x40, 0x84, 0x72, 0x91, 0x68, 0x72, 0xB0, 0x21 /*basicstruct.d*/};
     bytes AS_xcdr_v2_normal {
-        0, 0, 0, 28/*dheader*/,
-        0, 1, 226, 64 /*appendablestruct.l*/,
+        0x00, 0x00, 0x00, 0x1C/*dheader*/,
+        0x00, 0x01, 0xE2, 0x40 /*appendablestruct.l*/,
         'g' /*appendablestruct.c*/,
-        0, 0, 0 /*padding bytes (3)*/,
-        0, 0, 0, 7 /*appendablestruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*appendablestruct.str.c_str*/,
-        0 /*padding bytes (1)*/,
-        64, 132, 114, 145, 104, 114, 176, 33 /*appendablestruct.d*/};
+        0x00, 0x00, 0x00 /*padding bytes (3)*/,
+        0x00, 0x00, 0x00, 0x07 /*appendablestruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*appendablestruct.str.c_str*/,
+        0x00 /*padding bytes (1)*/,
+        0x40, 0x84, 0x72, 0x91, 0x68, 0x72, 0xB0, 0x21 /*appendablestruct.d*/};
 
     CDRStreamer() :
         b(endianness::big_endian),
@@ -233,59 +233,59 @@ TEST_F(CDRStreamer, cdr_mutable)
   mutablestruct MS(123456, 'g', "abcdef", 654.321);
 
   bytes MS_xcdr_v1_normal {
-      64, 7, 0, 4 /*mutablestruct.l.mheader*/,
-      0, 1, 226, 64 /*mutablestruct.l*/,
-      64, 5, 0, 1 /*mutablestruct.g.mheader*/,
+      0x00, 0x07, 0x00, 0x04 /*mutablestruct.l.mheader*/,
+      0x00, 0x01, 0xE2, 0x40 /*mutablestruct.l*/,
+      0x40, 0x05, 0x00, 0x01 /*mutablestruct.c.mheader*/,
       'g' /*mutablestruct.c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      127, 1, 0, 8 /*mutablestruct.str.mheader (pid_list_extended + must_understand + length = 8)*/,
-      64, 0, 0, 3, 0, 0, 0, 11 /*mutablestruct.str.mheader (extended)*/,
-      0, 0, 0, 7 /*mutablestruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*mutablestruct.str.c_str*/,
-      0 /*padding bytes (1)*/,
-      64, 1, 0, 12 /*mutablestruct.d.mheader*/,
-      0, 0, 0, 0 /*padding bytes (4)*/,
-      64, 132, 114, 145, 104, 114, 176, 33 /*mutablestruct.d*/,
-      127, 2, 0, 0 /*mutablestruct list termination header*/
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x7F, 0x01, 0x00, 0x08 /*mutablestruct.str.mheader (pid_list_extended + length = 8)*/,
+      0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x0B /*mutablestruct.str.mheader (extended)*/,
+      0x00, 0x00, 0x00, 0x07 /*mutablestruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*mutablestruct.str.c_str*/,
+      0x00 /*padding bytes (1)*/,
+      0x00, 0x01, 0x00, 0x0C /*mutablestruct.d.mheader*/,
+      0x00, 0x00, 0x00, 0x00 /*padding bytes (4)*/,
+      0x40, 0x84, 0x72, 0x91, 0x68, 0x72, 0xB0, 0x21 /*mutablestruct.d*/,
+      0x7F, 0x02, 0x00, 0x00 /*mutablestruct list termination header*/
       };
   bytes MS_xcdr_v1_normal_reordered {
-      64, 1, 0, 12 /*mutablestruct.d.mheader*/,
-      0, 0, 0, 0 /*padding bytes (4)*/,
-      64, 132, 114, 145, 104, 114, 176, 33 /*mutablestruct.d*/,
-      127, 1, 0, 8 /*mutablestruct.str.mheader (pid_list_extended + must_understand + length = 8)*/,
-      64, 0, 0, 3, 0, 0, 0, 11 /*mutablestruct.str.mheader (extended)*/,
-      0, 0, 0, 7 /*mutablestruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*mutablestruct.str.c_str*/,
-      0 /*padding bytes (1)*/,
-      64, 5, 0, 1 /*mutablestruct.g.mheader*/,
+      0x00, 0x01, 0x00, 0x0C /*mutablestruct.d.mheader*/,
+      0x00, 0x00, 0x00, 0x00 /*padding bytes (4)*/,
+      0x40, 0x84, 0x72, 0x91, 0x68, 0x72, 0xB0, 0x21 /*mutablestruct.d*/,
+      0x7F, 0x01, 0x00, 0x08 /*mutablestruct.str.mheader (pid_list_extended + must_understand + length = 8)*/,
+      0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x0B /*mutablestruct.str.mheader (extended)*/,
+      0x00, 0x00, 0x00, 0x07 /*mutablestruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*mutablestruct.str.c_str*/,
+      0x00 /*padding bytes (1)*/,
+      0x40, 0x05, 0x00, 0x01 /*mutablestruct.c.mheader*/,
       'g' /*mutablestruct.c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      64, 7, 0, 4 /*mutablestruct.l.mheader*/,
-      0, 1, 226, 64 /*mutablestruct.l*/,
-      127, 2, 0, 0 /*mutablestruct list termination header*/
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x07, 0x00, 0x04 /*mutablestruct.l.mheader*/,
+      0x00, 0x01, 0xE2, 0x40 /*mutablestruct.l*/,
+      0x7F, 0x02, 0x00, 0x00 /*mutablestruct list termination header*/
       };
   bytes MS_xcdr_v2_normal {
-      0, 0, 0, 48 /*dheader*/,
-      160, 0, 0, 7 /*mutablestruct.l.emheader*/,
-      0, 1, 226, 64 /*mutablestruct.l*/,
-      128, 0, 0, 5 /*mutablestruct.g.emheader*/,
+      0x00, 0x00, 0x00, 0x30 /*dheader*/,
+      0x20, 0x00, 0x00, 0x07 /*mutablestruct.l.emheader*/,
+      0x00, 0x01, 0xE2, 0x40 /*mutablestruct.l*/,
+      0x80, 0x00, 0x00, 0x05 /*mutablestruct.c.emheader*/,
       'g' /*mutablestruct.c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      192, 0, 0, 3, 0, 0, 0, 11 /*mutablestruct.str.emheader*/,
-      0, 0, 0, 7 /*mutablestruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*mutablestruct.str.c_str*/,
-      0 /*padding bytes (1)*/,
-      176, 0, 0, 1 /*mutablestruct.d.emheader*/,
-      64, 132, 114, 145, 104, 114, 176, 33 /*mutablestruct.d*/};
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x40, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x0B /*mutablestruct.str.emheader*/,
+      0x00, 0x00, 0x00, 0x07 /*mutablestruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*mutablestruct.str.c_str*/,
+      0x00 /*padding bytes (1)*/,
+      0x30, 0x00, 0x00, 0x01 /*mutablestruct.d.emheader*/,
+      0x40, 0x84, 0x72, 0x91, 0x68, 0x72, 0xB0, 0x21 /*mutablestruct.d*/};
   bytes MS_xcdr_v2_normal_reordered {
-      0, 0, 0, 48 /*dheader*/,
-      176, 0, 0, 1 /*mutablestruct.d.emheader*/,
-      64, 132, 114, 145, 104, 114, 176, 33 /*mutablestruct.d*/,
-      192, 0, 0, 3, 0, 0, 0, 11 /*mutablestruct.str.emheader*/,
-      0, 0, 0, 7 /*mutablestruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*mutablestruct.str.c_str*/,
-      0 /*padding bytes (1)*/,
-      128, 0, 0, 5 /*mutablestruct.g.emheader*/,
+      0x00, 0x00, 0x00, 0x30 /*dheader*/,
+      0x30, 0x00, 0x00, 0x01 /*mutablestruct.d.emheader*/,
+      0x40, 0x84, 0x72, 0x91, 0x68, 0x72, 0xB0, 0x21 /*mutablestruct.d*/,
+      0x40, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x0B /*mutablestruct.str.emheader*/,
+      0x00, 0x00, 0x00, 0x07 /*mutablestruct.str.length*/, 'a', 'b', 'c', 'd', 'e', 'f', '\0' /*mutablestruct.str.c_str*/,
+      0x00 /*padding bytes (1)*/,
+      0x80, 0x00, 0x00, 0x05 /*mutablestruct.c.emheader*/,
       'g' /*mutablestruct.c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      160, 0, 0, 7 /*mutablestruct.l.emheader*/,
-      0, 1, 226, 64 /*mutablestruct.l*/};
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x20, 0x00, 0x00, 0x07 /*mutablestruct.l.emheader*/,
+      0x00, 0x01, 0xE2, 0x40 /*mutablestruct.l*/};
 
   stream_test(MS, BS_basic_normal, BS_basic_key, MS_xcdr_v1_normal, BS_basic_key, MS_xcdr_v2_normal, BS_basic_key)
   VerifyRead(MS_xcdr_v1_normal_reordered, MS, xcdr_v1, false);
@@ -300,70 +300,70 @@ TEST_F(CDRStreamer, cdr_nested)
 
   bytes NS_basic_normal {
       'a' /*outer.a.c_inner*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 123 /*outer.a.l_inner*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x7B /*outer.a.l_inner*/,
       'b' /*outer.b.c_inner*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 1, 200 /*outer.b.l_inner*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x01, 0xC8 /*outer.b.l_inner*/,
       'c' /*outer.c.c_inner*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 3, 21 /*outer.c.l_inner*/};
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x03, 0x15 /*outer.c.l_inner*/};
   bytes NS_basic_key {
       'c' /*outer.c.c_inner*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 3, 21 /*outer.c.l_inner*/};
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x03, 0x15 /*outer.c.l_inner*/};
   bytes NS_xcdr_v1_normal {
-      127, 1, 0, 8 /*outer.a.mheader (pid_list_extended + must_understand + length = 8)*/,
-      64, 0, 0, 0, 0, 0, 0, 20 /*outer.a.mheader (extended)*/,
-      64, 0, 0, 1 /*outer.a.c_inner.mheader*/,
+      0x7F, 0x01, 0x00, 0x08 /*outer.a.mheader (pid_list_extended + must_understand + length = 8)*/,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14 /*outer.a.mheader (extended)*/,
+      0x00, 0x00, 0x00, 0x01 /*outer.a.c_inner.mheader*/,
       'a' /*outer.a.c_inner*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      64, 1, 0, 4 /*outer.a.l_inner.mheader*/,
-      0, 0, 0, 123 /*outer.a.l_inner*/,
-      127, 2, 0, 0 /*inner list termination header*/,
-      127, 1, 0, 8 /*outer.b.mheader (pid_list_extended + must_understand + length = 8)*/,
-      64, 0, 0, 1, 0, 0, 0, 20 /*outer.b.mheader (extended)*/,
-      64, 0, 0, 1 /*outer.b.c_inner.mheader*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x01, 0x00, 0x04 /*outer.a.l_inner.mheader*/,
+      0x00, 0x00, 0x00, 0x7B /*outer.a.l_inner*/,
+      0x7F, 0x02, 0x00, 0x00 /*inner list termination header*/,
+      0x7F, 0x01, 0x00, 0x08 /*outer.b.mheader (pid_list_extended + must_understand + length = 8)*/,
+      0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x14 /*outer.b.mheader (extended)*/,
+      0x00, 0x00, 0x00, 0x01 /*outer.b.c_inner.mheader*/,
       'b' /*outer.b.c_inner*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      64, 1, 0, 4 /*outer.b.l_inner.mheader*/,
-      0, 0, 1, 200 /*outer.b.l_inner*/,
-      127, 2, 0, 0 /*inner list termination header*/,
-      127, 1, 0, 8 /*outer.c.mheader (pid_list_extended + must_understand + length = 8)*/,
-      64, 0, 0, 2, 0, 0, 0, 20 /*outer.c.mheader (extended)*/,
-      64, 0, 0, 1 /*outer.c.c_inner.mheader*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x01, 0x00, 0x04 /*outer.b.l_inner.mheader*/,
+      0x00, 0x00, 0x01, 0xC8 /*outer.b.l_inner*/,
+      0x7F, 0x02, 0x00, 0x00 /*inner list termination header*/,
+      0x7F, 0x01, 0x00, 0x08 /*outer.c.mheader (pid_list_extended + must_understand + length = 8)*/,
+      0x40, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x14 /*outer.c.mheader (extended)*/,
+      0x40, 0x00, 0x00, 0x01 /*outer.c.c_inner.mheader*/,
       'c' /*outer.c.c_inner*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      64, 1, 0, 4 /*outer.c.l_inner.mheader*/,
-      0, 0, 3, 21 /*outer.c.l_inner*/,
-      127, 2, 0, 0 /*inner list termination header*/,
-      127, 2, 0, 0 /*outer list termination header*/};
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x40, 0x01, 0x00, 0x04 /*outer.c.l_inner.mheader*/,
+      0x00, 0x00, 0x03, 0x15 /*outer.c.l_inner*/,
+      0x7F, 0x02, 0x00, 0x00 /*inner list termination header*/,
+      0x7F, 0x02, 0x00, 0x00 /*outer list termination header*/};
   bytes NS_xcdr_v2_normal {
-      0, 0, 0, 84 /*outer.dheader*/,
-      192, 0, 0, 0 /*outer.a.emheader*/,
-      0, 0, 0, 20 /*outer.a.emheader.nextint*/,
-      0, 0, 0, 16 /*outer.a.dheader*/,
-      128, 0, 0, 0 /*outer.a.c_inner.emheader*/,
+      0x00, 0x00, 0x00, 0x54 /*outer.dheader*/,
+      0x40, 0x00, 0x00, 0x00 /*outer.a.emheader*/,
+      0x00, 0x00, 0x00, 0x14 /*outer.a.emheader.nextint*/,
+      0x00, 0x00, 0x00, 0x10 /*outer.a.dheader*/,
+      0x00, 0x00, 0x00, 0x00 /*outer.a.c_inner.emheader*/,
       'a' /*outer.a.c_inner*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      160, 0, 0, 1 /*outer.a.l_inner.emheader*/,
-      0, 0, 0, 123 /*outer.a.l_inner*/,
-      192, 0, 0, 1 /*outer.b.emheader*/,
-      0, 0, 0, 20 /*outer.b.emheader.nextint*/,
-      0, 0, 0, 16 /*outer.b.dheader*/,
-      128, 0, 0, 0 /*outer.b.c_inner.emheader*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x20, 0x00, 0x00, 0x01 /*outer.a.l_inner.emheader*/,
+      0x00, 0x00, 0x00, 0x7B /*outer.a.l_inner*/,
+      0x40, 0x00, 0x00, 0x01 /*outer.b.emheader*/,
+      0x00, 0x00, 0x00, 0x14 /*outer.b.emheader.nextint*/,
+      0x00, 0x00, 0x00, 0x10 /*outer.b.dheader*/,
+      0x00, 0x00, 0x00, 0x00 /*outer.b.c_inner.emheader*/,
       'b' /*outer.b.c_inner*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      160, 0, 0, 1 /*outer.b.l_inner.emheader*/,
-      0, 0, 1, 200 /*outer.b.l_inner*/,
-      192, 0, 0, 2 /*outer.c.emheader*/,
-      0, 0, 0, 20 /*outer.c.emheader.nextint*/,
-      0, 0, 0, 16 /*outer.c.dheader*/,
-      128, 0, 0, 0 /*outer.c.c_inner.emheader*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x20, 0x00, 0x00, 0x01 /*outer.b.l_inner.emheader*/,
+      0x00, 0x00, 0x01, 0xC8 /*outer.b.l_inner*/,
+      0xC0, 0x00, 0x00, 0x02 /*outer.c.emheader*/,
+      0x00, 0x00, 0x00, 0x14 /*outer.c.emheader.nextint*/,
+      0x00, 0x00, 0x00, 0x10 /*outer.c.dheader*/,
+      0x80, 0x00, 0x00, 0x00 /*outer.c.c_inner.emheader*/,
       'c' /*outer.c.c_inner*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      160, 0, 0, 1 /*outer.c.l_inner.emheader*/,
-      0, 0, 3, 21 /*outer.c.l_inner*/};
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0xA0, 0x00, 0x00, 0x01 /*outer.c.l_inner.emheader*/,
+      0x00, 0x00, 0x03, 0x15 /*outer.c.l_inner*/};
 
   stream_test(NS, NS_basic_normal, NS_basic_key, NS_xcdr_v1_normal, NS_basic_key, NS_xcdr_v2_normal, NS_basic_key)
 }
@@ -377,9 +377,9 @@ TEST_F(CDRStreamer, cdr_inherited)
   DS.base_c('o');
 
   bytes DS_basic_normal {
-      0, 0, 0, 7 /*derived::base.base_str.length*/, 'h', 'j', 'k', 'l', 'm', 'n', '\0' /*derived::base.base_str.c_str*/,
+      0x00, 0x00, 0x00, 0x07 /*derived::base.base_str.length*/, 'h', 'j', 'k', 'l', 'm', 'n', '\0' /*derived::base.base_str.c_str*/,
       'o'/*derived::base.base_c*/,
-      0, 0, 0, 7 /*derived.str.length*/, 'g', 'f', 'e', 'd', 'c', 'b', '\0'/*derived.str.c_str*/,
+      0x00, 0x00, 0x00, 0x07 /*derived.str.length*/, 'g', 'f', 'e', 'd', 'c', 'b', '\0'/*derived.str.c_str*/,
       'a'/*derived.c*/
       };
   bytes DS_basic_key {
@@ -387,26 +387,26 @@ TEST_F(CDRStreamer, cdr_inherited)
       'a'/*derived.c*/
       };
   bytes DS_xcdr_v1_normal {
-      0, 0, 0, 7 /*derived::base.base_str.length*/, 'h', 'j', 'k', 'l', 'm', 'n', '\0' /*derived::base.base_str.c_str*/,
+      0x00, 0x00, 0x00, 0x07 /*derived::base.base_str.length*/, 'h', 'j', 'k', 'l', 'm', 'n', '\0' /*derived::base.base_str.c_str*/,
       'o'/*derived::base.base_c*/,
-      127, 1, 0, 8 /*derived.str.mheader (pid_list_extended + must_understand + length = 8)*/,
-      64, 0, 0, 123, 0, 0, 0, 11 /*derived.str.mheader (extended)*/,
-      0, 0, 0, 7 /*derived.str.length*/, 'g', 'f', 'e', 'd', 'c', 'b', '\0'/*derived.str.c_str*/,
-      0 /*padding bytes (1)*/,
-      64, 234, 0, 1 /*derived.c.mheader*/,
+      0x7F, 0x01, 0x00, 0x08 /*derived.str.mheader (pid_list_extended + must_understand + length = 8)*/,
+      0x00, 0x00, 0x00, 0x7B, 0x00, 0x00, 0x00, 0x0B /*derived.str.mheader (extended)*/,
+      0x00, 0x00, 0x00, 0x07 /*derived.str.length*/, 'g', 'f', 'e', 'd', 'c', 'b', '\0'/*derived.str.c_str*/,
+      0x00 /*padding bytes (1)*/,
+      0x40, 0xEA, 0x00, 0x01 /*derived.c.mheader*/,
       'a'/*derived.c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      127, 2, 0, 0 /*inner list termination header*/
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x7F, 0x02, 0x00, 0x00 /*inner list termination header*/
       };
   bytes DS_xcdr_v2_normal {
-      0, 0, 0, 37/*derived.dheader*/,
-      0, 0, 0, 7 /*derived::base.base_str.length*/, 'h', 'j', 'k', 'l', 'm', 'n', '\0' /*derived::base.base_str.c_str*/,
+      0x00, 0x00, 0x00, 0x25/*derived.dheader*/,
+      0x00, 0x00, 0x00, 0x07 /*derived::base.base_str.length*/, 'h', 'j', 'k', 'l', 'm', 'n', '\0' /*derived::base.base_str.c_str*/,
       'o'/*derived::base.base_c*/,
-      192, 0, 0, 123 /*derived.str.emheader*/,
-      0, 0, 0, 11 /*derived.str.emheader.nextint*/,
-      0, 0, 0, 7 /*derived.str.length*/, 'g', 'f', 'e', 'd', 'c', 'b', '\0'/*derived.str.c_str*/,
-      0 /*padding bytes (1)*/,
-      128, 0, 0, 234 /*derived.c.emheader*/,
+      0x40, 0x00, 0x00, 0x7B /*derived.str.emheader*/,
+      0x00, 0x00, 0x00, 0x0B /*derived.str.emheader.nextint*/,
+      0x00, 0x00, 0x00, 0x07 /*derived.str.length*/, 'g', 'f', 'e', 'd', 'c', 'b', '\0'/*derived.str.c_str*/,
+      0x00 /*padding bytes (1)*/,
+      0x80, 0x00, 0x00, 0xEA /*derived.c.emheader*/,
       'a' /*derived.c*/
       };
 
@@ -420,43 +420,43 @@ TEST_F(CDRStreamer, cdr_sequence)
   sequence_struct SS({'z','y','x'}, {4,3,2,1});
 
   bytes SS_basic_normal {
-      0, 0, 0, 3/*sequence_struct.c.length*/, 'z', 'y', 'x'/*sequence_struct.c.data*/,
-      0 /*padding bytes (1)*/,
-      0, 0, 0, 4/*sequence_struct.l.length*/, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 1/*sequence_struct.l.data*/
+      0x00, 0x00, 0x00, 0x03/*sequence_struct.c.length*/, 'z', 'y', 'x'/*sequence_struct.c.data*/,
+      0x00 /*padding bytes (1)*/,
+      0x00, 0x00, 0x00, 0x04/*sequence_struct.l.length*/, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01/*sequence_struct.l.data*/
       };
   bytes SS_basic_key {
-      0, 0, 0, 3/*sequence_struct.c.length*/, 'z', 'y', 'x'/*sequence_struct.c.data*/
+      0x00, 0x00, 0x00, 0x03/*sequence_struct.c.length*/, 'z', 'y', 'x'/*sequence_struct.c.data*/
       };
   bytes SS_xcdr_v1_normal {
-      127, 1, 0, 8 /*sequence_struct.c.mheader (pid_list_extended + must_understand + length = 8)*/,
-      64, 0, 0, 0, 0, 0, 0, 7 /*sequence_struct.c.mheader (extended)*/,
-      0, 0, 0, 3/*sequence_struct.c.length*/, 'z', 'y', 'x'/*sequence_struct.c.data*/,
-      0 /*padding bytes (1)*/,
-      127, 1, 0, 8 /*sequence_struct.l.mheader (pid_list_extended + must_understand + length = 8)*/,
-      64, 0, 0, 1, 0, 0, 0, 20 /*sequence_struct.l.mheader (extended)*/,
-      0, 0, 0, 4/*sequence_struct.l.length*/, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 1/*sequence_struct.l.data*/,
-      127, 2, 0, 0 /*inner list termination header*/
+      0x7F, 0x01, 0x00, 0x08 /*sequence_struct.c.mheader (pid_list_extended + must_understand + length = 8)*/,
+      0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07 /*sequence_struct.c.mheader (extended)*/,
+      0x00, 0x00, 0x00, 0x03/*sequence_struct.c.length*/, 'z', 'y', 'x'/*sequence_struct.c.data*/,
+      0x00 /*padding bytes (1)*/,
+      0x7F, 0x01, 0x00, 0x08 /*sequence_struct.l.mheader (pid_list_extended + must_understand + length = 8)*/,
+      0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x14 /*sequence_struct.l.mheader (extended)*/,
+      0x00, 0x00, 0x00, 0x04/*sequence_struct.l.length*/, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01/*sequence_struct.l.data*/,
+      0x7F, 0x02, 0x00, 0x00 /*inner list termination header*/
       };
   bytes SS_xcdr_v2_normal {
-      0, 0, 0, 44/*sequence_struct.dheader*/,
-      192, 0, 0, 0 /*derived.c.emheader*/,
-      0, 0, 0, 7 /*derived.c.emheader.nextint*/,
-      0, 0, 0, 3/*sequence_struct.c.length*/, 'z', 'y', 'x'/*sequence_struct.c.data*/,
-      0 /*padding bytes (1)*/,
-      192, 0, 0, 1 /*derived.l.emheader*/,
-      0, 0, 0, 20 /*derived.c.emheader.nextint*/,
-      0, 0, 0, 4/*sequence_struct.l.length*/, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 1/*sequence_struct.l.data*/
+      0x00, 0x00, 0x00, 0x2C/*sequence_struct.dheader*/,
+      0xC0, 0x00, 0x00, 0x00 /*sequence_struct.c.emheader*/,
+      0x00, 0x00, 0x00, 0x07 /*sequence_struct.c.emheader.nextint*/,
+      0x00, 0x00, 0x00, 0x03/*sequence_struct.c.length*/, 'z', 'y', 'x'/*sequence_struct.c.data*/,
+      0x00 /*padding bytes (1)*/,
+      0x40, 0x00, 0x00, 0x01 /*derived.l.emheader*/,
+      0x00, 0x00, 0x00, 0x14 /*derived.l.emheader.nextint*/,
+      0x00, 0x00, 0x00, 0x04/*sequence_struct.l.length*/, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01/*sequence_struct.l.data*/
       };
   /*different length code, overlapping nextint with the length of the sequence
     our streamer implementation does not write this way, but it must be able to
     read it*/
   bytes SS_xcdr_v2_normal_lc_not_4 {
-      0, 0, 0, 36/*sequence_struct.dheader*/,
-      208, 0, 0, 0 /*derived.c.emheader*/, /*lc = 5: length = sequence_struct.c.length*1*/
-      0, 0, 0, 3/*sequence_struct.c.length*/, 'z', 'y', 'x'/*sequence_struct.c.data*/,
-      0 /*padding bytes (1)*/,
-      224, 0, 0, 1 /*derived.l.emheader*/, /*lc = 6: length = sequence_struct.c.length*4*/
-      0, 0, 0, 4/*sequence_struct.l.length*/, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 1/*sequence_struct.l.data*/
+      0x00, 0x00, 0x00, 0x24/*sequence_struct.dheader*/,
+      0xD0, 0x00, 0x00, 0x00 /*derived.c.emheader*/, /*lc = 5: length = sequence_struct.c.length*1*/
+      0x00, 0x00, 0x00, 0x03/*sequence_struct.c.length*/, 'z', 'y', 'x'/*sequence_struct.c.data*/,
+      0x00 /*padding bytes (1)*/,
+      0x60, 0x00, 0x00, 0x01 /*derived.l.emheader*/, /*lc = 6: length = sequence_struct.c.length*4*/
+      0x00, 0x00, 0x00, 0x04/*sequence_struct.l.length*/, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 1/*sequence_struct.l.data*/
       };
 
   stream_test(SS, SS_basic_normal, SS_basic_key, SS_xcdr_v1_normal, SS_basic_key, SS_xcdr_v2_normal, SS_basic_key)
@@ -472,12 +472,12 @@ TEST_F(CDRStreamer, cdr_array)
 
   bytes ARS_normal {
       'e', 'd', 'c', 'b', 'a'/*array_struct.c*/,
-      0, 0, 0 /*padding bytes*/,
-      0, 0, 0, 123,
-      0, 0, 0, 234,
-      0, 0, 1, 89,
-      0, 0, 1, 200,
-      0, 0, 2, 55 /*array_struct.l*/,
+      0x00, 0x00, 0x00 /*padding bytes*/,
+      0x00, 0x00, 0x00, 0x7B,
+      0x00, 0x00, 0x00, 0xEA,
+      0x00, 0x00, 0x01, 0x59,
+      0x00, 0x00, 0x01, 0xC8,
+      0x00, 0x00, 0x02, 0x37 /*array_struct.l*/,
       };
   bytes ARS_key {
       'e', 'd', 'c', 'b', 'a'/*array_struct.c*/
@@ -493,93 +493,93 @@ TEST_F(CDRStreamer, cdr_typedef)
   typedef_struct TDS({base("qwe",'a'),base("wer",'b'),base("ert",'c'),base("rty",'d')},{base("tyu",'e'),base("yui",'f'),base("uio",'g')});
 
   bytes TDS_basic_normal {
-      0, 0, 0, 4/*typedef_struct.c.length*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'q', 'w', 'e', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00, 0x04/*typedef_struct.c.length*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'q', 'w', 'e', '\0' /*base.base_str.c_str*/,
       'a'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'w', 'e', 'r', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'w', 'e', 'r', '\0' /*base.base_str.c_str*/,
       'b'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'e', 'r', 't', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'e', 'r', 't', '\0' /*base.base_str.c_str*/,
       'c'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'r', 't', 'y', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'r', 't', 'y', '\0' /*base.base_str.c_str*/,
       'd'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 3/*typedef_struct.l.length*/,
-      0, 0, 0, 4/*base.base_str.length*/, 't', 'y', 'u', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x03/*typedef_struct.l.length*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 't', 'y', 'u', '\0' /*base.base_str.c_str*/,
       'e'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'y', 'u', 'i', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'y', 'u', 'i', '\0' /*base.base_str.c_str*/,
       'f'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'u', 'i', 'o', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'u', 'i', 'o', '\0' /*base.base_str.c_str*/,
       'g'/*base.base_c*/
       };
   bytes TDS_basic_key {
-      0, 0, 0, 4/*typedef_struct.c.length*/,
+      0x00, 0x00, 0x00, 0x04/*typedef_struct.c.length*/,
       'a'/*base.base_c*/,
       'b'/*base.base_c*/,
       'c'/*base.base_c*/,
       'd'/*base.base_c*/
       };
   bytes TDS_xcdr_v1_normal {
-      127, 1, 0, 8 /*typedef_struct.c.mheader (pid_list_extended + must_understand + length = 8)*/,
-      64, 0, 0, 0, 0, 0, 0, 49 /*typedef_struct.c.mheader (extended)*/,
-      0, 0, 0, 4/*typedef_struct.c.length*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'q', 'w', 'e', '\0' /*base.base_str.c_str*/,
+      0x7F, 0x01, 0x00, 0x08 /*typedef_struct.c.mheader (pid_list_extended + must_understand + length = 8)*/,
+      0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x31 /*typedef_struct.c.mheader (extended)*/,
+      0x00, 0x00, 0x00, 0x04/*typedef_struct.c.length*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'q', 'w', 'e', '\0' /*base.base_str.c_str*/,
       'a'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'w', 'e', 'r', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'w', 'e', 'r', '\0' /*base.base_str.c_str*/,
       'b'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'e', 'r', 't', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'e', 'r', 't', '\0' /*base.base_str.c_str*/,
       'c'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'r', 't', 'y', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'r', 't', 'y', '\0' /*base.base_str.c_str*/,
       'd'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      127, 1, 0, 8 /*typedef_struct.l.mheader (pid_list_extended + must_understand + length = 8)*/,
-      64, 0, 0, 1, 0, 0, 0, 37 /*typedef_struct.l.mheader (extended)*/,
-      0, 0, 0, 3/*typedef_struct.l.length*/,
-      0, 0, 0, 4/*base.base_str.length*/, 't', 'y', 'u', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x7F, 0x01, 0x00, 0x08 /*typedef_struct.l.mheader (pid_list_extended + must_understand + length = 8)*/,
+      0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x25 /*typedef_struct.l.mheader (extended)*/,
+      0x00, 0x00, 0x00, 0x03/*typedef_struct.l.length*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 't', 'y', 'u', '\0' /*base.base_str.c_str*/,
       'e'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'y', 'u', 'i', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'y', 'u', 'i', '\0' /*base.base_str.c_str*/,
       'f'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'u', 'i', 'o', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'u', 'i', 'o', '\0' /*base.base_str.c_str*/,
       'g'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      127, 2, 0, 0 /*list termination header*/
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x7F, 0x02, 0x00, 0x00 /*list termination header*/
       };
   bytes TDS_xcdr_v2_normal {
-      0, 0, 0, 105/*typedef_struct.dheader*/,
-      192, 0, 0, 0 /*typedef_struct.c.emheader*/,
-      0, 0, 0, 49 /*typedef_struct.c.emheader.nextint*/,
-      0, 0, 0, 4/*typedef_struct.c.length*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'q', 'w', 'e', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00, 0x69/*typedef_struct.dheader*/,
+      0xC0, 0x00, 0x00, 0x00 /*typedef_struct.c.emheader*/,
+      0x00, 0x00, 0x00, 0x31 /*typedef_struct.c.emheader.nextint*/,
+      0x00, 0x00, 0x00, 0x04/*typedef_struct.c.length*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'q', 'w', 'e', '\0' /*base.base_str.c_str*/,
       'a'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'w', 'e', 'r', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'w', 'e', 'r', '\0' /*base.base_str.c_str*/,
       'b'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'e', 'r', 't', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'e', 'r', 't', '\0' /*base.base_str.c_str*/,
       'c'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'r', 't', 'y', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'r', 't', 'y', '\0' /*base.base_str.c_str*/,
       'd'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      192, 0, 0, 1 /*typedef_struct.l.emheader*/,
-      0, 0, 0, 37 /*typedef_struct.l.emheader.nextint*/,
-      0, 0, 0, 3/*typedef_struct.l.length*/,
-      0, 0, 0, 4/*base.base_str.length*/, 't', 'y', 'u', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x40, 0x00, 0x00, 0x01 /*typedef_struct.l.emheader*/,
+      0x00, 0x00, 0x00, 0x25 /*typedef_struct.l.emheader.nextint*/,
+      0x00, 0x00, 0x00, 0x03/*typedef_struct.l.length*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 't', 'y', 'u', '\0' /*base.base_str.c_str*/,
       'e'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'y', 'u', 'i', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'y', 'u', 'i', '\0' /*base.base_str.c_str*/,
       'f'/*base.base_c*/,
-      0, 0, 0 /*padding bytes (3)*/,
-      0, 0, 0, 4/*base.base_str.length*/, 'u', 'i', 'o', '\0' /*base.base_str.c_str*/,
+      0x00, 0x00, 0x00 /*padding bytes (3)*/,
+      0x00, 0x00, 0x00, 0x04/*base.base_str.length*/, 'u', 'i', 'o', '\0' /*base.base_str.c_str*/,
       'g'/*base.base_c*/
       };
 
@@ -633,19 +633,19 @@ TEST_F(CDRStreamer, cdr_pragma)
   pragma_keys PS_key_test(sub_2(sub_1(0,0),sub_1(345,456)),sub_2(sub_1(0,678),sub_1(0,0)));
 
   bytes PS_basic_normal {
-      0, 0, 0, 123/*pragma_keys.c.s_1.l_1*/,
-      0, 0, 0, 234/*pragma_keys.c.s_1.l_2*/,
-      0, 0, 1,  89/*pragma_keys.c.s_2.l_1*/,
-      0, 0, 1, 200/*pragma_keys.c.s_2.l_2*/,
-      0, 0, 2,  55/*pragma_keys.d.s_1.l_1*/,
-      0, 0, 2, 166/*pragma_keys.d.s_1.l_2*/,
-      0, 0, 3,  21/*pragma_keys.d.s_2.l_1*/,
-      0, 0, 3, 122/*pragma_keys.d.s_2.l_2*/
+      0x00, 0x00, 0x00, 0x7B/*pragma_keys.c.s_1.l_1*/,
+      0x00, 0x00, 0x00, 0xEA/*pragma_keys.c.s_1.l_2*/,
+      0x00, 0x00, 0x01, 0x59/*pragma_keys.c.s_2.l_1*/,
+      0x00, 0x00, 0x01, 0xC8/*pragma_keys.c.s_2.l_2*/,
+      0x00, 0x00, 0x02, 0x37/*pragma_keys.d.s_1.l_1*/,
+      0x00, 0x00, 0x02, 0xA6/*pragma_keys.d.s_1.l_2*/,
+      0x00, 0x00, 0x03, 0x15/*pragma_keys.d.s_2.l_1*/,
+      0x00, 0x00, 0x03, 0x7A/*pragma_keys.d.s_2.l_2*/
       };
   bytes PS_basic_key {
-      0, 0, 1, 200/*pragma_keys.c.s_2.l_2*/,
-      0, 0, 2, 166/*pragma_keys.d.s_1.l_2*/,
-      0, 0, 1,  89/*pragma_keys.c.s_2.l_1*/,
+      0x00, 0x00, 0x01, 0xC8/*pragma_keys.c.s_2.l_2*/,
+      0x00, 0x00, 0x02, 0xA6/*pragma_keys.d.s_1.l_2*/,
+      0x00, 0x00, 0x01, 0x59/*pragma_keys.c.s_2.l_1*/,
       };
 
   VerifyRead(PS_basic_normal, PS, basic, false);
@@ -669,22 +669,22 @@ TEST_F(CDRStreamer, cdr_enum)
 
   /*basic cdr treats all enums as 32 bit integers*/
   bytes ES_basic_normal {
-      0, 0, 0 ,1 /*enum_struct.c*/,
-      0, 0, 0, 2 /*enum_struct.b*/,
-      0, 0, 0, 3 /*enum_struct.a*/
+      0x00, 0x00, 0x00 ,0x01 /*enum_struct.c*/,
+      0x00, 0x00, 0x00, 0x02 /*enum_struct.b*/,
+      0x00, 0x00, 0x00, 0x03 /*enum_struct.a*/
       };
   bytes ES_basic_key {
-      0, 0, 0, 1 /*enum_struct.c*/
+      0x00, 0x00, 0x00, 0x01 /*enum_struct.c*/
       };
   /*xcdr_v1 and xcdr_v2 treat bitbounded enums in the same manner*/
   bytes ES_xcdr_v1_normal {
-      1 /*enum_struct.c*/,
-      0 /*padding bytes (1)*/,
-      0, 2 /*enum_struct.b*/,
-      0, 0, 0, 3 /*enum_struct.a*/
+      0x01 /*enum_struct.c*/,
+      0x00 /*padding bytes (1)*/,
+      0x00, 0x02 /*enum_struct.b*/,
+      0x00, 0x00, 0x00, 0x03 /*enum_struct.a*/
       };
   bytes ES_xcdr_v1_key {
-      1 /*enum_struct.c*/
+      0x01 /*enum_struct.c*/
       };
 
   //currently the bit_bound field is not being parsed, so enums are written as 32-bit integers
@@ -704,7 +704,7 @@ TEST_F(CDRStreamer, cdr_optional)
 
   /*no basic cdr, since it does not support optional fields*/
   bytes OFS_xcdr_v1_normal {
-      64, 0, 0, 0 /*optional_final_struct.a.mheader*/,
+      0x00, 0x00, 0x00, 0x00 /*optional_final_struct.a.mheader*/,
       'b'/*optional_final_struct.a*/,
       'c'/*optional_final_struct.c*/
       };
@@ -712,31 +712,31 @@ TEST_F(CDRStreamer, cdr_optional)
       'c'/*padding bytes (3)*/
       };
   bytes OMS_xcdr_v1_normal {
-      64, 1, 0, 1 /*optional_mutable_struct.b.mheader*/,
+      0x00, 0x01, 0x00, 0x01 /*optional_mutable_struct.b.mheader*/,
       'b'/*optional_mutable_struct.a*/,
-      0, 0, 0/*padding bytes (3)*/,
-      64, 2, 0, 1 /*optional_mutable_struct.b.mheader*/,
+      0x00, 0x00, 0x00/*padding bytes (3)*/,
+      0x40, 0x02, 0x00, 0x01 /*optional_mutable_struct.b.mheader*/,
       'c'/*optional_final_struct.c*/,
-      0, 0, 0/*padding bytes (3)*/,
-      127, 2, 0, 0 /*optional_mutable_struct list termination header*/
+      0x00, 0x00, 0x00/*padding bytes (3)*/,
+      0x7F, 0x02, 0x00, 0x00 /*optional_mutable_struct list termination header*/
       };
   bytes OFS_xcdr_v2_normal {
-      0/*optional_final_struct.a.is_present*/,
+      0x00/*optional_final_struct.a.is_present*/,
       'b'/*optional_final_struct.b*/,
       'c'/*optional_final_struct.c*/
       };
   bytes OAS_xcdr_v2_normal {
-      0, 0, 0, 3/*dheader*/,
-      0/*optional_appendable_struct.a.is_present*/,
+      0x00, 0x00, 0x00, 0x03/*dheader*/,
+      0x00/*optional_appendable_struct.a.is_present*/,
       'b'/*optional_appendable_struct.b*/,
       'c'/*optional_appendable_struct.c*/
       };
   bytes OMS_xcdr_v2_normal {
-      0, 0, 0, 13/*dheader*/,
-      128, 0, 0, 1/*optional_mutable_struct.b.emheader*/,
+      0x00, 0x00, 0x00, 0x0D/*dheader*/,
+      0x00, 0x00, 0x00, 0x01/*optional_mutable_struct.b.emheader*/,
       'b'/*optional_appendable_struct.b*/,
-      0, 0, 0/*padding bytes (3)*/,
-      128, 0, 0, 2/*optional_mutable_struct.c.emheader*/,
+      0x00, 0x00, 0x00/*padding bytes (3)*/,
+      0x80, 0x00, 0x00, 0x02/*optional_mutable_struct.c.emheader*/,
       'c'/*optional_appendable_struct.c*/
       };
 
