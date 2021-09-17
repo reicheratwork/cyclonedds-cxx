@@ -35,7 +35,7 @@ void entity_properties::print(bool recurse, size_t depth, const char *prefix) co
 {
   std::cout << "d: " << depth;
   for (size_t i = 0; i < depth; i++) std::cout << "  ";
-  std::cout << prefix << ": s_id: " << s_id << " m_id: " << m_id << " final: " << (is_last ? "yes" : "no");
+  std::cout << prefix << ": m_id: " << m_id << " final: " << (is_last ? "yes" : "no");
 
   std::cout << " p_ext: ";
   switch(p_ext) {
@@ -70,9 +70,8 @@ void entity_properties::print(bool recurse, size_t depth, const char *prefix) co
   }
 }
 
-void entity_properties::set_member_props(uint32_t sequence_id, uint32_t member_id, bool optional)
+void entity_properties::set_member_props(uint32_t member_id, bool optional)
 {
-  s_id = sequence_id;
   m_id = member_id;
   is_optional = optional;
 }

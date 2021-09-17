@@ -327,21 +327,6 @@ public:
 
     /**
      * @brief
-     * Mapping function between entity properties and a generalized id.
-     *
-     * This id combines the sequence id of the entity (the sequential member number in the struct)
-     * with the member id of the entity, which may be specified through the idl file into a single
-     * 64 bit generalized id. Which is then used to determine from either an entity property
-     * originating from a tree or a header read from a stream which member to operate on.
-     *
-     * @param[in] props The property to convert.
-     *
-     * @return member_id * 2^32 + sequence_id
-     */
-    static uint64_t props_to_id(const entity_properties_t &props);
-
-    /**
-     * @brief
      * Type of streaming operation to be done.
      *
      * @var stream_mode::read Reads from the stream into an instance.

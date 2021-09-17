@@ -126,7 +126,6 @@ struct streams {
   idl_buffer_t move;
   idl_buffer_t max;
   idl_buffer_t props;
-  uint32_t sequence_id;
 };
 
 static void setup_streams(struct streams* str, struct generator* gen)
@@ -170,8 +169,6 @@ static idl_retcode_t flush(struct generator* gen, struct streams* streams)
    || IDL_RETCODE_OK != flush_stream(&streams->move, gen->header.handle)
    || IDL_RETCODE_OK != flush_stream(&streams->max, gen->header.handle))
     return IDL_RETCODE_NO_MEMORY;
-
-  streams->sequence_id = 0;
 
   return IDL_RETCODE_OK;
 }
@@ -662,15 +659,15 @@ get_extensibility(const void *node)
 {
   if (idl_is_enum(node)) {
     const idl_enum_t *ptr = node;
-    return ptr->extensibility;
+    return ptr->extensibility.value;
   } else if (idl_is_union(node)) {
     const idl_union_t *ptr = node;
-    return ptr->extensibility;
+    return ptr->extensibility.value;
   } else if (idl_is_struct(node)) {
     const idl_struct_t *ptr = node;
-    return ptr->extensibility;
+    return ptr->extensibility.value;
   }
-  return IDL_EXTENSIBILITY_FINAL;
+  return IDL_FINAL;
 }
 
 static idl_retcode_t
@@ -679,8 +676,7 @@ generate_entity_properties(
   const idl_type_spec_t *type_spec,
   struct streams *streams,
   const char *addto,
-  uint32_t member_id,
-  uint32_t sequence_id)
+  uint32_t member_id)
 {
   const idl_node_t *nd = ((const idl_node_t*)type_spec)->parent;
 
@@ -701,19 +697,18 @@ generate_entity_properties(
   }
 
   const char *opt = (idl_is_member(nd) && ((const idl_member_t*)nd)->optional.value) ? "true" : "false";
-  if (putf(&streams->props, "(%1$"PRIu32",%2$"PRIu32",%3$s)%4$s;\n",
-      sequence_id,
+  if (putf(&streams->props, "(%1$"PRIu32",%2$s)%3$s;\n",
       member_id,
       opt,
       idl_is_struct(type_spec) || idl_is_union(type_spec) ? "" : ")"))
     return IDL_RETCODE_NO_MEMORY;
 
   switch (get_extensibility(parent)) {
-    case IDL_EXTENSIBILITY_APPENDABLE:
+    case IDL_APPENDABLE:
       if (putf(&streams->props, "    %1$s.back().p_ext = ext_appendable;\n", addto))
         return IDL_RETCODE_NO_MEMORY;
       break;
-    case IDL_EXTENSIBILITY_MUTABLE:
+    case IDL_MUTABLE:
       if (putf(&streams->props, "    %1$s.back().p_ext = ext_mutable;\n", addto))
         return IDL_RETCODE_NO_MEMORY;
       break;
@@ -722,11 +717,11 @@ generate_entity_properties(
   }
 
   switch (get_extensibility(type_spec)) {
-    case IDL_EXTENSIBILITY_APPENDABLE:
+    case IDL_APPENDABLE:
       if (putf(&streams->props, "    %1$s.back().e_ext = ext_appendable;\n", addto))
         return IDL_RETCODE_NO_MEMORY;
       break;
-    case IDL_EXTENSIBILITY_MUTABLE:
+    case IDL_MUTABLE:
       if (putf(&streams->props, "    %1$s.back().e_ext = ext_mutable;\n", addto))
         return IDL_RETCODE_NO_MEMORY;
       break;
@@ -876,16 +871,9 @@ process_member(
   IDL_FOREACH(declarator, mem->declarators) {
     //generate case
     const char *fmt =
-      "      case %"PRIu64":\n";
+      "      case %"PRIu32":\n";
 
-    uint32_t mem_id = (mem->id.annotation != IDL_AUTOID) ? mem->id.value : streams->sequence_id;  //need rework on id fields in the idl parser
-    mem_id %= 268435456;  //endianness independent dropping of the 4 most significant bits
-
-    uint64_t id1 = ((uint64_t)mem_id) << 32;
-    uint64_t id2 = streams->sequence_id + id1;
-
-    if (multi_putf(streams, ALL, fmt, id1)
-     || ((id2 != id1) && multi_putf(streams, ALL, fmt, id2))
+    if (multi_putf(streams, ALL, fmt, declarator->id.value)
      || add_member_start(mem, declarator, streams))
       return IDL_RETCODE_NO_MEMORY;
 
@@ -893,20 +881,18 @@ process_member(
     if (mem->optional.value)
       loc.type |= OPTIONAL;
 
-    if (generate_entity_properties(mem->node.parent, type_spec, streams, "props.m_members_by_seq", mem_id, streams->sequence_id))
+    if (generate_entity_properties(mem->node.parent, type_spec, streams, "props.m_members_by_seq", declarator->id.value))
       return IDL_RETCODE_NO_MEMORY;
 
     // only use the @key annotations when you do not use the keylist
     if (!(pstate->flags & IDL_FLAG_KEYLIST) &&
-        mem->key == IDL_TRUE &&
-        generate_entity_properties(mem->node.parent, type_spec, streams, "props.m_keys_by_seq", mem_id, streams->sequence_id))
+        mem->key.value &&
+        generate_entity_properties(mem->node.parent, type_spec, streams, "props.m_keys_by_seq", declarator->id.value))
       return IDL_RETCODE_NO_MEMORY;
 
     if (process_entity(pstate, streams, declarator, type_spec, loc)
      || add_member_finish(mem, declarator, streams))
       return IDL_RETCODE_NO_MEMORY;
-
-    streams->sequence_id++;
   }
 
   return IDL_RETCODE_OK;
@@ -968,9 +954,9 @@ process_case(
       return IDL_RETCODE_NO_MEMORY;
 
     //only read the field if the union is not read as a key stream
-    if ((_switch->key == IDL_TRUE && multi_putf(streams, ALL, "      if (!as_key) {\n"))
+    if ((_switch->key.value && multi_putf(streams, ALL, "      if (!as_key) {\n"))
      || process_entity(pstate, streams, _case->declarator, _case->type_spec, loc)
-     || (_switch->key == IDL_TRUE && multi_putf(streams, ALL, "      } //!as_key\n")))
+     || (_switch->key.value && multi_putf(streams, ALL, "      } //!as_key\n")))
       return IDL_RETCODE_NO_MEMORY;
 
     if (multi_putf(streams, (WRITE | MOVE), "      break;\n")
@@ -1013,7 +999,7 @@ process_inherit_spec(
 }
 
 static const idl_declarator_t*
-resolve_member(const idl_struct_t *type_spec, const char *member_name, uint32_t *sequence_id)
+resolve_member(const idl_struct_t *type_spec, const char *member_name)
 {
   if (idl_is_struct(type_spec)) {
     const idl_struct_t *_struct = (const idl_struct_t *)type_spec;
@@ -1021,9 +1007,7 @@ resolve_member(const idl_struct_t *type_spec, const char *member_name, uint32_t 
     const idl_declarator_t *decl = NULL;
     IDL_FOREACH(member, _struct->members) {
       IDL_FOREACH(decl, member->declarators) {
-        if (idl_strcasecmp(decl->name->identifier, member_name))
-          (*sequence_id)++;
-        else
+        if (0 == idl_strcasecmp(decl->name->identifier, member_name))
           return decl;
       }
     }
@@ -1047,8 +1031,7 @@ process_key(
     return IDL_RETCODE_NO_MEMORY;
 
   for (size_t i = 0; i < key->field_name->length; i++) {
-    uint32_t sequence_id = 0;
-    if (!(decl = resolve_member(type_spec, key->field_name->names[i]->identifier, &sequence_id))) {
+    if (!(decl = resolve_member(type_spec, key->field_name->names[i]->identifier))) {
       //this happens if the key field name points to something that does not exist
       //or something that cannot be resolved, should never occur in a correctly
       //parsed idl file
@@ -1066,10 +1049,7 @@ process_key(
                               "      ptr->m_members_by_id.clear();\n"))
       return IDL_RETCODE_NO_MEMORY;
 
-    uint32_t mem_id = (mem->id.annotation != IDL_AUTOID) ? mem->id.value : sequence_id;  //need rework on id fields in the idl parser
-    mem_id %= 268435456;  //endianness independent dropping of the 4 most significant bits
-
-    if (generate_entity_properties((const idl_node_t*)_struct,type_spec,streams,"  ptr->m_keys_by_seq", mem_id, sequence_id))
+    if (generate_entity_properties((const idl_node_t*)_struct,type_spec,streams,"  ptr->m_keys_by_seq",  decl->id.value))
       return IDL_RETCODE_NO_MEMORY;
 
     if (i != 0) {
@@ -1139,10 +1119,10 @@ print_constructed_type_open(struct streams *streams, const idl_node_t *node)
 
   const char *estr = NULL;
   switch (get_extensibility(node)) {
-    case IDL_EXTENSIBILITY_APPENDABLE:
+    case IDL_APPENDABLE:
       estr = "ext_appendable";
       break;
-    case IDL_EXTENSIBILITY_MUTABLE:
+    case IDL_MUTABLE:
       estr = "ext_mutable";
       break;
     default:
@@ -1167,8 +1147,7 @@ print_switchbox_open(struct streams *streams)
     "      continue;\n"
     "    }\n";
   const char *fmt3 =
-    "    auto id = streamer.props_to_id(prop);\n"
-    "    switch (id) {\n";
+    "    switch (prop.m_id) {\n";
 
   if (multi_putf(streams, ALL, fmt1)
    || multi_putf(streams, READ, fmt2)
@@ -1491,18 +1470,11 @@ process_enum(
 
   //array of values already encountered
   uint32_t already_encountered[232],
-           n_already_encountered = 0,
-           default_value;
-
-  IDL_FOREACH(enumerator, _enum->enumerators) {
-    if (NULL == idl_previous(enumerator)
-     || idl_is_default(enumerator))
-      default_value = enumerator->value;
-  }
+           n_already_encountered = 0;
 
   IDL_FOREACH(enumerator, _enum->enumerators) {
     enum_name = get_cpp11_name(enumerator);
-    value = enumerator->value;
+    value = enumerator->value.value;
     bool already_present = false;
     for (uint32_t i = 0; i < n_already_encountered && !already_present; i++) {
       if (value == already_encountered[i])
@@ -1518,7 +1490,7 @@ process_enum(
     if (putf(&str->props, "    %scase %"PRIu32":\n"
                           "    return %s::%s;\n"
                           "    break;\n",
-                          value == default_value ? "default:\n      " : "",
+                          enumerator == _enum->default_enumerator ? "default:\n    " : "",
                           value,
                           fullname,
                           enum_name) < 0)

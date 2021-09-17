@@ -84,12 +84,6 @@ entity_properties_t& cdr_stream::next_prop(entity_properties_t &props, member_li
   return entity;
 }
 
-uint64_t cdr_stream::props_to_id(const entity_properties_t &props)
-{
-  assert(props);
-  return (static_cast<uint64_t>(props.m_id)<<32) + props.s_id;
-}
-
 entity_properties_t& cdr_stream::top_of_stack()
 {
   assert(m_stack.size());

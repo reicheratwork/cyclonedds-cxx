@@ -79,10 +79,8 @@ typedef std::list<entity_properties_t> proplist;
 struct OMG_DDS_API entity_properties
 {
   entity_properties(
-    uint32_t _s_id = 0,
     uint32_t _m_id = 0,
     bool _is_optional = false):
-      s_id(_s_id),
       m_id(_m_id),
       is_optional(_is_optional) {;}
 
@@ -92,7 +90,6 @@ struct OMG_DDS_API entity_properties
   size_t d_off = 0; /**< The current offset in the stream at which the struct starts, does not include header.*/
   uint32_t e_sz = 0; /**< The size of the current entity as member field (only used in reading from streams).*/
   uint32_t d_sz = 0; /**< The size of the current entity as struct (only used in reading from streams).*/
-  uint32_t s_id = 0; /**< The sequence id of the entity, it is the entry at which it was declared in the idl file. */
   uint32_t m_id = 0; /**< The member id of the entity, it is the global field by which the entity is identified. */
   bool must_understand = false; /**< If the reading end cannot parse a field with this header, it must discard the entire object. */
   bool implementation_extension = false; /**< ???TODO??? */
@@ -127,7 +124,7 @@ struct OMG_DDS_API entity_properties
    *
    * @return True when member and sequence ids are the same.
    */
-  bool operator==(const entity_properties_t &other) const {return m_id == other.m_id && s_id == other.s_id;}
+  bool operator==(const entity_properties_t &other) const {return m_id == other.m_id;}
 
   /**
    * @brief
@@ -159,14 +156,13 @@ struct OMG_DDS_API entity_properties
    * @brief
    * Member property setting function.
    *
-   * Sets the s_id, m_id and is_optional values.
+   * Sets the m_id and is_optional values.
    * Created to not have to have a constructor with a prohibitively large number of parameters.
    *
-   * @param[in] sequence_id Sets the s_id field.
    * @param[in] member_id Sets the m_id field.
    * @param[in] optional Sets the is_optional field.
    */
-  void set_member_props(uint32_t sequence_id, uint32_t member_id, bool optional);
+  void set_member_props(uint32_t member_id, bool optional);
 
   /**
    * @brief
@@ -251,7 +247,7 @@ struct OMG_DDS_API final_entry: public entity_properties_t {
 };
 
 template<typename T>
-inline entity_properties_t& get_type_props() {
+entity_properties_t& get_type_props() {
   thread_local static bool initialized = false;
   thread_local static entity_properties_t props;
   if (!initialized) {
