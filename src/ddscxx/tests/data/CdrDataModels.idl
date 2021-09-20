@@ -36,7 +36,7 @@ module CDR_testing {
   };
 
   //inheritance
-  struct base {
+  @mutable struct base {
     string base_str;
     @key char base_c;
   };
