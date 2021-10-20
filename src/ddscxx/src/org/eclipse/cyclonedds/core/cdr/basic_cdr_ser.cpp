@@ -18,9 +18,8 @@ namespace cyclonedds {
 namespace core {
 namespace cdr {
 
-entity_properties_t& basic_cdr_stream::next_entity(entity_properties_t &props, bool as_key, stream_mode mode, bool &firstcall)
+entity_properties_t& basic_cdr_stream::next_entity(entity_properties_t &props, bool as_key, bool &firstcall)
 {
-  (void) mode;
   auto &prop = next_prop(props, as_key ? member_list_type::key_by_seq : member_list_type::member_by_seq, firstcall);
   if (prop.is_optional)
     status(unsupported_property);

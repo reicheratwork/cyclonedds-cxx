@@ -30,7 +30,7 @@ const uint32_t xcdr_v1_stream::pl_extended_mask                 = 0x0FFFFFFF;
 const uint32_t xcdr_v1_stream::pl_extended_flag_impl_extension  = 0x80000000;
 const uint32_t xcdr_v1_stream::pl_extended_flag_must_understand = 0x40000000;
 
-void xcdr_v1_stream::start_member(entity_properties_t &prop, stream_mode mode, bool present)
+void xcdr_v1_stream::start_member(entity_properties_t &prop, bool present)
 {
   if (!header_necessary(prop))
     return;
@@ -38,7 +38,7 @@ void xcdr_v1_stream::start_member(entity_properties_t &prop, stream_mode mode, b
   if (prop.p_ext == ext_mutable && !present)
     return;
 
-  switch (mode) {
+  switch (m_mode) {
     case stream_mode::write:
       write_header(prop);
       break;
@@ -51,9 +51,9 @@ void xcdr_v1_stream::start_member(entity_properties_t &prop, stream_mode mode, b
   }
 }
 
-void xcdr_v1_stream::finish_member(entity_properties_t &prop, stream_mode mode, bool present)
+void xcdr_v1_stream::finish_member(entity_properties_t &prop, bool present)
 {
-  if (mode != stream_mode::write)
+  if (m_mode != stream_mode::write)
     return;
 
   if (!header_necessary(prop))
@@ -70,7 +70,7 @@ void xcdr_v1_stream::skip_entity(const entity_properties_t &props)
   incr_position(props.e_sz);
 }
 
-entity_properties_t& xcdr_v1_stream::next_entity(entity_properties_t &props, bool as_key, stream_mode mode, bool &firstcall)
+entity_properties_t& xcdr_v1_stream::next_entity(entity_properties_t &props, bool as_key, bool &firstcall)
 {
   member_list_type ml = member_list_type::member_by_seq;
   if (as_key) {
@@ -80,7 +80,7 @@ entity_properties_t& xcdr_v1_stream::next_entity(entity_properties_t &props, boo
       ml = member_list_type::key_by_id;
   }
 
-  if (mode != stream_mode::read)
+  if (m_mode != stream_mode::read)
     return next_prop(props, ml, firstcall);
 
   if (!list_necessary(props, as_key)) {
@@ -206,12 +206,12 @@ void xcdr_v1_stream::finish_write_header(entity_properties_t &props)
   alignment(current_alignment);
 }
 
-void xcdr_v1_stream::finish_struct(entity_properties_t &props, stream_mode mode, bool as_key)
+void xcdr_v1_stream::finish_struct(entity_properties_t &props, bool as_key)
 {
   if (!list_necessary(props, as_key))
     return;
 
-  switch (mode) {
+  switch (m_mode) {
     case stream_mode::write:
       write_final_list_entry();
       break;

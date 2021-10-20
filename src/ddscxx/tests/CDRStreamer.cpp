@@ -89,7 +89,6 @@ void CDRStreamer::VerifyWrite(const T& in, const bytes &out, stream_type stream,
   bytes buffer;
   switch (stream) {
     case basic:
-      b.reset_position();
       move(b, in, as_key);
       ASSERT_EQ(b.status(),0);
       buffer.resize(b.position());
@@ -98,7 +97,6 @@ void CDRStreamer::VerifyWrite(const T& in, const bytes &out, stream_type stream,
       ASSERT_EQ(b.status(),0);
       break;
     case xcdr_v1:
-      x_1.reset_position();
       move(x_1, in, as_key);
       ASSERT_EQ(x_1.status(),0);
       buffer.resize(x_1.position());
@@ -107,7 +105,6 @@ void CDRStreamer::VerifyWrite(const T& in, const bytes &out, stream_type stream,
       ASSERT_EQ(x_1.status(),0);
       break;
     case xcdr_v2:
-      x_2.reset_position();
       move(x_2, in, as_key);
       ASSERT_EQ(x_2.status(),0);
       buffer.resize(x_2.position());

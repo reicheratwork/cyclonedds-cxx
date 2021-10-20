@@ -329,17 +329,30 @@ public:
      * @brief
      * Type of streaming operation to be done.
      *
+     * @var stream_mode::unset The stream mode is not set.
      * @var stream_mode::read Reads from the stream into an instance.
      * @var stream_mode::write Writes from the instance to the stream.
      * @var stream_mode::move Moves the cursor by the same amount as would has been done through stream_mode::write, without copying any data to the stream.
      * @var stream_mode::max Same as stream_mode::move, but by the maximum amount possible for an entity of that type.
      */
     enum class stream_mode {
+      unset,
       read,
       write,
       move,
       max
     };
+
+    /**
+     * @brief
+     * Function which sets the current streaming mode.
+     *
+     * This will impact which entities will be retrieved from the entity properties list.
+     * This will also reset the current cursor position.
+     *
+     * @param[in] mode The mode to set for the stream.
+     */
+    void set_mode(stream_mode mode) {m_mode = mode; reset_position();}
 
     /**
      * @brief
@@ -350,10 +363,9 @@ public:
      * This function is to be implemented in cdr streaming implementations.
      *
      * @param[in] prop Properties of the entity to start.
-     * @param[in] mode The mode in which the entity is started.
      * @param[in] present Whether the entity represented by prop is present, if it is an optional entity.
      */
-    virtual void start_member(entity_properties_t &prop, stream_mode mode, bool present) = 0;
+    virtual void start_member(entity_properties_t &prop, bool present) = 0;
 
     /**
      * @brief
@@ -364,10 +376,9 @@ public:
      * This function is to be implemented in cdr streaming implementations.
      *
      * @param[in] prop Properties of the entity to finish.
-     * @param[in] mode The mode in which the entity is finished.
      * @param[in] present Whether the entity represented by prop is present, if it is an optional entity.
      */
-    virtual void finish_member(entity_properties_t &prop, stream_mode mode, bool present) = 0;
+    virtual void finish_member(entity_properties_t &prop, bool present) = 0;
 
     /**
      * @brief
@@ -391,12 +402,11 @@ public:
      *
      * @param[in, out] props The property tree to get the next entity from.
      * @param[in] as_key Whether to take the key entities, or the normal member entities.
-     * @param[in] mode Which mode to push/pop entities.
      * @param[in, out] firstcall Whether it is the first time calling the function for props, will store first iterator if true, and then set to false.
      *
      * @return The next entity to be processed, or the final entity if the current tree level does not hold more entities.
      */
-    virtual entity_properties_t& next_entity(entity_properties_t &props, bool as_key, stream_mode mode, bool &firstcall) = 0;
+    virtual entity_properties_t& next_entity(entity_properties_t &props, bool as_key, bool &firstcall) = 0;
 
     /**
      * @brief
@@ -406,10 +416,9 @@ public:
      * I.E. starting a new parameter list, writing headers.
      *
      * @param[in,out] props The entity whose members might be represented by a parameter list.
-     * @param[in] mode The current mode which is being used.
      * @param[in] as_key If this is to be treated as just the key stream representation.
      */
-    virtual void start_struct(entity_properties_t &props, stream_mode mode, bool as_key) = 0;
+    virtual void start_struct(entity_properties_t &props, bool as_key) = 0;
 
     /**
      * @brief
@@ -419,10 +428,9 @@ public:
      * I.E. finishing headers, writing length fields.
      *
      * @param[in,out] props The entity whose members might be represented by a parameter list.
-     * @param[in] mode The current mode which is being used.
      * @param[in] as_key If this is to be treated as just the key stream representation.
      */
-    virtual void finish_struct(entity_properties_t &props, stream_mode mode, bool as_key) = 0;
+    virtual void finish_struct(entity_properties_t &props, bool as_key) = 0;
 
 protected:
 
@@ -470,6 +478,7 @@ protected:
     uint64_t m_status = 0,                        /**< the current status of streaming*/
              m_fault_mask;                        /**< the mask for statuses that will cause streaming
                                                        to be aborted*/
+    stream_mode m_mode = stream_mode::unset;      /**< the current streaming mode*/
 
     static entity_properties_t m_final;           /**< A placeholder for the final entry to be returned
                                                        from next_prop if we are reading from a stream*/

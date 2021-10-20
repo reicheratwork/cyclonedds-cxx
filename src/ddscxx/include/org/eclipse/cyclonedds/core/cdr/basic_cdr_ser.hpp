@@ -45,7 +45,7 @@ public:
    *
    * As the basic cdr stream does not have anything that requires delimiting between entities, this function does nothing.
    */
-  void start_member(entity_properties_t &, stream_mode, bool) {;}
+  void start_member(entity_properties_t &, bool) {;}
 
   /**
    * @brief
@@ -53,7 +53,7 @@ public:
    *
    * As the basic cdr stream does not have anything that requires delimiting between entities, this function does nothing.
    */
-  void finish_member(entity_properties_t &, stream_mode, bool) {;}
+  void finish_member(entity_properties_t &, bool) {;}
 
   /**
    * @brief
@@ -61,7 +61,7 @@ public:
    *
    * As the basic cdr stream does not have anything that requires delimiting between entities, this function does nothing.
    */
-  void start_struct(entity_properties_t &, stream_mode, bool) {;}
+  void start_struct(entity_properties_t &, bool) {;}
 
   /**
    * @brief
@@ -69,7 +69,7 @@ public:
    *
    * As the basic cdr stream does not have anything that requires delimiting between entities, this function does nothing.
    */
-  void finish_struct(entity_properties_t &, stream_mode, bool) {;}
+  void finish_struct(entity_properties_t &, bool) {;}
 
   /**
    * @brief
@@ -87,12 +87,11 @@ public:
    *
    * @param[in, out] props The property tree to get the next entity from.
    * @param[in] as_key Whether to take the key entities, or the normal member entities.
-   * @param[in] mode Which mode to push/pop entities.
    * @param[in, out] firstcall Whether it is the first time calling the function for props, will store first iterator if true, and then set to false.
    *
    * @return The next entity to be processed, or the final entity if the current tree level does not hold more entities.
    */
-  entity_properties_t& next_entity(entity_properties_t &props, bool as_key, stream_mode mode, bool &firstcall);
+  entity_properties_t& next_entity(entity_properties_t &props, bool as_key, bool &firstcall);
 
 };
 

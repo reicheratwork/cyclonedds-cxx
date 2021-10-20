@@ -812,7 +812,7 @@ add_member_start(
    || IDL_PRINTA(&type, get_cpp11_type, type_spec, streams->generator) < 0)
     return IDL_RETCODE_NO_MEMORY;
 
-  if (multi_putf(streams, ALL, "      streamer.start_member(prop, cdr_stream::stream_mode::{T}, "))
+  if (multi_putf(streams, ALL, "      streamer.start_member(prop, "))
     return IDL_RETCODE_NO_MEMORY;
 
   if (mem->optional.value) {
@@ -839,10 +839,10 @@ add_member_finish(
     char *accessor = NULL;
     if (IDL_PRINTA(&accessor, get_instance_accessor, decl, &loc) < 0
      || multi_putf(streams, (WRITE|MOVE), "      }\n")
-     || multi_putf(streams, ALL, "      streamer.finish_member(prop, cdr_stream::stream_mode::{T}, %1$s.has_value());\n", accessor))
+     || multi_putf(streams, ALL, "      streamer.finish_member(prop, %1$s.has_value());\n", accessor))
       return IDL_RETCODE_NO_MEMORY;
   } else {
-    if (multi_putf(streams, ALL, "      streamer.finish_member(prop, cdr_stream::stream_mode::{T}, true);\n"))
+    if (multi_putf(streams, ALL, "      streamer.finish_member(prop, true);\n"))
       return IDL_RETCODE_NO_MEMORY;
   }
 
@@ -1089,7 +1089,7 @@ print_constructed_type_open(struct streams *streams, const idl_node_t *node)
     "  thread_local static entity_properties_t props;\n"
     "  if (!initialized) {\n";
   const char *sfmt =
-    "  streamer.start_struct(props,cdr_stream::stream_mode::{T},as_key);\n";
+    "  streamer.start_struct(props, as_key);\n";
 
   if (multi_putf(streams, ALL, fmt, name)
    || putf(&streams->props, pfmt1, name, pfmt2)
@@ -1122,7 +1122,7 @@ print_switchbox_open(struct streams *streams)
 {
   const char *fmt =
     "  bool firstcall = true;\n"
-    "  while (auto &prop = streamer.next_entity(props, as_key, cdr_stream::stream_mode::{T}, firstcall)) {\n"
+    "  while (auto &prop = streamer.next_entity(props, as_key, firstcall)) {\n"
     "%1$s"
     "    switch (prop.m_id) {\n";
   const char *skipfmt =
@@ -1145,7 +1145,7 @@ print_constructed_type_close(
   struct streams *streams)
 {
   static const char *fmt =
-    "  streamer.finish_struct(props,cdr_stream::stream_mode::{T},as_key);\n"
+    "  streamer.finish_struct(props, as_key);\n"
     "  (void)instance;\n"
     "}\n\n";
   static const char *pfmt =
@@ -1201,6 +1201,7 @@ print_entry_point_functions(
     "template<typename S, std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >\n"
     "void {T}(S& str, {C}%1$s& instance, bool as_key) {\n"
     "  auto &props = get_type_props<%1$s>();\n"
+    "  str.set_mode(cdr_stream::stream_mode::{T});\n"
     "  {T}(str, instance, props, as_key); \n"
     "}\n\n";
 
