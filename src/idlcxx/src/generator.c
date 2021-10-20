@@ -472,6 +472,18 @@ int get_cpp11_value(
   abort();
 }
 
+bool is_optional(const void *node)
+{
+  if (idl_is_member(node)) {
+    return ((const idl_member_t *)node)->optional.value;
+  } else if (idl_is_declarator(node)
+          || idl_is_type_spec(node)) {
+    return is_optional(idl_parent(node));
+  }
+
+  return false;
+}
+
 static char *
 figure_guard(const char *file)
 {
@@ -576,7 +588,7 @@ register_optional(
 
   struct generator *gen = user_data;
 
-  if (idl_is_member(node) && ((const idl_member_t*)node)->optional.value)
+  if (is_optional(node))
     gen->uses_optional = true;
 
   return IDL_RETCODE_OK;

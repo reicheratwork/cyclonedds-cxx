@@ -66,6 +66,8 @@ int get_cpp11_default_value(
 int get_cpp11_value(
   char *str, size_t size, const void *node, void *user_data);
 
+bool is_optional(const void *node);
+
 idl_retcode_t
 generate_streamers(const idl_pstate_t *pstate, struct generator *generator);
 

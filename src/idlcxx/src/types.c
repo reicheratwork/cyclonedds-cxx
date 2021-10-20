@@ -35,7 +35,6 @@ emit_member(
   const idl_type_spec_t *type_spec;
   char *type, *value;
   const char *name, *fmt;
-  const idl_member_t *mem = idl_parent(node);
 
   (void)pstate;
   (void)revisit;
@@ -58,7 +57,7 @@ emit_member(
     return IDL_RETCODE_NO_MEMORY;
 
   fmt = " %1$s %2$s_%3$s%4$s;\n";
-  if (mem->optional.value) {
+  if (is_optional(node)) {
     fmt = " %5$s<%1$s> %2$s_%3$s%4$s;\n";
     value = NULL;
   }
@@ -91,7 +90,6 @@ emit_parameter(
   char *type;
   const char *name, *fmt, *sep;
   const idl_type_spec_t *type_spec;
-  const idl_member_t *mem = idl_parent(node);
 
   (void)pstate;
   (void)revisit;
@@ -104,7 +102,7 @@ emit_parameter(
 
   simple = idl_mask(idl_unalias(type_spec, 0)) & (IDL_BASE_TYPE|IDL_ENUM);
   sep = is_first(node) ? "" : ",\n";
-  if (mem->optional.value) {
+  if (is_optional(node)) {
     fmt = "%1$s    const %4$s<%2$s>& %3$s";
   } else {
     fmt = simple ? "%1$s    %2$s %3$s"
@@ -152,7 +150,6 @@ emit_member_methods(
 {
   struct generator *gen = user_data;
   const idl_type_spec_t *type_spec;
-  const idl_member_t *mem = idl_parent(node);
   char *type;
   const char *name, *fmt;
 
@@ -171,7 +168,7 @@ emit_member_methods(
     return IDL_RETCODE_NO_MEMORY;
 
   type_spec = idl_unalias(type_spec, 0);
-  if (mem->optional.value)
+  if (is_optional(node))
     fmt = "  const %3$s<%1$s>& %2$s() const { return this->%2$s_; }\n"
           "  %3$s<%1$s>& %2$s() { return this->%2$s_; }\n"
           "  void %2$s(const %3$s<%1$s>& _val_) { this->%2$s_ = _val_; }\n"
