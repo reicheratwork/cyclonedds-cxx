@@ -11,7 +11,15 @@
 #
 find_package(GTest REQUIRED)
 
-idlcxx_generate(TARGET ddscxx_test_types FILES data/Space.idl data/HelloWorldData.idl data/Serialization.idl data/CdrDataModels.idl data/CdrDataModels_pragma.idl data/EntityProperties.idl data/EntityProperties_pragma.idl)
+idlcxx_generate(TARGET ddscxx_test_types FILES
+  data/Space.idl
+  data/HelloWorldData.idl
+  data/Serialization.idl
+  data/CdrDataModels.idl
+  data/CdrDataModels_pragma.idl
+  data/EntityProperties.idl
+  data/EntityProperties_pragma.idl
+  data/ExtendedTypesModels.idl)
 
 configure_file(
   config_simple.xml.in config_simple.xml @ONLY)
@@ -49,7 +57,8 @@ set(sources
   Condition.cpp
   Util.cpp
   CDRStreamer.cpp
-  GeneratedEntities.cpp)
+  GeneratedEntities.cpp
+  ExtendedTypes.cpp)
 
 if(ENABLE_SHM)
   # Add shared memory tests
