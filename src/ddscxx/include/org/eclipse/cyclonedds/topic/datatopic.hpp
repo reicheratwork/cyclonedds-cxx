@@ -939,10 +939,17 @@ const ddsi_sertype_ops ddscxx_sertype<T>::ddscxx_sertype_ops = {
   sertype_free_samples<T>,
   sertype_equal<T>,
   sertype_hash<T>,
-  nullptr, // type_id
-  nullptr, // type_map
-  nullptr, // type_info
-  nullptr, // assignable_from
+  #ifdef DDSCXX_HAS_TYPE_DISCOVERY
+  TopicTraits<T>::getTypeId,
+  TopicTraits<T>::getTypeMap,
+  TopicTraits<T>::getTypeInfo,
+  TopicTraits<T>::assignableFrom,
+  #else
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  #endif //DDSCXX_HAS_TYPE_DISCOVERY
   nullptr, // derive_sertype
   sertype_get_serialized_size<T>,
   sertype_serialize_into<T>
