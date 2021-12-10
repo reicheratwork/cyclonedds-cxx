@@ -29,12 +29,27 @@
 #include "dds/ddsi/ddsi_cdrstream.h"
 #include "dds/features.hpp"
 
+struct ddsi_sertype;
+template <typename T, class S> class ddscxx_sertype;
+
 namespace org
 {
 namespace eclipse
 {
 namespace cyclonedds
 {
+
+namespace core
+{
+namespace cdr
+{
+//forward declarations of streamer types
+class basic_cdr_stream;
+class xcdr_v1_stream;
+class xcdr_v2_stream;
+}
+}
+
 namespace topic
 {
 
@@ -105,13 +120,24 @@ public:
     /**
      * @brief Returns an instance of ddsi_sertype for TOPIC.
      *
-     * Used by CycloneDDS to get a sertype, which contains the functions used by CycloneDDS which are specific to TOPIC.
-     * This trait is always generated for user-defined types, and this function is just a placeholder.
+     * Used by CycloneDDS-CXX to get a sertype, which contains the functions used by CycloneDDS which are specific to TOPIC.
      *
+     * @param[in] kind The serialization of the of the sertype to create.
      * @return A pointer to a new dssi_sertype.
      */
-    static inline ddsi_sertype *getSerType()
+    static ddsi_sertype *getSerType(encoding_version kind = minXCDRVersion())
     {
+        switch (kind) {
+            case encoding_version::basic_cdr:
+                return static_cast<ddsi_sertype*>(new ddscxx_sertype<TOPIC,org::eclipse::cyclonedds::core::cdr::basic_cdr_stream>());
+                break;
+            case encoding_version::xcdr_v1:
+                return static_cast<ddsi_sertype*>(new ddscxx_sertype<TOPIC,org::eclipse::cyclonedds::core::cdr::xcdr_v1_stream>());
+                break;
+            case encoding_version::xcdr_v2:
+                return static_cast<ddsi_sertype*>(new ddscxx_sertype<TOPIC,org::eclipse::cyclonedds::core::cdr::xcdr_v2_stream>());
+                break;
+        }
         return nullptr;
     }
 
@@ -137,7 +163,7 @@ public:
      */
     static constexpr bool isSelfContained()
     {
-      return true;
+        return true;
     }
 
     /**
@@ -151,7 +177,7 @@ public:
      */
     static constexpr encoding_version minXCDRVersion()
     {
-      return encoding_version::basic_cdr;
+        return encoding_version::basic_cdr;
     }
 
     /**
@@ -164,7 +190,7 @@ public:
      */
     static constexpr extensibility getExtensibility()
     {
-      return extensibility::ext_final;
+        return extensibility::ext_final;
     }
 
 #ifdef DDSCXX_HAS_TYPE_DISCOVERY
@@ -248,6 +274,33 @@ private:
     static const unsigned char type_map_blob[]; /**< Blob of the cdr serialized type map, needs to be instantiated for all declared types.*/
     static const unsigned char type_info_blob[]; /**< Blob of the cdr serialized type info, needs to be instantiated for all declared types.*/
 #endif  //DDSCXX_HAS_TYPE_DISCOVERY
+
+public:
+    /**
+     * @brief Returns a pointer to the derived sertype.
+     *
+     * Returns a nullptr if no type can be derived succesfully.
+     *
+     * @param[in] data_representation The type of data representation to use.
+     * @return The pointer to the derived sertype.
+     */
+    static struct ddsi_sertype* deriveSertype(const struct ddsi_sertype *, dds_data_representation_id_t data_representation, dds_type_consistency_enforcement_qospolicy_t)
+    {
+        if (minXCDRVersion() == encoding_version::basic_cdr) {
+            switch (data_representation) {
+                case DDS_DATA_REPRESENTATION_XCDR1:
+                    return getSerType(encoding_version::basic_cdr);
+                    break;
+                case DDS_DATA_REPRESENTATION_XCDR2:
+                    return getSerType(encoding_version::xcdr_v2);
+                    break;
+            }
+        } else if (minXCDRVersion() == encoding_version::xcdr_v2) {
+            if (data_representation == DDS_DATA_REPRESENTATION_XCDR2)
+              return getSerType(encoding_version::xcdr_v2);
+        }
+        return nullptr;
+    }
 };
 
 }
