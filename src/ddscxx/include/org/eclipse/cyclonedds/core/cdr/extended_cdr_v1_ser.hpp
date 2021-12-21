@@ -230,18 +230,18 @@ private:
  * @return Whether the operation was completed succesfully.
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool read(xcdr_v1_stream& str, T& toread, const entity_properties_t &props, size_t N = 1)
+bool read(xcdr_v1_stream& str, T& toread, entity_properties_t &props, const size_t *max_sz, size_t N = 1)
 {
   switch (str.is_key() ? bb_32_bits : props.e_bb)
   {
     case bb_8_bits:
-      return read_enum_impl<xcdr_v1_stream,T,uint8_t>(str, toread, N);
+      return read_enum_impl<xcdr_v1_stream,T,uint8_t>(str, toread, props, max_sz, N);
       break;
     case bb_16_bits:
-      return read_enum_impl<xcdr_v1_stream,T,uint16_t>(str, toread, N);
+      return read_enum_impl<xcdr_v1_stream,T,uint16_t>(str, toread, props, max_sz, N);
       break;
     case bb_32_bits:
-      return read_enum_impl<xcdr_v1_stream,T,uint32_t>(str, toread, N);
+      return read_enum_impl<xcdr_v1_stream,T,uint32_t>(str, toread, props, max_sz, N);
       break;
     default:
       assert(false);
@@ -261,18 +261,18 @@ bool read(xcdr_v1_stream& str, T& toread, const entity_properties_t &props, size
  * @return Whether the operation was completed succesfully.
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool write(xcdr_v1_stream& str, const T& towrite, const entity_properties_t &props, size_t N = 1)
+bool write(xcdr_v1_stream& str, const T& towrite, entity_properties_t &props, const size_t *max_sz, size_t N = 1)
 {
   switch (str.is_key() ? bb_32_bits : props.e_bb)
   {
     case bb_8_bits:
-      return write_enum_impl<xcdr_v1_stream,T,uint8_t>(str, towrite, N);
+      return write_enum_impl<xcdr_v1_stream,T,uint8_t>(str, towrite, props, max_sz, N);
       break;
     case bb_16_bits:
-      return write_enum_impl<xcdr_v1_stream,T,uint16_t>(str, towrite, N);
+      return write_enum_impl<xcdr_v1_stream,T,uint16_t>(str, towrite, props, max_sz, N);
       break;
     case bb_32_bits:
-      return write_enum_impl<xcdr_v1_stream,T,uint32_t>(str, towrite, N);
+      return write_enum_impl<xcdr_v1_stream,T,uint32_t>(str, towrite, props, max_sz, N);
       break;
     default:
       assert(false);
@@ -291,18 +291,18 @@ bool write(xcdr_v1_stream& str, const T& towrite, const entity_properties_t &pro
  * @return Whether the operation was completed succesfully.
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool move(xcdr_v1_stream& str, const T&, const entity_properties_t &props, size_t N = 1)
+bool move(xcdr_v1_stream& str, const T&, entity_properties_t &props, const size_t *max_sz, size_t N = 1)
 {
   switch (str.is_key() ? bb_32_bits : props.e_bb)
   {
     case bb_8_bits:
-      return move(str, int8_t(0), N);
+      return move(str, int8_t(0), props, max_sz, N);
       break;
     case bb_16_bits:
-      return move(str, int16_t(0), N);
+      return move(str, int16_t(0), props, max_sz, N);
       break;
     case bb_32_bits:
-      return move(str, int32_t(0), N);
+      return move(str, int32_t(0), props, max_sz, N);
       break;
     default:
       assert(false);
@@ -322,9 +322,9 @@ bool move(xcdr_v1_stream& str, const T&, const entity_properties_t &props, size_
  * @return Whether the operation was completed succesfully.
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool max(xcdr_v1_stream& str, const T& max_sz, const entity_properties_t &props, size_t N = 1)
+bool max(xcdr_v1_stream& str, const T& tomax, entity_properties_t &props, const size_t *max_sz, size_t N = 1)
 {
-  return move(str, max_sz, props, N);
+  return move(str, tomax, props, max_sz, N);
 }
 
 }
