@@ -905,7 +905,7 @@ bool write_string(S& str, const T& towrite, size_t N)
  * @return Whether the operation was completed succesfully.
  */
 template<typename S, typename T, std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool move_string(S& str, const T& toincr, size_t N)
+bool move_string(S& str, const T &toincr, size_t N)
 {
   if (str.position() == SIZE_MAX)
     return true;
@@ -951,6 +951,26 @@ bool max_string(S& str, const T& max_sz, size_t N)
     return move_string(str, max_sz, N);
 
   return true;
+}
+
+template<typename S, std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool read(S& str, std::string& toread, size_t N) {
+  return read_string(str, toread, N);
+}
+
+template<typename S, std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool write(S& str, const std::string& toread, size_t N) {
+  return write_string(str, toread, N);
+}
+
+template<typename S, std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool move(S& str, const std::string& toread, size_t N) {
+  return move_string(str, toread, N);
+}
+
+template<typename S, std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool max(S& str, const std::string& toread, size_t N) {
+  return max_string(str, toread, N);
 }
 
 }
