@@ -67,27 +67,19 @@ static idl_retcode_t putf(idl_buffer_t *buf, const char *fmt, ...)
   return ret;
 }
 
-enum instance_mask {
-  UNION_BRANCH      = 0x1 << 1,
-  OPTIONAL          = 0x1 << 2
-};
-
 struct instance_location {
   char *parent;
-  uint32_t type;
+  bool union_branch;
 };
 typedef struct instance_location instance_location_t;
 
 static int get_instance_accessor(char* str, size_t size, const void* node, void* user_data)
 {
   instance_location_t loc = *(instance_location_t *)user_data;
-  const char *opt = "";
-  if (loc.type & OPTIONAL)
-    opt = ".value()";
 
   const idl_declarator_t* decl = (const idl_declarator_t*)node;
   const char* name = get_cpp11_name(decl);
-  return idl_snprintf(str, size, "%s.%s()%s", loc.parent, name, opt);
+  return idl_snprintf(str, size, "%s.%s()", loc.parent, name);
 }
 
 struct streams {
@@ -286,7 +278,7 @@ process_entity(
     return IDL_RETCODE_NO_MEMORY;
 
   const char* read_accessor;
-  if (loc.type & UNION_BRANCH)
+  if (loc.union_branch)
     read_accessor = "obj";
   else
     read_accessor = accessor;
@@ -473,30 +465,16 @@ add_member_start(
 {
   instance_location_t loc = {.parent = "instance"};
   char *accessor = NULL;
-  char *type = NULL;
-
-  const idl_type_spec_t *type_spec = NULL;
-  if (idl_is_array(decl))
-    type_spec = decl;
-  else
-    type_spec = idl_type_spec(decl);
-
-  if (IDL_PRINTA(&accessor, get_instance_accessor, decl, &loc) < 0
-   || IDL_PRINTA(&type, get_cpp11_type, type_spec, streams->generator) < 0)
+  if (IDL_PRINTA(&accessor, get_instance_accessor, decl, &loc) < 0)
     return IDL_RETCODE_NO_MEMORY;
 
-  if (multi_putf(streams, ALL, "      if (!streamer.start_member(prop"))
+  const char *fmt = is_optional(decl) ?
+    "      if (!streamer.start_member(prop, %1$s.has_value()))\n"
+    "        return false;\n" :
+    "      if (!streamer.start_member(prop))\n"
+    "        return false;\n";
+  if (multi_putf(streams, ALL, fmt, accessor))
     return IDL_RETCODE_NO_MEMORY;
-
-  if (is_optional(decl)) {
-    if (multi_putf(streams, ALL, ", %1$s.has_value()))\n        return false;\n", accessor)
-     || multi_putf(streams, (WRITE|MOVE), "      if (%1$s.has_value()) {\n", accessor)
-     || multi_putf(streams, READ, "      %1$s = %2$s();\n", accessor, type))
-      return IDL_RETCODE_NO_MEMORY;
-  } else {
-    if (multi_putf(streams, ALL, "))\n        return false;\n"))
-      return IDL_RETCODE_NO_MEMORY;
-  }
 
   return IDL_RETCODE_OK;
 }
@@ -506,22 +484,17 @@ add_member_finish(
   const idl_declarator_t *decl,
   struct streams *streams)
 {
-  if (is_optional(decl)) {
-    instance_location_t loc = {.parent = "instance"};
-    char *accessor = NULL;
-    if (IDL_PRINTA(&accessor, get_instance_accessor, decl, &loc) < 0
-     || multi_putf(streams, (WRITE|MOVE), "      }\n")
-     || multi_putf(streams, ALL,
-          "      if (!streamer.finish_member(prop, %1$s.has_value()))\n"
-          "        return false;\n", accessor))
-      return IDL_RETCODE_NO_MEMORY;
-  } else {
-    if (multi_putf(streams, ALL, "      if (!streamer.finish_member(prop))\n"
-                                 "        return false;\n"))
-      return IDL_RETCODE_NO_MEMORY;
-  }
-
-  if (multi_putf(streams, ALL, "      break;\n"))
+  const char *fmt = is_optional(decl) ?
+    "      if (!streamer.finish_member(prop, %1$s.has_value()))\n"
+    "        return false;\n"
+    "      break;\n" :
+    "      if (!streamer.finish_member(prop))\n"
+    "        return false;\n"
+    "      break;\n";
+  instance_location_t loc = {.parent = "instance"};
+  char *accessor = NULL;
+  if (IDL_PRINTA(&accessor, get_instance_accessor, decl, &loc) < 0
+   || multi_putf(streams, ALL, fmt, accessor))
     return IDL_RETCODE_NO_MEMORY;
 
   return IDL_RETCODE_OK;
@@ -553,8 +526,6 @@ process_member(
       return IDL_RETCODE_NO_MEMORY;
 
     instance_location_t loc = {.parent = "instance"};
-    if (is_optional(mem))
-      loc.type |= OPTIONAL;
 
     if (generate_entity_properties(mem->node.parent, type_spec, declarator, streams))
       return IDL_RETCODE_NO_MEMORY;
@@ -590,7 +561,7 @@ process_case(
   bool single = (idl_degree(_case->labels) == 1) && !(idl_mask(_case->labels) == IDL_DEFAULT_CASE_LABEL),
        simple = idl_is_base_type(_case->type_spec),
        constructed_type = idl_is_constr_type(_case->type_spec) && !idl_is_enum(_case->type_spec);
-  instance_location_t loc = { .parent = "instance", .type = UNION_BRANCH };
+  instance_location_t loc = { .parent = "instance", .union_branch = true};
 
   static const char *max_start =
     "  {\n"
