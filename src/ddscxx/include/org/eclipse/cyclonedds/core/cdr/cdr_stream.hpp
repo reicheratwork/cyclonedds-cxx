@@ -993,6 +993,84 @@ bool max(S &str, const std::array<T,N>& tomax, entity_properties_t &props, const
   return max_array(str, tomax, props, max_sz);
 }
 
+//optionals
+
+template< typename S,
+          template<typename> class O,
+          typename T,
+          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool read_optional(S &str, O<T> &toread, entity_properties_t &props, const size_t *max_sz)
+{
+  toread = T();
+  return read(str, toread.value(), props, max_sz);
+}
+
+template< typename S,
+          template<typename> class O,
+          typename T,
+          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool write_optional(S &str, const O<T> &towrite, entity_properties_t &props, const size_t *max_sz)
+{
+  if (!towrite)
+    return true;
+
+  return write(str, towrite.value(), props, max_sz);
+}
+
+template< typename S,
+          template<typename> class O,
+          typename T,
+          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool move_optional(S &str, const O<T> &tomove, entity_properties_t &props, const size_t *max_sz)
+{
+  if (!tomove)
+    return true;
+
+  return move(str, tomove.value(), props, max_sz);
+}
+
+template< typename S,
+          template<typename> class O,
+          typename T,
+          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool max_optional(S &str, const O<T> &tomax, entity_properties_t &props, const size_t *max_sz)
+{
+  return move_optional(str, tomax, props, max_sz);
+}
+
+//move to generated code?
+template< typename S,
+          typename T,
+          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool read(S &str, std::optional<T> &toread, entity_properties_t &props, const size_t *max_sz)
+{
+  return read_optional(str, toread, props, max_sz);
+}
+
+template< typename S,
+          typename T,
+          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool move(S &str, const std::optional<T> &tomove, entity_properties_t &props, const size_t *max_sz)
+{
+  return move_optional(str, tomove, props, max_sz);
+}
+
+template< typename S,
+          typename T,
+          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool max(S &str, const std::optional<T> &tomax, entity_properties_t &props, const size_t *max_sz)
+{
+  return max_optional(str, tomax, props, max_sz);
+}
+
+template< typename S,
+          typename T,
+          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool write(S &str, const std::optional<T> &towrite, entity_properties_t &props, const size_t *max_sz)
+{
+  return write_optional(str, towrite, props, max_sz);
+}
+
 /**
  * @brief
  * Primitive type stream manipulation functions.

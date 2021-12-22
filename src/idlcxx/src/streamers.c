@@ -70,8 +70,7 @@ static idl_retcode_t putf(idl_buffer_t *buf, const char *fmt, ...)
 enum instance_mask {
   TYPEDEF           = 0x1 << 0,
   UNION_BRANCH      = 0x1 << 1,
-  SEQUENCE          = 0x1 << 2,
-  OPTIONAL          = 0x1 << 3
+  SEQUENCE          = 0x1 << 2
 };
 
 struct instance_location {
@@ -87,13 +86,9 @@ static int get_instance_accessor(char* str, size_t size, const void* node, void*
   if (loc.type & TYPEDEF) {
     return idl_snprintf(str, size, "%s", loc.parent);
   } else {
-    const char *opt = "";
-    if (loc.type & OPTIONAL)
-      opt = ".value()";
-
     const idl_declarator_t* decl = (const idl_declarator_t*)node;
     const char* name = get_cpp11_name(decl);
-    return idl_snprintf(str, size, "%s.%s()%s", loc.parent, name, opt);
+    return idl_snprintf(str, size, "%s.%s()", loc.parent, name);
   }
 }
 
@@ -530,25 +525,13 @@ add_member_start(
 {
   instance_location_t loc = {.parent = "instance"};
   char *accessor = NULL;
-  char *type = NULL;
 
-  const idl_type_spec_t *type_spec = NULL;
-  if (idl_is_array(decl))
-    type_spec = decl;
-  else
-    type_spec = idl_type_spec(decl);
-
-  if (IDL_PRINTA(&accessor, get_instance_accessor, decl, &loc) < 0
-   || IDL_PRINTA(&type, get_cpp11_type, type_spec, streams->generator) < 0)
-    return IDL_RETCODE_NO_MEMORY;
-
-  if (multi_putf(streams, ALL, "      if (!streamer.start_member(prop"))
+  if (IDL_PRINTA(&accessor, get_instance_accessor, decl, &loc) < 0 &&
+      multi_putf(streams, ALL, "      if (!streamer.start_member(prop"))
     return IDL_RETCODE_NO_MEMORY;
 
   if (is_optional(decl)) {
-    if (multi_putf(streams, ALL, ", %1$s.has_value()))\n        return false;\n", accessor)
-     || multi_putf(streams, (WRITE|MOVE), "      if (%1$s.has_value()) {\n", accessor)
-     || multi_putf(streams, READ, "      %1$s = %2$s();\n", accessor, type))
+    if (multi_putf(streams, ALL, ", %1$s.has_value()))\n        return false;\n", accessor))
       return IDL_RETCODE_NO_MEMORY;
   } else {
     if (multi_putf(streams, ALL, "))\n        return false;\n"))
@@ -567,18 +550,14 @@ add_member_finish(
     instance_location_t loc = {.parent = "instance"};
     char *accessor = NULL;
     if (IDL_PRINTA(&accessor, get_instance_accessor, decl, &loc) < 0
-     || multi_putf(streams, (WRITE|MOVE), "      }\n")
-     || multi_putf(streams, ALL,
-          "      if (!streamer.finish_member(prop, %1$s.has_value()))\n"
-          "        return false;\n", accessor))
+     || multi_putf(streams, ALL, "      if (!streamer.finish_member(prop, %1$s.has_value()))\n", accessor))
       return IDL_RETCODE_NO_MEMORY;
   } else {
-    if (multi_putf(streams, ALL, "      if (!streamer.finish_member(prop))\n"
-                                 "        return false;\n"))
+    if (multi_putf(streams, ALL, "      if (!streamer.finish_member(prop))\n"))
       return IDL_RETCODE_NO_MEMORY;
   }
 
-  if (multi_putf(streams, ALL, "      }\n      break;\n"))
+  if (multi_putf(streams, ALL, "        return false;\n      }\n      break;\n"))
     return IDL_RETCODE_NO_MEMORY;
 
   return IDL_RETCODE_OK;
@@ -612,8 +591,6 @@ process_member(
       return IDL_RETCODE_NO_MEMORY;
 
     instance_location_t loc = {.parent = "instance"};
-    if (is_optional(mem))
-      loc.type |= OPTIONAL;
 
     if (generate_entity_properties(mem->node.parent, type_spec, streams, declarator->id.value))
       return IDL_RETCODE_NO_MEMORY;
