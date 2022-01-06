@@ -578,6 +578,25 @@ protected:
     DDSCXX_WARNING_MSVC_ON(4251)
 };
 
+/**
+ * @brief
+ * Sequence type read function.
+ *
+ * Reads the sequence length from the stream and checks whether the
+ * maximum length does not exceed any bounds of the sequence.
+ * It will resize the container and call reads for all entities in
+ * the sequence.
+ * This function is only enabled for non-arithmetic types.
+ * This function's container template will be specialized in the
+ * generated code, as there its type is known.
+ *
+ * @param[in, out] str The stream which is read from.
+ * @param[out] toread The variable to read into.
+ * @param[in] props The properties of the variable being read.
+ * @param[in] max_sz The array of max sizes used for bounded sequences/strings.
+ *
+ * @return Whether the operation was completed succesfully.
+ */
 template< typename S,
           template<typename> class V,
           typename T,
@@ -614,6 +633,25 @@ bool read_sequence(S &str, V<T>& toread, entity_properties_t &props, const size_
   return str.finish_consecutive();
 }
 
+/**
+ * @brief
+ * Sequence type read function.
+ *
+ * Reads the sequence length from the stream and checks whether the
+ * maximum length does not exceed any bounds of the sequence.
+ * It will resize the container and call the primitive type read
+ * function as there a bulk copy is done.
+ * This function is only enabled for arithmetic types.
+ * This function's container template will be specialized in the
+ * generated code, as there its type is known.
+ *
+ * @param[in, out] str The stream which is read from.
+ * @param[out] toread The variable to read into.
+ * @param[in] props The properties of the variable being read.
+ * @param[in] max_sz The array of max sizes used for bounded sequences/strings.
+ *
+ * @return Whether the operation was completed succesfully.
+ */
 template< typename S,
           template<typename> class V,
           typename T,
@@ -643,6 +681,24 @@ bool read_sequence(S &str, V<T>& toread, entity_properties_t &props, const size_
     return true;
 }
 
+/**
+ * @brief
+ * Sequence type write function.
+ *
+ * Checks whether the maximum length does not exceed any bounds of
+ * the sequence and then writes the sequence length to the stream.
+ * It will then call reads for all entities in the sequence.
+ * This function is only enabled for non-arithmetic types.
+ * This function's container template will be specialized in the
+ * generated code, as there its type is known.
+ *
+ * @param[in, out] str The stream which is written to.
+ * @param[out] towrite The variable to write.
+ * @param[in] props The properties of the variable being written.
+ * @param[in] max_sz The array of max sizes used for bounded sequences/strings.
+ *
+ * @return Whether the operation was completed succesfully.
+ */
 template< typename S,
           template<typename> class V,
           typename T,
@@ -669,6 +725,25 @@ bool write_sequence(S &str, const V<T>& towrite, entity_properties_t &props, con
   return str.finish_consecutive();
 }
 
+/**
+ * @brief
+ * Sequence type write function.
+ *
+ * Checks whether the maximum length does not exceed any bounds of
+ * the sequence and then writes the sequence length to the stream.
+ * It will then call the primitive type write function as there the
+ * bulk copy is done.
+ * This function is only enabled for arithmetic types.
+ * This function's container template will be specialized in the
+ * generated code, as there its type is known.
+ *
+ * @param[in, out] str The stream which is written to.
+ * @param[out] towrite The variable to write.
+ * @param[in] props The properties of the variable being written.
+ * @param[in] max_sz The array of max sizes used for bounded sequences/strings.
+ *
+ * @return Whether the operation was completed succesfully.
+ */
 template< typename S,
           template<typename> class V,
           typename T,
@@ -691,6 +766,24 @@ bool write_sequence(S &str, const V<T>& towrite, entity_properties_t &props, con
   return write(str, towrite[0], props, max_sz, towrite.size());
 }
 
+/**
+ * @brief
+ * Sequence type move function.
+ *
+ * Checks whether the maximum length does not exceed any bounds of
+ * the sequence and then moves the stream by the sequence number.
+ * It will then call the move for all entities in the sequence.
+ * This function is only enabled for non-arithmetic types.
+ * This function's container template will be specialized in the
+ * generated code, as there its type is known.
+ *
+ * @param[in, out] str The stream whose cursor is moved.
+ * @param[out] tomove The variable the cursor is moved by.
+ * @param[in] props The properties of the variable being moved.
+ * @param[in] max_sz The array of max sizes used for bounded sequences/strings.
+ *
+ * @return Whether the operation was completed succesfully.
+ */
 template< typename S,
           template<typename> class V,
           typename T,
@@ -717,6 +810,25 @@ bool move_sequence(S &str, const V<T>& tomove, entity_properties_t &props, const
   return str.finish_consecutive();
 }
 
+/**
+ * @brief
+ * Sequence type move function.
+ *
+ * Checks whether the maximum length does not exceed any bounds of
+ * the sequence and then moves the stream for the length field.
+ * It will then call the primitive type move function as there the
+ * simple moved is done.
+ * This function is only enabled for arithmetic types.
+ * This function's container template will be specialized in the
+ * generated code, as there its type is known.
+ *
+ * @param[in, out] str The stream whose cursor is moved.
+ * @param[out] tomove The variable the cursor is moved by.
+ * @param[in] props The properties of the variable being moved.
+ * @param[in] max_sz The array of max sizes used for bounded sequences/strings.
+ *
+ * @return Whether the operation was completed succesfully.
+ */
 template< typename S,
           template<typename> class V,
           typename T,
@@ -739,6 +851,22 @@ bool move_sequence(S &str, const V<T>& tomove, entity_properties_t &props, const
   return move(str, tomove[0], props, max_sz, tomove.size());
 }
 
+/**
+ * @brief
+ * Sequence type max function.
+ *
+ * This will either set the cursor to SIZE_MAX if no max_sz is provided
+ * or max_sz points to 0, otherwise it will create a dummy sequence and
+ * move the cursor by the amount in the dummy sequence.
+ * This function's container template will be specialized in the
+ * generated code, as there its type is known.
+ *
+ * @param[in, out] str The stream whose cursor is moved.
+ * @param[in] props The properties of the variable being moved.
+ * @param[in] max_sz The array of max sizes used for bounded sequences/strings.
+ *
+ * @return Whether the operation was completed succesfully.
+ */
 template< typename S,
           template<typename> class V,
           typename T,
