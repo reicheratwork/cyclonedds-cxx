@@ -526,7 +526,7 @@ add_member_start(
   instance_location_t loc = {.parent = "instance"};
   char *accessor = NULL;
 
-  if (IDL_PRINTA(&accessor, get_instance_accessor, decl, &loc) < 0 &&
+  if (IDL_PRINTA(&accessor, get_instance_accessor, decl, &loc) < 0 ||
       multi_putf(streams, ALL, "      if (!streamer.start_member(prop"))
     return IDL_RETCODE_NO_MEMORY;
 
