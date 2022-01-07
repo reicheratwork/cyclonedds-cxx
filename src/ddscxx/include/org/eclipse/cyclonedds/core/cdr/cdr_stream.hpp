@@ -18,8 +18,6 @@
 #include <stdint.h>
 #include <string>
 #include <stdexcept>
-#include <vector>
-#include <array>
 #include <stack>
 #include <cassert>
 #include <dds/core/macros.hpp>
@@ -581,11 +579,10 @@ protected:
 };
 
 template< typename S,
-          template<typename, typename> class V,
+          template<typename> class V,
           typename T,
-          typename A,
           std::enable_if_t<(!std::is_arithmetic<T>::value || std::is_enum<T>::value) && std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool read_sequence(S &str, V<T, A>& toread, entity_properties_t &props, const size_t *max_sz)
+bool read_sequence(S &str, V<T>& toread, entity_properties_t &props, const size_t *max_sz)
 {
   if (!str.start_consecutive(false, false))
     return false;
@@ -607,8 +604,8 @@ bool read_sequence(S &str, V<T, A>& toread, entity_properties_t &props, const si
       return false;
   }
 
-  //dummy reads for entries beyond the array's maximum size
-  for (uint32_t i = read_length; max_sz && *max_sz && i < vec_length; i++) {
+  //dummy reads for entries beyond the sequence's maximum size
+  for (uint32_t i = vec_length; i < read_length; i++) {
     T dummy;
     if (!read(str, dummy, props, max_sz ? max_sz+1 : nullptr))
       return false;
@@ -618,12 +615,11 @@ bool read_sequence(S &str, V<T, A>& toread, entity_properties_t &props, const si
 }
 
 template< typename S,
-          template<typename, typename> class V,
+          template<typename> class V,
           typename T,
-          typename A,
           std::enable_if_t<std::is_arithmetic<T>::value
-                        && std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool read_sequence(S &str, V<T, A>& toread, entity_properties_t &props, const size_t *max_sz)
+                       && std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool read_sequence(S &str, V<T>& toread, entity_properties_t &props, const size_t *max_sz)
 {
   //read vector length
   uint32_t vec_length = 0;
@@ -636,23 +632,22 @@ bool read_sequence(S &str, V<T, A>& toread, entity_properties_t &props, const si
     vec_length = std::min<uint32_t>(static_cast<uint32_t>(*max_sz),vec_length);
 
   //do read for entries in vector
-  toread.resize(read_length);
-  if (read_length && !read(str, toread[0], props, max_sz, read_length))
+  toread.resize(vec_length);
+  if (read_length && !read(str, toread[0], props, max_sz, vec_length))
     return false;
 
   //dummy reads for entries beyond the array's maximum size
-  if (vec_length > read_length)
-    return move(str, T(), props, max_sz, vec_length-read_length);
+  if (read_length > vec_length)
+    return move(str, T(), props, max_sz, read_length-vec_length);
   else
     return true;
 }
 
 template< typename S,
-          template<typename, typename> class V,
+          template<typename> class V,
           typename T,
-          typename A,
           std::enable_if_t<(!std::is_arithmetic<T>::value || std::is_enum<T>::value) && std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool write_sequence(S &str, const V<T, A>& towrite, entity_properties_t &props, const size_t *max_sz)
+bool write_sequence(S &str, const V<T>& towrite, entity_properties_t &props, const size_t *max_sz)
 {
   if (!str.start_consecutive(false, false))
     return false;
@@ -675,12 +670,11 @@ bool write_sequence(S &str, const V<T, A>& towrite, entity_properties_t &props, 
 }
 
 template< typename S,
-          template<typename, typename> class V,
+          template<typename> class V,
           typename T,
-          typename A,
           std::enable_if_t<std::is_arithmetic<T>::value
-                        && std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool write_sequence(S &str, const V<T, A>& towrite, entity_properties_t &props, const size_t *max_sz)
+                       && std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool write_sequence(S &str, const V<T>& towrite, entity_properties_t &props, const size_t *max_sz)
 {
   //do length check
   if (max_sz && *max_sz && towrite.size() > *max_sz)
@@ -698,11 +692,10 @@ bool write_sequence(S &str, const V<T, A>& towrite, entity_properties_t &props, 
 }
 
 template< typename S,
-          template<typename, typename> class V,
+          template<typename> class V,
           typename T,
-          typename A,
           std::enable_if_t<(!std::is_arithmetic<T>::value || std::is_enum<T>::value) && std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool move_sequence(S &str, const V<T,A>& tomove, entity_properties_t &props, const size_t *max_sz)
+bool move_sequence(S &str, const V<T>& tomove, entity_properties_t &props, const size_t *max_sz)
 {
   if (!str.start_consecutive(false, false))
     return false;
@@ -725,12 +718,11 @@ bool move_sequence(S &str, const V<T,A>& tomove, entity_properties_t &props, con
 }
 
 template< typename S,
-          template<typename, typename> class V,
+          template<typename> class V,
           typename T,
-          typename A,
           std::enable_if_t<std::is_arithmetic<T>::value
-                        && std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool move_sequence(S &str, const V<T,A>& tomove, entity_properties_t &props, const size_t *max_sz)
+                       && std::is_base_of<cdr_stream, S>::value, bool> = true >
+bool move_sequence(S &str, const V<T>& tomove, entity_properties_t &props, const size_t *max_sz)
 {
   //do length check
   if (max_sz && *max_sz && tomove.size() > *max_sz)
@@ -748,23 +740,23 @@ bool move_sequence(S &str, const V<T,A>& tomove, entity_properties_t &props, con
 }
 
 template< typename S,
-          template<typename, typename> class V,
+          template<typename> class V,
           typename T,
-          typename A,
           std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool max_sequence(S &str, const V<T,A>& , entity_properties_t &props, const size_t *max_sz)
+bool max_sequence(S &str, const V<T>& , entity_properties_t &props, const size_t *max_sz)
 {
   if (!max_sz || !*max_sz) {
     str.position(SIZE_MAX);
     return true;
   } else {
-    V<T,A> dummy;
+    V<T> dummy;
     dummy.resize(*max_sz);
     return move(str, dummy, props, max_sz);
   }
 }
 
 //link to read/write functions
+//move to generated code?
 template< typename S,
           typename T,
           std::enable_if_t<std::is_base_of<cdr_stream, S>::value && !std::is_same<T,bool>::value, bool> = true >
@@ -813,16 +805,16 @@ bool read(S &str, std::vector<bool>& toread, entity_properties_t &props, const s
     vec_length = std::min<uint32_t>(static_cast<uint32_t>(*max_sz),vec_length);
 
   //do read for entries in vector
-  toread.resize(read_length);
-  bool dummy = false;
-  for (uint32_t i = 0; i < read_length; i++)
+  toread.resize(vec_length);
+  for (auto &&b:toread)  //&& here due to bit_iterator not being able to be bound to a reference as it is like a reference itself
   {
+    bool dummy = false;
     if (!read(str, dummy))
       return false;
-    toread[i] = dummy;
+    b = dummy;
   }
 
-  //dummy reads for entries beyond the array's maximum size
+  //dummy reads for entries beyond the sequence's maximum size
   if (vec_length > read_length)
     return move(str, bool(), props, max_sz, vec_length-read_length);
   else
@@ -956,6 +948,8 @@ bool max_array(S &str, const A<T, N>& tomax, entity_properties_t &props, const s
   return move_array(str, tomax, props, max_sz);
 }
 
+//link to read/write functions
+//move to generated code?
 template< typename S,
           typename T,
           size_t N,
@@ -1037,6 +1031,7 @@ bool max_optional(S &str, const O<T> &tomax, entity_properties_t &props, const s
   return move_optional(str, tomax, props, max_sz);
 }
 
+//link to read/write functions
 //move to generated code?
 template< typename S,
           typename T,
