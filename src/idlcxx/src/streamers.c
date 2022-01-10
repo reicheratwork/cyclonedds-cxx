@@ -1219,6 +1219,213 @@ process_enum(
   return IDL_RETCODE_OK;
 }
 
+static int make_guard(char** out, const char *in)
+{
+  const char *c = in;
+  while (*c && *c != '<')
+    c++;
+
+  *out = malloc((size_t)(c-in+1));
+
+  if (NULL == *out)
+    return -1;
+
+  const char *c2 = in;
+  char *c3 = *out;
+  while (c2 != c) {
+    if (*c2 == ':')
+      *c3 = '_';
+    else
+      *c3 = *c2;
+    c2++;
+    c3++;
+  }
+  *c3 = '\0';
+
+  return (int)(c-in+1);
+}
+
+static int make_seq_type(char** strptr, const char *fmt)
+{
+  int n = idl_snprintf(*strptr, 0, fmt, "T", "N");
+  if (n < 0)
+    return n;
+
+  *strptr = malloc((size_t)n+1);
+  if (!*strptr)
+    return -1;
+
+  return idl_snprintf(*strptr, (size_t)n+1, fmt, "T", "N");
+}
+
+static int make_str_type(char** strptr, const char *fmt)
+{
+  int n = idl_snprintf(*strptr, 0, fmt, "N");
+  if (n < 0)
+    return n;
+
+  *strptr = malloc((size_t)n+1);
+  if (!*strptr)
+    return -1;
+
+  return idl_snprintf(*strptr, (size_t)n+1, fmt, "N");
+}
+
+static idl_retcode_t
+generate_streamer_template_linkage(struct streams *str)
+{
+  assert(str && str->generator);
+  struct generator *gen = str->generator;
+  static const char *guard_start =
+    "#ifndef STREAMER_LINKAGE_%1$s\n"
+    "#define STREAMER_LINKAGE_%1$s\n\n";
+  static const char *guard_stop =
+    "#endif //STREAMER_LINKAGE_%1$s\n\n";
+  static const char *sequence_fmt =
+    "template< typename S,\n"
+    "          typename T,\n"
+    "%1$s"  //this is the place for an optional size template parameter
+    "          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >\n"
+    "bool {T}(S &str, {C}%2$s& to_{T}, entity_properties_t &props, const size_t *max_sz)\n"
+    "{\n"
+    "  return {T}_sequence(str, to_{T}, props, max_sz);\n"
+    "}\n\n";
+  static const char *array_fmt =
+    "template< typename S,\n"
+    "          typename T,\n"
+    "          size_t N,\n"
+    "          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >\n"
+    "bool {T}(S &str, {C}%1$s& to_{T}, entity_properties_t &props, const size_t *max_sz)\n"
+    "{\n"
+    "  return {T}_array(str, to_{T}, props, max_sz);\n"
+    "}\n\n";
+  static const char *string_fmt =
+    "template< typename S,\n"
+    "%1$s"  //this is the place for an optional size template parameter
+    "          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >\n"
+    "bool {T}(S &str, {C}%2$s& to_{T}, entity_properties_t &props, const size_t *max_sz)\n"
+    "{\n"
+    "  return {T}_string(str, to_{T}, props, max_sz);\n"
+    "}\n\n";
+  static const char *optional_fmt =
+    "template< typename S,\n"
+    "          typename T,\n"
+    "          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >\n"
+    "bool {T}(S &str, {C}%1$s<T> &to_{T}, entity_properties_t &props, const size_t *max_sz)\n"
+    "{\n"
+    "  return {T}_optional(str, to_{T}, props, max_sz);\n"
+    "}\n\n";
+  static const char *sz_templ_param =
+    "          size_t N,\n";
+
+  char *arr_guard = NULL;
+  char *arr_type = NULL;
+  char *seq_guard = NULL;
+  char* seq_type = NULL;
+  char *bnd_seq_guard = NULL;
+  char* bnd_seq_type = NULL;
+  char *str_guard = NULL;
+  char *bnd_str_guard = NULL;
+  char* bnd_str_type = NULL;
+  char *opt_guard = NULL;
+
+  idl_retcode_t ret = IDL_RETCODE_OK;
+
+  if (gen->uses_array) {
+    if (make_seq_type(&arr_type, gen->array_generic) <= 0 ||
+        make_guard(&arr_guard, gen->array_format) <= 0  ||
+        idl_fprintf(gen->header.handle, guard_start, arr_guard) < 0 ||
+        multi_putf(str, ALL, array_fmt, arr_type) ||
+        flush(gen, str) ||
+        idl_fprintf(gen->header.handle, guard_stop, arr_guard) < 0) {
+      ret = IDL_RETCODE_NO_MEMORY;
+      goto err;
+    }
+  }
+
+  if (gen->uses_sequence) {
+    if (make_seq_type(&seq_type, gen->sequence_generic) <= 0 ||
+        make_guard(&seq_guard, gen->sequence_format) <= 0 ||
+        idl_fprintf(gen->header.handle, guard_start, seq_guard) < 0 ||
+        multi_putf(str, ALL, sequence_fmt, "", seq_type) ||
+        flush(gen, str) ||
+        idl_fprintf(gen->header.handle, guard_stop, seq_guard) < 0) {
+      ret = IDL_RETCODE_NO_MEMORY;
+      goto err;
+    }
+  }
+
+  if (gen->uses_bounded_sequence &&
+      (!gen->uses_sequence || strcmp(gen->bounded_sequence_format, gen->sequence_format))) {
+    if (make_seq_type(&bnd_seq_type, gen->bounded_sequence_generic) <= 0 ||
+        make_guard(&bnd_seq_guard, gen->bounded_sequence_format) <= 0 ||
+        idl_fprintf(gen->header.handle, guard_start, bnd_seq_guard) < 0 ||
+        multi_putf(str, ALL, sequence_fmt, gen->bseq_uses_size_template ? sz_templ_param : "", bnd_seq_type) ||
+        flush(gen, str) ||
+        idl_fprintf(gen->header.handle, guard_stop, bnd_seq_guard) < 0) {
+      ret = IDL_RETCODE_NO_MEMORY;
+      goto err;
+    }
+  }
+
+  if (gen->uses_string &&
+      (make_str_type(&bnd_str_type, gen->bounded_string_generic) <= 0 ||
+       make_guard(&str_guard, gen->string_format) <= 0 ||
+       idl_fprintf(gen->header.handle, guard_start, str_guard) < 0 ||
+       multi_putf(str, ALL, string_fmt, "", gen->string_format) ||
+        flush(gen, str) ||
+       idl_fprintf(gen->header.handle, guard_stop, str_guard) < 0)) {
+    ret = IDL_RETCODE_NO_MEMORY;
+    goto err;
+  }
+
+  if (gen->uses_bounded_string &&
+      (!gen->uses_string || strcmp(gen->bounded_string_format, gen->string_format))) {
+    if (make_guard(&bnd_str_guard, gen->bounded_string_format) <= 0 ||
+        idl_fprintf(gen->header.handle, guard_start, bnd_str_guard) < 0 ||
+        multi_putf(str, ALL, string_fmt, gen->bstr_uses_size_template ? sz_templ_param : "", bnd_str_type) ||
+        flush(gen, str) ||
+        idl_fprintf(gen->header.handle, guard_stop, bnd_str_guard) < 0) {
+      ret = IDL_RETCODE_NO_MEMORY;
+      goto err;
+    }
+  }
+
+  if (gen->uses_optional &&
+      (make_guard(&opt_guard, gen->optional_format) <= 0 ||
+       idl_fprintf(gen->header.handle, guard_start, opt_guard) < 0 ||
+       multi_putf(str, ALL, optional_fmt, gen->optional_format) ||
+       flush(gen, str) ||
+       idl_fprintf(gen->header.handle, guard_stop, opt_guard) < 0)) {
+    ret = IDL_RETCODE_NO_MEMORY;
+    goto err;
+  }
+
+  err:
+  if (arr_guard)
+    free(arr_guard);
+  if (seq_guard)
+    free(seq_guard);
+  if (bnd_seq_guard)
+    free(bnd_seq_guard);
+  if (str_guard)
+    free(str_guard);
+  if (bnd_str_guard)
+    free(bnd_str_guard);
+  if (opt_guard)
+    free(opt_guard);
+  if (seq_type)
+    free(seq_type);
+  if (bnd_seq_type)
+    free(bnd_seq_type);
+  if (arr_type)
+    free(arr_type);
+  if (bnd_str_type)
+    free(bnd_str_type);
+
+  return ret;
+}
+
 idl_retcode_t
 generate_streamers(const idl_pstate_t* pstate, struct generator *gen)
 {
@@ -1234,13 +1441,14 @@ generate_streamers(const idl_pstate_t* pstate, struct generator *gen)
   sources[0] = pstate->sources->path->name;
   visitor.sources = sources;
 
-  const char *fmt = "namespace org{\n"
-                    "namespace eclipse{\n"
-                    "namespace cyclonedds{\n"
-                    "namespace core{\n"
-                    "namespace cdr{\n\n";
+  const char *fmt = "namespace org {\n"
+                    "namespace eclipse {\n"
+                    "namespace cyclonedds {\n"
+                    "namespace core {\n"
+                    "namespace cdr {\n\n";
   if (idl_fprintf(gen->header.handle, "%s", fmt) < 0
-   || idl_fprintf(gen->impl.handle, "%s", fmt) < 0)
+   || idl_fprintf(gen->impl.handle, "%s", fmt) < 0
+   || generate_streamer_template_linkage(&streams))
     return IDL_RETCODE_NO_MEMORY;
 
   visitor.visit = IDL_STRUCT | IDL_UNION | IDL_CASE | IDL_CASE_LABEL | IDL_SWITCH_TYPE_SPEC | IDL_TYPEDEF | IDL_ENUM;
