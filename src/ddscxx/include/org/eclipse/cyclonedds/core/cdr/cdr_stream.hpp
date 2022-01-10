@@ -16,7 +16,6 @@
 #include <org/eclipse/cyclonedds/core/type_helpers.hpp>
 #include <org/eclipse/cyclonedds/core/cdr/entity_properties.hpp>
 #include <stdint.h>
-#include <string>
 #include <stdexcept>
 #include <stack>
 #include <cassert>
@@ -883,40 +882,6 @@ bool max_sequence(S &str, const V<T>& , entity_properties_t &props, const size_t
   }
 }
 
-//link to read/write functions
-//move to generated code?
-template< typename S,
-          typename T,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value && !std::is_same<T,bool>::value, bool> = true >
-bool read(S &str, std::vector<T>& toread, entity_properties_t &props, const size_t *max_sz)
-{
-  return read_sequence(str, toread, props, max_sz);
-}
-
-template< typename S,
-          typename T,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value && !std::is_same<T,bool>::value, bool> = true >
-bool write(S &str, const std::vector<T>& towrite, entity_properties_t &props, const size_t *max_sz)
-{
-  return write_sequence(str, towrite, props, max_sz);
-}
-
-template< typename S,
-          typename T,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool move(S &str, const std::vector<T>& tomove, entity_properties_t &props, const size_t *max_sz)
-{
-  return move_sequence(str, tomove, props, max_sz);
-}
-
-template< typename S,
-          typename T,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool max(S &str, const std::vector<T>& tomax, entity_properties_t &props, const size_t *max_sz)
-{
-  return max_sequence(str, tomax, props, max_sz);
-}
-
 //vectors of booleans
 template< typename S,
           std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
@@ -1076,44 +1041,6 @@ bool max_array(S &str, const A<T, N>& tomax, entity_properties_t &props, const s
   return move_array(str, tomax, props, max_sz);
 }
 
-//link to read/write functions
-//move to generated code?
-template< typename S,
-          typename T,
-          size_t N,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool read(S &str, std::array<T,N>& toread, entity_properties_t &props, const size_t *max_sz)
-{
-  return read_array(str, toread, props, max_sz);
-}
-
-template< typename S,
-          typename T,
-          size_t N,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool write(S &str, const std::array<T,N>& towrite, entity_properties_t &props, const size_t *max_sz)
-{
-  return write_array(str, towrite, props, max_sz);
-}
-
-template< typename S,
-          typename T,
-          size_t N,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool move(S &str, const std::array<T,N>& tomove, entity_properties_t &props, const size_t *max_sz)
-{
-  return move_array(str, tomove, props, max_sz);
-}
-
-template< typename S,
-          typename T,
-          size_t N,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool max(S &str, const std::array<T,N>& tomax, entity_properties_t &props, const size_t *max_sz)
-{
-  return max_array(str, tomax, props, max_sz);
-}
-
 //optionals
 
 template< typename S,
@@ -1157,40 +1084,6 @@ template< typename S,
 bool max_optional(S &str, const O<T> &tomax, entity_properties_t &props, const size_t *max_sz)
 {
   return move_optional(str, tomax, props, max_sz);
-}
-
-//link to read/write functions
-//move to generated code?
-template< typename S,
-          typename T,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool read(S &str, std::optional<T> &toread, entity_properties_t &props, const size_t *max_sz)
-{
-  return read_optional(str, toread, props, max_sz);
-}
-
-template< typename S,
-          typename T,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool move(S &str, const std::optional<T> &tomove, entity_properties_t &props, const size_t *max_sz)
-{
-  return move_optional(str, tomove, props, max_sz);
-}
-
-template< typename S,
-          typename T,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool max(S &str, const std::optional<T> &tomax, entity_properties_t &props, const size_t *max_sz)
-{
-  return max_optional(str, tomax, props, max_sz);
-}
-
-template< typename S,
-          typename T,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool write(S &str, const std::optional<T> &towrite, entity_properties_t &props, const size_t *max_sz)
-{
-  return write_optional(str, towrite, props, max_sz);
 }
 
 /**
@@ -1592,26 +1485,6 @@ bool max_string(S& str, const T&, entity_properties_t &props, const size_t *max_
     dummy.resize(*max_sz);
     return move_string(str, dummy, props, max_sz);
   }
-}
-
-template<typename S, std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool read(S& str, std::string& toread, entity_properties_t &props, const size_t *max_sz) {
-  return read_string(str, toread, props, max_sz);
-}
-
-template<typename S, std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool write(S& str, const std::string& toread, entity_properties_t &props, const size_t *max_sz) {
-  return write_string(str, toread, props, max_sz);
-}
-
-template<typename S, std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool move(S& str, const std::string& toread, entity_properties_t &props, const size_t *max_sz) {
-  return move_string(str, toread, props, max_sz);
-}
-
-template<typename S, std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool max(S& str, const std::string& toread, entity_properties_t &props, const size_t *max_sz) {
-  return max_string(str, toread, props, max_sz);
 }
 
 }

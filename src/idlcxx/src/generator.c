@@ -794,12 +794,15 @@ const char *uni_inc = "<variant>";
 
 static const char *arr_toks[] = { "TYPE", "DIMENSION", NULL };
 static const char *arr_flags[] = { "s", PRIu32, NULL };
+static const char *arr_generic[] = { "s", "s", NULL };
 static const char *seq_toks[] = { "TYPE", NULL };
 static const char *seq_flags[] = { "s", NULL };
 static const char *bnd_seq_toks[] = { "TYPE", "BOUND", NULL };
 static const char *bnd_seq_flags[] = { "s", PRIu32, NULL };
+static const char *bnd_seq_generic[] = { "s", "s", NULL };
 static const char *bnd_str_toks[] = { "BOUND", NULL };
 static const char *bnd_str_flags[] = { PRIu32, NULL };
+static const char *bnd_str_generic[] = { "s", NULL };
 
 #if _WIN32
 __declspec(dllexport)
@@ -857,14 +860,22 @@ idl_retcode_t generate(const idl_pstate_t *pstate, const idlc_generator_config_t
   /* generate format strings from templates */
   if (makefmtp(&gen.array_format, arr_tmpl, arr_toks, arr_flags) < 0)
     goto err_arr;
+  if (makefmtp(&gen.array_generic, arr_tmpl, arr_toks, arr_generic) < 0)
+    goto err_arr2;
   if (makefmtp(&gen.sequence_format, seq_tmpl, seq_toks, seq_flags) < 0)
     goto err_seq;
+  if (makefmtp(&gen.sequence_generic, seq_tmpl, seq_toks, seq_flags) < 0)
+    goto err_seq2;
   if (makefmtp(&gen.bounded_sequence_format, bnd_seq_tmpl, bnd_seq_toks, bnd_seq_flags) < 0)
     goto err_bnd_seq;
+  if (makefmtp(&gen.bounded_sequence_generic, bnd_seq_tmpl, bnd_seq_toks, bnd_seq_generic) < 0)
+    goto err_bnd_seq2;
   if (makefmtp(&gen.string_format, str_tmpl, NULL, NULL) < 0)
     goto err_str;
   if (makefmtp(&gen.bounded_string_format, bnd_str_tmpl, bnd_str_toks, bnd_str_flags) < 0)
     goto err_bnd_str;
+  if (makefmtp(&gen.bounded_string_generic, bnd_str_tmpl, bnd_str_toks, bnd_str_generic) < 0)
+    goto err_bnd_str2;
   if (makefmtp(&gen.optional_format, opt_tmpl, NULL, NULL) < 0)
     goto err_opt;
   if (makefmtp(&gen.union_format, uni_tmpl, NULL, NULL) < 0)
@@ -880,6 +891,9 @@ idl_retcode_t generate(const idl_pstate_t *pstate, const idlc_generator_config_t
   gen.optional_include = opt_inc;
   gen.union_include = uni_inc;
 
+  gen.bseq_uses_size_template = strstr(bnd_seq_tmpl, "{BOUND}");
+  gen.bstr_uses_size_template = strstr(bnd_str_tmpl, "{BOUND}");
+
   ret = generate_nosetup(pstate, &gen);
 
   free(gen.union_getter_format);
@@ -888,14 +902,22 @@ err_uni_get:
 err_uni:
   free(gen.optional_format);
 err_opt:
+  free(gen.bounded_string_generic);
+err_bnd_str2:
   free(gen.bounded_string_format);
 err_bnd_str:
   free(gen.string_format);
 err_str:
+  free(gen.bounded_sequence_generic);
+err_bnd_seq2:
   free(gen.bounded_sequence_format);
 err_bnd_seq:
+  free(gen.sequence_generic);
+err_seq2:
   free(gen.sequence_format);
 err_seq:
+  free(gen.array_generic);
+err_arr2:
   free(gen.array_format);
 err_arr:
   fclose(gen.impl.handle);
