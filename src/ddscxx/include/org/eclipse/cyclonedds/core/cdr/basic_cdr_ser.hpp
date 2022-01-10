@@ -46,7 +46,7 @@ public:
    * As the basic cdr stream does not have anything that requires delimiting between entities,
    * this function is not supported.
    */
-  void skip_entity(const entity_properties_t &) { status(serialization_status::unsupported_xtypes); }
+  void skip_entity() { status(serialization_status::unsupported_xtypes); }
 
   /**
    * @brief
