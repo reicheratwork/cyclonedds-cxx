@@ -419,10 +419,8 @@ public:
      * This function is called by the instance implementation switchbox, when it encounters an id which
      * does not resolve to an id pointing to a member it knows. It will move to the next entity in the
      * stream.
-     *
-     * @param[in] prop The entity to skip/ignore.
      */
-    virtual void skip_entity(const entity_properties_t &prop);
+    virtual void skip_entity();
 
     /**
      * @brief
@@ -522,10 +520,8 @@ protected:
      * Skips a member entry.
      *
      * In the case a read has failed, this will go to the next member.
-     *
-     * @param[in,out] prop The member who will be skipped.
      */
-    void go_to_next_member(entity_properties_t &prop);
+    void go_to_next_member();
 
     /**
      * @brief
@@ -573,6 +569,8 @@ protected:
 
     DDSCXX_WARNING_MSVC_OFF(4251)
     std::stack<size_t> m_buffer_end;              /**< the end of reading at the current level*/
+    std::stack<uint32_t> m_entity_offsets;        /**< the entity offsets at the current level*/
+    std::stack<uint32_t> m_entity_sizes;          /**< the entity sizes at the current level*/
     std::stack<proplist::iterator> m_stack;       /**< Stack of iterators currently being handled*/
     DDSCXX_WARNING_MSVC_ON(4251)
 };

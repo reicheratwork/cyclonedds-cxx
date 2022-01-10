@@ -775,7 +775,7 @@ print_switchbox_open(struct streams *streams)
     "    switch (prop.m_id) {\n";
   static const char *skipfmt =
     "    if (prop.ignore) {\n"
-    "      streamer.skip_entity(prop);\n"
+    "      streamer.skip_entity();\n"
     "      continue;\n"
     "    }\n";
 
@@ -820,7 +820,7 @@ print_switchbox_close(struct streams *streams)
     "       && streamer.status(must_understand_fail))\n"
     "        return false;\n"
     "      else\n"
-    "        streamer.skip_entity(prop);\n"
+    "        streamer.skip_entity();\n"
     "      break;\n";
 
   if (putf(&streams->read, rfmt)
