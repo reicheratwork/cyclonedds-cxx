@@ -593,7 +593,7 @@ protected:
 template< typename S,
           template<typename> class V,
           typename T,
-          std::enable_if_t<(!std::is_arithmetic<T>::value || std::is_enum<T>::value) && std::is_base_of<cdr_stream, S>::value, bool> = true >
+          std::enable_if_t<!std::is_arithmetic<T>::value, bool> = true >
 bool read_sequence(S &str, V<T>& toread, entity_properties_t &props, const size_t *max_sz)
 {
   if (!str.start_consecutive())
@@ -648,9 +648,7 @@ bool read_sequence(S &str, V<T>& toread, entity_properties_t &props, const size_
 template< typename S,
           template<typename> class V,
           typename T,
-          std::enable_if_t<std::is_arithmetic<T>::value
-                       && !std::is_enum<T>::value
-                       && std::is_base_of<cdr_stream, S>::value, bool> = true >
+          std::enable_if_t<std::is_arithmetic<T>::value, bool> = true >
 bool read_sequence(S &str, V<T>& toread, entity_properties_t &props, const size_t *max_sz)
 {
   //read vector length
@@ -696,7 +694,7 @@ bool read_sequence(S &str, V<T>& toread, entity_properties_t &props, const size_
 template< typename S,
           template<typename> class V,
           typename T,
-          std::enable_if_t<(!std::is_arithmetic<T>::value || std::is_enum<T>::value) && std::is_base_of<cdr_stream, S>::value, bool> = true >
+          std::enable_if_t<!std::is_arithmetic<T>::value, bool> = true >
 bool write_sequence(S &str, const V<T>& towrite, entity_properties_t &props, const size_t *max_sz)
 {
   if (!str.start_consecutive())
@@ -741,9 +739,7 @@ bool write_sequence(S &str, const V<T>& towrite, entity_properties_t &props, con
 template< typename S,
           template<typename> class V,
           typename T,
-          std::enable_if_t<std::is_arithmetic<T>::value
-                       && !std::is_enum<T>::value
-                       && std::is_base_of<cdr_stream, S>::value, bool> = true >
+          std::enable_if_t<std::is_arithmetic<T>::value, bool> = true >
 bool write_sequence(S &str, const V<T>& towrite, entity_properties_t &props, const size_t *max_sz)
 {
   //do length check
@@ -782,7 +778,7 @@ bool write_sequence(S &str, const V<T>& towrite, entity_properties_t &props, con
 template< typename S,
           template<typename> class V,
           typename T,
-          std::enable_if_t<(!std::is_arithmetic<T>::value || std::is_enum<T>::value) && std::is_base_of<cdr_stream, S>::value, bool> = true >
+          std::enable_if_t<!std::is_arithmetic<T>::value, bool> = true >
 bool move_sequence(S &str, const V<T>& tomove, entity_properties_t &props, const size_t *max_sz)
 {
   if (!str.start_consecutive())
@@ -827,9 +823,7 @@ bool move_sequence(S &str, const V<T>& tomove, entity_properties_t &props, const
 template< typename S,
           template<typename> class V,
           typename T,
-          std::enable_if_t<std::is_arithmetic<T>::value
-                       && !std::is_enum<T>::value
-                       && std::is_base_of<cdr_stream, S>::value, bool> = true >
+          std::enable_if_t<std::is_arithmetic<T>::value, bool> = true >
 bool move_sequence(S &str, const V<T>& tomove, entity_properties_t &props, const size_t *max_sz)
 {
   //do length check
@@ -941,7 +935,7 @@ template< typename S,
           template<typename, size_t> class A,
           typename T,
           size_t N,
-          std::enable_if_t<(!std::is_arithmetic<T>::value || std::is_enum<T>::value) && std::is_base_of<cdr_stream, S>::value, bool> = true >
+          std::enable_if_t<!std::is_arithmetic<T>::value, bool> = true >
 bool read_array(S &str, A<T, N>& toread, entity_properties_t &props, const size_t *max_sz)
 {
   if (!str.start_consecutive())
@@ -960,9 +954,7 @@ template< typename S,
           template<typename, size_t> class A,
           typename T,
           size_t N,
-          std::enable_if_t<std::is_arithmetic<T>::value
-                       && !std::is_enum<T>::value
-                       && std::is_base_of<cdr_stream, S>::value, bool> = true >
+          std::enable_if_t<std::is_arithmetic<T>::value, bool> = true >
 bool read_array(S &str, A<T,N>& toread, entity_properties_t &props, const size_t *max_sz)
 {
   return read(str, toread[0], props, max_sz, N);
@@ -972,7 +964,7 @@ template< typename S,
           template<typename, size_t> class A,
           typename T,
           size_t N,
-          std::enable_if_t<(!std::is_arithmetic<T>::value || std::is_enum<T>::value) && std::is_base_of<cdr_stream, S>::value, bool> = true >
+          std::enable_if_t<!std::is_arithmetic<T>::value, bool> = true >
 bool write_array(S &str, const A<T, N>& towrite, entity_properties_t &props, const size_t *max_sz)
 {
   if (!str.start_consecutive())
@@ -991,9 +983,7 @@ template< typename S,
           template<typename, size_t> class A,
           typename T,
           size_t N,
-          std::enable_if_t<std::is_arithmetic<T>::value
-                       && !std::is_enum<T>::value
-                       && std::is_base_of<cdr_stream, S>::value, bool> = true >
+          std::enable_if_t<std::is_arithmetic<T>::value, bool> = true >
 bool write_array(S &str, const A<T,N>& towrite, entity_properties_t &props, const size_t *max_sz)
 {
   return write(str, towrite[0], props, max_sz, N);
@@ -1003,7 +993,7 @@ template< typename S,
           template<typename, size_t> class A,
           typename T,
           size_t N,
-          std::enable_if_t<(!std::is_arithmetic<T>::value || std::is_enum<T>::value) && std::is_base_of<cdr_stream, S>::value, bool> = true >
+          std::enable_if_t<!std::is_arithmetic<T>::value, bool> = true >
 bool move_array(S &str, const A<T, N>& tomove, entity_properties_t &props, const size_t *max_sz)
 {
   if (!str.start_consecutive())
@@ -1022,9 +1012,7 @@ template< typename S,
           template<typename, size_t> class A,
           typename T,
           size_t N,
-          std::enable_if_t<std::is_arithmetic<T>::value
-                       && !std::is_enum<T>::value
-                       && std::is_base_of<cdr_stream, S>::value, bool> = true >
+          std::enable_if_t<std::is_arithmetic<T>::value, bool> = true >
 bool move_array(S &str, const A<T,N>& tomove, entity_properties_t &props, const size_t *max_sz)
 {
   return move(str, tomove[0], props, max_sz, N);
@@ -1033,8 +1021,7 @@ bool move_array(S &str, const A<T,N>& tomove, entity_properties_t &props, const 
 template< typename S,
           template<typename,size_t> class A,
           typename T,
-          size_t N,
-          std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
+          size_t N >
 bool max_array(S &str, const A<T, N>& tomax, entity_properties_t &props, const size_t *max_sz)
 {
   return move_array(str, tomax, props, max_sz);
@@ -1113,7 +1100,6 @@ bool max_optional(S &str, const O<T> &tomax, entity_properties_t &props, const s
  * @return Whether the operation was completed succesfully.
  */
 template<typename S, typename T, std::enable_if_t<std::is_arithmetic<T>::value
-                                               && !std::is_enum<T>::value
                                                && std::is_base_of<cdr_stream, S>::value, bool> = true >
 bool read(S &str, T& toread, entity_properties_t props = get_type_props<T>(), const size_t *max_sz = nullptr, size_t N = 1)
 {
@@ -1193,7 +1179,6 @@ bool read_enum_impl(S& str, T& toread, const entity_properties_t &, const size_t
  * @return Whether the operation was completed succesfully.
  */
 template<typename S, typename T, std::enable_if_t<std::is_arithmetic<T>::value
-                                               && !std::is_enum<T>::value
                                                && std::is_base_of<cdr_stream, S>::value, bool> = true >
 bool write(S& str, const T& towrite, entity_properties_t props = get_type_props<T>(), const size_t *max_sz = nullptr, size_t N = 1)
 {
@@ -1273,7 +1258,6 @@ bool write_enum_impl(S& str, const T& towrite, entity_properties_t &props, const
  * @return Whether the operation was completed succesfully.
  */
 template<typename S, typename T, std::enable_if_t<std::is_arithmetic<T>::value
-                                               && !std::is_enum<T>::value
                                                && std::is_base_of<cdr_stream, S>::value, bool> = true >
 bool move(S& str, const T&, entity_properties_t props = get_type_props<T>(), const size_t *max_sz = nullptr, size_t N = 1)
 {
@@ -1313,7 +1297,6 @@ bool move(S& str, const T&, entity_properties_t props = get_type_props<T>(), con
  * @return Whether the operation was completed succesfully.
  */
 template<typename S, typename T, std::enable_if_t<std::is_arithmetic<T>::value
-                                               && !std::is_enum<T>::value
                                                && std::is_base_of<cdr_stream, S>::value, bool> = true >
 bool max(S& str, const T& tomax, entity_properties_t props = get_type_props<T>(), const size_t *max_sz = nullptr, size_t N = 1)
 {
