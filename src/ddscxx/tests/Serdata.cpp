@@ -244,7 +244,7 @@ static void test_keyhash(const T& sample, const kh_t& expected, const kh_t& expe
 {
     auto st = org::eclipse::cyclonedds::topic::TopicTraits<T>::getSerType(encoding_version::basic_cdr);
     auto sd = serdata_from_sample<T, org::eclipse::cyclonedds::core::cdr::basic_cdr_stream>(st, SDK_DATA, &sample);
-    auto sdx = static_cast<ddscxx_serdata<T> *>(sd);
+    auto sdx = static_cast<const ddscxx_serdata<T>*>(sd);
     struct ddsi_keyhash khraw, khraw_md5;
     serdata_get_keyhash<T>(sd, &khraw, false);
     serdata_get_keyhash<T>(sd, &khraw_md5, true);
@@ -253,7 +253,7 @@ static void test_keyhash(const T& sample, const kh_t& expected, const kh_t& expe
     std::copy(std::begin(khraw_md5.value), std::end(khraw_md5.value), std::begin(kh_md5));
     ASSERT_EQ(kh, expected);
     ASSERT_EQ(kh_md5, expected_md5);
-    delete sd;
+    delete sdx;
 }
 
 TEST_F(Serdata, keyhash_nokey)
@@ -281,7 +281,7 @@ TEST_F(Serdata, keyhash_largekey)
     // perl -e 'print pack("N*",1,2,3,4,5)' | md5 | sed -e 's/\(..\)/0x\1,/g' -e 's/,$//'
     using T = Keyhash::LargeKey;
     const T v{{1,2,3,4,5},0xabcdef01};
-    const kh_t kh{0x43,0x21,0xf7,0x28,0x8e,0x52,0x1a,0xa6,0x2a,0xee,0x27,0x45,0xf3,0xf8,0xd9,0x2b};
+    const kh_t kh{0x8b,0x31,0xe6,0x1c,0x76,0xe3,0x75,0x4b,0x2d,0x3c,0xcf,0xe8,0x8c,0x1a,0xde,0x26};
     const kh_t kh_md5 = kh;
     test_keyhash<T>(v, kh, kh_md5);
 }
@@ -291,7 +291,7 @@ TEST_F(Serdata, keyhash_stringkey)
     // perl -e 'print pack("N/Z*","Ick sie boven uut mijnen throne")' | md5 | sed -e 's/\(..\)/0x\1,/g' -e 's/,$//'
     using T = Keyhash::StringKey;
     const T v{"Ick sie boven uut mijnen throne",0xabcdef01};
-    const kh_t kh{0x6f,0x63,0xff,0xe7,0x56,0x29,0x00,0x9b,0x3c,0xbe,0xfa,0xa0,0x6f,0xb3,0x22,0x43};
+    const kh_t kh{0x96,0x1c,0xc9,0x83,0xa3,0x5e,0xa7,0x82,0xdb,0x22,0x24,0xcc,0xbb,0x45,0xee,0xc4};
     const kh_t kh_md5 = kh;
     test_keyhash<T>(v, kh, kh_md5);
 }
@@ -302,6 +302,6 @@ TEST_F(Serdata, keyhash_bstringkey)
     using T = Keyhash::BStringKey;
     const T v{"Elckerlijc",0xabcdef01};
     const kh_t kh{0x00,0x00,0x00,0x0b,0x45,0x6c,0x63,0x6b,0x65,0x72,0x6c,0x69,0x6a,0x63,0x00};
-    const kh_t kh_md5{0xea,0x5d,0x9c,0xa7,0x34,0x3a,0x83,0x1e,0x4d,0x96,0xa9,0x15,0x5f,0x86,0xe6,0xac};
+    const kh_t kh_md5{0x39,0x59,0x90,0xf2,0x0f,0xd2,0x53,0x5a,0x54,0x07,0xec,0xa5,0x65,0xcc,0xd2,0xd7};
     test_keyhash<T>(v, kh, kh_md5);
 }
