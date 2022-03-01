@@ -236,3 +236,72 @@ TEST_F(Serdata, serialization_unions)
 
     validate(Ustr, le, be);
 }
+
+using kh_t = std::array<unsigned char, 16>;
+
+template<typename T>
+static void test_keyhash(const T& sample, const kh_t& expected, const kh_t& expected_md5)
+{
+    auto st = org::eclipse::cyclonedds::topic::TopicTraits<T>::getSerType(encoding_version::basic_cdr);
+    auto sd = serdata_from_sample<T, org::eclipse::cyclonedds::core::cdr::basic_cdr_stream>(st, SDK_DATA, &sample);
+    auto sdx = static_cast<ddscxx_serdata<T> *>(sd);
+    struct ddsi_keyhash khraw, khraw_md5;
+    serdata_get_keyhash<T>(sd, &khraw, false);
+    serdata_get_keyhash<T>(sd, &khraw_md5, true);
+    kh_t kh, kh_md5;
+    std::copy(std::begin(khraw.value), std::end(khraw.value), std::begin(kh));
+    std::copy(std::begin(khraw_md5.value), std::end(khraw_md5.value), std::begin(kh_md5));
+    ASSERT_EQ(kh, expected);
+    ASSERT_EQ(kh_md5, expected_md5);
+    delete sd;
+}
+
+TEST_F(Serdata, keyhash_nokey)
+{
+    // perl -e 'print pack("N*",0,0,0,0)' | md5 | sed -e 's/\(..\)/0x\1,/g' -e 's/,$//'
+    using T = Keyhash::NoKey;
+    const T v{0xabcdef01};
+    const kh_t kh{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    const kh_t kh_md5{0x4a,0xe7,0x13,0x36,0xe4,0x4b,0xf9,0xbf,0x79,0xd2,0x75,0x2e,0x23,0x48,0x18,0xa5};
+    test_keyhash<T>(v, kh, kh_md5);
+}
+
+TEST_F(Serdata, keyhash_smallkey)
+{
+    // perl -e 'print pack("N*",0x12345678,0,0,0)' | md5 | sed -e 's/\(..\)/0x\1,/g' -e 's/,$//'
+    using T = Keyhash::SmallKey;
+    const T v{0x12345678, 0xabcdef01};
+    const kh_t kh{0x12,0x34,0x56,0x78,0,0,0,0,0,0,0,0,0,0,0,0};
+    const kh_t kh_md5{0x85,0x47,0xc6,0x54,0x16,0x3c,0x12,0x43,0x85,0x14,0x91,0x8a,0x1b,0xa8,0x7f,0xeb};
+    test_keyhash<T>(v, kh, kh_md5);
+}
+
+TEST_F(Serdata, keyhash_largekey)
+{
+    // perl -e 'print pack("N*",1,2,3,4,5)' | md5 | sed -e 's/\(..\)/0x\1,/g' -e 's/,$//'
+    using T = Keyhash::LargeKey;
+    const T v{{1,2,3,4,5},0xabcdef01};
+    const kh_t kh{0x43,0x21,0xf7,0x28,0x8e,0x52,0x1a,0xa6,0x2a,0xee,0x27,0x45,0xf3,0xf8,0xd9,0x2b};
+    const kh_t kh_md5 = kh;
+    test_keyhash<T>(v, kh, kh_md5);
+}
+
+TEST_F(Serdata, keyhash_stringkey)
+{
+    // perl -e 'print pack("N/Z*","Ick sie boven uut mijnen throne")' | md5 | sed -e 's/\(..\)/0x\1,/g' -e 's/,$//'
+    using T = Keyhash::StringKey;
+    const T v{"Ick sie boven uut mijnen throne",0xabcdef01};
+    const kh_t kh{0x6f,0x63,0xff,0xe7,0x56,0x29,0x00,0x9b,0x3c,0xbe,0xfa,0xa0,0x6f,0xb3,0x22,0x43};
+    const kh_t kh_md5 = kh;
+    test_keyhash<T>(v, kh, kh_md5);
+}
+
+TEST_F(Serdata, keyhash_bstringkey)
+{
+    // perl -e 'print pack("N/Z11","Elckerlijc")' | md5 | sed -e 's/\(..\)/0x\1,/g' -e 's/,$//'
+    using T = Keyhash::BStringKey;
+    const T v{"Elckerlijc",0xabcdef01};
+    const kh_t kh{0x00,0x00,0x00,0x0b,0x45,0x6c,0x63,0x6b,0x65,0x72,0x6c,0x69,0x6a,0x63,0x00};
+    const kh_t kh_md5{0xea,0x5d,0x9c,0xa7,0x34,0x3a,0x83,0x1e,0x4d,0x96,0xa9,0x15,0x5f,0x86,0xe6,0xac};
+    test_keyhash<T>(v, kh, kh_md5);
+}
