@@ -1355,7 +1355,8 @@ void dds::sub::detail::DataReader<T>::on_requested_deadline_missed(dds_entity_t,
 
     dds::sub::DataReaderListener<T> *l =
         reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_requested_deadline_missed(dr, s);
+    if (l)
+      l->on_requested_deadline_missed(dr, s);
 }
 
 template <typename T>
@@ -1369,7 +1370,8 @@ void dds::sub::detail::DataReader<T>::on_requested_incompatible_qos(dds_entity_t
 
     dds::sub::DataReaderListener<T> *l =
         reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_requested_incompatible_qos(dr, s);
+    if (l)
+      l->on_requested_incompatible_qos(dr, s);
 }
 
 template <typename T>
@@ -1383,7 +1385,8 @@ void dds::sub::detail::DataReader<T>::on_sample_rejected(dds_entity_t,
 
     dds::sub::DataReaderListener<T> *l =
             reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_sample_rejected(dr, s);
+    if (l)
+      l->on_sample_rejected(dr, s);
 }
 
 
@@ -1398,7 +1401,8 @@ void dds::sub::detail::DataReader<T>::on_liveliness_changed(dds_entity_t,
 
     dds::sub::DataReaderListener<T> *l =
             reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_liveliness_changed(dr, s);
+    if (l)
+      l->on_liveliness_changed(dr, s);
 }
 
 template <typename T>
@@ -1408,7 +1412,8 @@ void dds::sub::detail::DataReader<T>::on_data_available(dds_entity_t)
 
     dds::sub::DataReaderListener<T> *l =
         reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_data_available(dr);
+    if (l)
+      l->on_data_available(dr);
 }
 
 template <typename T>
@@ -1422,7 +1427,8 @@ void dds::sub::detail::DataReader<T>::on_subscription_matched(dds_entity_t,
 
     dds::sub::DataReaderListener<T> *l =
         reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_subscription_matched(dr, s);
+    if (l)
+      l->on_subscription_matched(dr, s);
 }
 
 template <typename T>
@@ -1436,7 +1442,8 @@ void dds::sub::detail::DataReader<T>::on_sample_lost(dds_entity_t,
 
     dds::sub::DataReaderListener<T> *l =
         reinterpret_cast<dds::sub::DataReaderListener<T> *>(this->listener_get());
-    l->on_sample_lost(dr, s);
+    if (l)
+      l->on_sample_lost(dr, s);
 }
 
 // End of implementation

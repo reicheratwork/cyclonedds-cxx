@@ -934,7 +934,8 @@ void dds::pub::detail::DataWriter<T>::on_offered_deadline_missed(dds_entity_t,
 
     dds::pub::DataWriterListener<T> *l =
             reinterpret_cast<dds::pub::DataWriterListener<T> *>(this->listener_get());
-    l->on_offered_deadline_missed(dw, s);
+    if (l)
+      l->on_offered_deadline_missed(dw, s);
 }
 
 template <typename T>
@@ -948,7 +949,8 @@ void dds::pub::detail::DataWriter<T>::on_offered_incompatible_qos(dds_entity_t,
 
     dds::pub::DataWriterListener<T> *l =
             reinterpret_cast<dds::pub::DataWriterListener<T> *>(this->listener_get());
-    l->on_offered_incompatible_qos(dw, s);
+    if (l)
+      l->on_offered_incompatible_qos(dw, s);
 }
 
 template <typename T>
@@ -962,7 +964,8 @@ void dds::pub::detail::DataWriter<T>::on_liveliness_lost(dds_entity_t,
 
     dds::pub::DataWriterListener<T> *l =
             reinterpret_cast<dds::pub::DataWriterListener<T> *>(this->listener_get());
-    l->on_liveliness_lost(dw, s);
+    if (l)
+      l->on_liveliness_lost(dw, s);
 }
 
 template <typename T>
@@ -976,7 +979,8 @@ void dds::pub::detail::DataWriter<T>::on_publication_matched(dds_entity_t,
 
     dds::pub::DataWriterListener<T> *l =
             reinterpret_cast<dds::pub::DataWriterListener<T> *>(this->listener_get());
-    l->on_publication_matched(dw, s);
+    if (l)
+      l->on_publication_matched(dw, s);
 }
 
 #endif /* OMG_DDS_PUB_DATA_WRITER_IMPL_HPP_ */
