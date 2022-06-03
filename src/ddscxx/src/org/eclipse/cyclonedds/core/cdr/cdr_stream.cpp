@@ -11,7 +11,6 @@
  */
 #include <cstring>
 #include <assert.h>
-#include <algorithm>
 
 #include <org/eclipse/cyclonedds/core/cdr/cdr_stream.hpp>
 
@@ -53,9 +52,9 @@ bool cdr_stream::align(size_t newalignment, bool add_zeroes)
   return true;
 }
 
-bool cdr_stream::finish_struct(entity_properties_t &props)
+bool cdr_stream::finish_constructed_type(entity_properties_t &props, bool is_union)
 {
-  check_struct_completeness(props);
+  check_constructed_type_completeness(props, is_union);
 
   return props.is_present;
 }
@@ -117,14 +116,16 @@ void cdr_stream::reset()
   m_e_sz = 0;
 }
 
-bool cdr_stream::start_struct(entity_properties_t &props)
+bool cdr_stream::start_constructed_type(entity_properties_t &props, bool is_union)
 {
+  (void) is_union;
+
   props.is_present = true;
 
   return true;
 }
 
-void cdr_stream::check_struct_completeness(entity_properties_t &props)
+void cdr_stream::check_constructed_type_completeness(entity_properties_t &props, bool is_union)
 {
   if (m_mode != stream_mode::read)
     return;
@@ -136,10 +137,15 @@ void cdr_stream::check_struct_completeness(entity_properties_t &props)
 
   auto ptr = props.first_member;
   while (ptr) {
-    if ((ptr->must_understand || ptr->is_key) && !ptr->is_present) {
-      (void) status(must_understand_fail);
-      props.is_present = false;
-      break;
+    if (is_union) {
+      if (ptr->is_present)
+        break;
+    } else {
+      if ((ptr->must_understand || ptr->is_key) && !ptr->is_present) {
+        (void) status(must_understand_fail);
+        props.is_present = false;
+        break;
+      }
     }
     ptr = cdr_stream::next_entity(ptr);
   }

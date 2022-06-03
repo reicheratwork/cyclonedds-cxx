@@ -44,4 +44,16 @@ module Entity_testing {
     L2_k_k a;
     @key L2_k_k b;
   };
+
+  enum e_normal {
+    e_n_0,
+    e_n_1,
+    e_n_2
+  };
+
+  @appendable @bit_bound(15) enum e_modified {
+    e_m_0,
+    e_m_1,
+    e_m_2
+  };
 };

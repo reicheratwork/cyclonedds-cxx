@@ -66,10 +66,10 @@ enum bit_bound {
  * Helper struct to keep track of key endpoints of the a struct
  */
 DDSCXX_WARNING_MSVC_OFF(4251)
-class OMG_DDS_API key_endpoint: public std::map<uint32_t, key_endpoint> {
+class OMG_DDS_API key_endpoint: public std::map<int64_t, key_endpoint> {
 DDSCXX_WARNING_MSVC_ON(4251)
   public:
-    void add_key_endpoint(const std::list<uint32_t> &key_indices);
+    void add_key_endpoint(const std::list<int64_t> &key_indices);
     operator bool() const {return !empty();}
 };
 
@@ -111,8 +111,22 @@ bit_bound get_bit_bound() {
  * @return bb_unset always.
  */
 template<typename T, DDSCXX_STD_IMPL::enable_if_t<!std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-constexpr bit_bound get_bit_bound() { return bb_unset;}
+constexpr bit_bound get_bit_bound() { return bb_unset; }
 
+/**
+ * @brief
+ * Generic get_extensibility fallback function for primitives types and enums.
+ *
+ * Returns extensibility::ext_final for all primitive types and enums where the extensibility is not set through annotations.
+ *
+ * @return extensibility::ext_final always.
+ */
+template<typename T, std::enable_if_t<std::is_enum<T>::value || std::is_arithmetic<T>::value, bool> = true >
+constexpr extensibility get_extensibility() { return extensibility::ext_final; }
+
+/**
+ * Forward declarations.
+ */
 typedef struct entity_properties entity_properties_t;
 typedef std::vector<entity_properties_t> propvec;
 
@@ -129,7 +143,8 @@ struct OMG_DDS_API entity_properties
 {
   entity_properties(
     uint32_t _depth = 0,
-    uint32_t _m_id = 0,
+    int64_t _m_id = 0,
+    bool _is_primitive = false,
     bool _is_optional = false,
     bit_bound _bb = bb_unset,
     extensibility _ext = extensibility::ext_final,
@@ -140,11 +155,12 @@ struct OMG_DDS_API entity_properties
       must_understand(_must_understand),
       xtypes_necessary(_ext != extensibility::ext_final || _is_optional),
       is_optional(_is_optional),
+      is_primitive(_is_primitive),
       e_bb(_bb) {;}
 
   extensibility e_ext = extensibility::ext_final; /**< The extensibility of the entity itself. */
   extensibility p_ext = extensibility::ext_final; /**< The extensibility of the entity's parent. */
-  uint32_t m_id = 0;                              /**< The member id of the entity, it is the global field by which the entity is identified. */
+  int64_t m_id = 0;                               /**< The member id of the entity, it is the global field by which the entity is identified. */
   uint32_t depth = 0;                             /**< The depth of this entity.*/
   bool must_understand = false;                   /**< If the reading end cannot parse a field with this header, it must discard the entire object.*/
   bool xtypes_necessary = false;                  /**< Is set if any of the members of this entity require xtypes support.*/
@@ -153,6 +169,7 @@ struct OMG_DDS_API entity_properties
   bool is_optional = false;                       /**< Indicates that this field can be empty (length 0) for reading/writing purposes.*/
   bool is_key = false;                            /**< Indicates that this field is a key field.*/
   bool is_present = false;                        /**< Indicates that this entity is present in the read stream.*/
+  bool is_primitive = false;                      /**< Indicates that this entity is a primitive type.*/
   bit_bound e_bb = bb_unset;                      /**< The minimum number of bytes necessary to represent this entity/bitmask.*/
 
   entity_properties_t  *next_on_level = nullptr,  /**< Pointer to the next entity on the same level.*/
@@ -241,6 +258,17 @@ struct OMG_DDS_API entity_properties
    * @param[in] in The tree to print.
    */
   static void print(const propvec &in);
+
+  /**
+   * @brief
+   * Finds the entity one level deeper with the entity id matching tofind.
+   *
+   * This function is used to find the properties of a union branch.
+   *
+   * @param[in] tofind The index of the entity id to find.
+   * @return Pointer to the entity, or nullptr if there is none.
+   */
+  entity_properties_t * find_index(int64_t tofind);
 };
 
 /**
@@ -253,8 +281,44 @@ struct OMG_DDS_API entity_properties
  *
  * @return propvec "Tree" representing the type.
  */
-template<typename T>
+template<typename T, std::enable_if_t<!std::is_arithmetic<T>::value && !std::is_enum<T>::value, bool> = true >
 propvec& get_type_props();
+
+/**
+ * @brief
+ * Forward declaration for type properties getter function for primitives/enums.
+ *
+ * @return propvec "Tree" representing the type.
+ */
+template<typename T, std::enable_if_t<std::is_arithmetic<T>::value || std::is_enum<T>::value, bool> = true >
+propvec& get_type_props() {
+  static thread_local std::mutex mtx;
+  static thread_local propvec props;
+  static thread_local std::atomic_bool initialized {false};
+  key_endpoint keylist;
+  if (initialized.load(std::memory_order_relaxed)) {
+    props[0].is_present = false;
+    return props;
+  }
+  std::lock_guard<std::mutex> lock(mtx);
+  if (initialized.load(std::memory_order_relaxed)) {
+    props[0].is_present = false;
+    return props;
+  }
+  props.clear();
+
+  props.push_back(entity_properties_t(0,
+                                      0,
+                                      std::is_arithmetic<T>(),
+                                      false,
+                                      get_bit_bound<T>(),
+                                      get_extensibility<T>(),
+                                      true));
+
+  entity_properties_t::finish(props, keylist);
+  initialized.store(true, std::memory_order_release);
+  return props;
+}
 
 }
 }

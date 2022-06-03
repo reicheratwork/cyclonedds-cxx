@@ -255,7 +255,7 @@ bool xcdr_v1_stream::write_header(entity_properties_t &props)
     return false;
   } else if (extended_header(props)) {
     uint16_t smallid = pid_extended + pid_flag_must_understand;
-    uint32_t largeid = (props.m_id & pl_extended_mask) + (props.must_understand || props.is_key ? pl_extended_flag_must_understand : 0);
+    uint32_t largeid = static_cast<uint32_t>((props.m_id & pl_extended_mask) + (props.must_understand || props.is_key ? pl_extended_flag_must_understand : 0));
     return write(*this, smallid) && write(*this, uint16_t(8))
         && write(*this, largeid) && write(*this, uint32_t(0));  /* length field placeholder, to be completed by finish_write_header */
   } else {
@@ -287,7 +287,7 @@ bool xcdr_v1_stream::finish_write_header(entity_properties_t &props)
   return true;
 }
 
-bool xcdr_v1_stream::finish_struct(entity_properties_t &props)
+bool xcdr_v1_stream::finish_constructed_type(entity_properties_t &props, bool is_union)
 {
   switch (m_mode) {
     case stream_mode::write:
@@ -300,7 +300,7 @@ bool xcdr_v1_stream::finish_struct(entity_properties_t &props)
         return move_final_list_entry();
       break;
     case stream_mode::read:
-      check_struct_completeness(props);
+      check_constructed_type_completeness(props, is_union);
       break;
     default:
       break;

@@ -18,12 +18,14 @@ namespace cyclonedds {
 namespace core {
 namespace cdr {
 
-bool basic_cdr_stream::start_struct(entity_properties_t &props)
+bool basic_cdr_stream::start_constructed_type(entity_properties_t &props, bool is_union)
 {
+  (void) is_union;
+
   if (!is_key() && props.xtypes_necessary && status(unsupported_xtypes))
     return false;
 
-  return cdr_stream::start_struct(props);
+  return cdr_stream::start_constructed_type(props, is_union);
 }
 
 }

@@ -48,7 +48,7 @@ void compare_endpoints_with_entity(const key_endpoint &ke, const entity_properti
 }
 
 template<typename T>
-void test_props(const std::list<std::list<uint32_t> > &endpoints)
+void test_props(const std::list<std::list<int64_t> > &endpoints)
 {
   auto props = get_type_props<T>();
 
@@ -87,4 +87,22 @@ TEST_F(EntityTesting, entity_properties_pragma)
   test_props<P3_u_u>({});
   test_props<P3_k_u>({{0,0,0},{0,1,0},{1,0,0},{1,1,0}});
   test_props<P3_k_k>({{0,0,1},{0,1,1},{1,0,1},{1,1,1}});
+}
+
+TEST_F(EntityTesting, get_extensibility)
+{
+  ASSERT_EQ(get_extensibility<int>(), extensibility::ext_final);
+  ASSERT_EQ(get_extensibility<double>(), extensibility::ext_final);
+  ASSERT_EQ(get_extensibility<char>(), extensibility::ext_final);
+  ASSERT_EQ(get_extensibility<e_normal>(), extensibility::ext_final);
+  ASSERT_EQ(get_extensibility<e_modified>(), extensibility::ext_appendable);
+}
+
+TEST_F(EntityTesting, get_bit_bound)
+{
+  ASSERT_EQ(get_bit_bound<int>(), bb_32_bits);
+  ASSERT_EQ(get_bit_bound<double>(), bb_64_bits);
+  ASSERT_EQ(get_bit_bound<char>(), bb_8_bits);
+  ASSERT_EQ(get_bit_bound<e_normal>(), bb_32_bits);
+  ASSERT_EQ(get_bit_bound<e_modified>(), bb_16_bits);
 }
