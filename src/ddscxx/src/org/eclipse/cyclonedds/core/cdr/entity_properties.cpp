@@ -21,7 +21,7 @@ namespace cyclonedds {
 namespace core {
 namespace cdr {
 
-void key_endpoint::add_key_endpoint(const std::list<uint32_t> &key_indices)
+void key_endpoint::add_key_endpoint(const std::list<int64_t> &key_indices)
 {
   auto *ptr = this;
   for (const auto &key_index:key_indices) {
@@ -168,6 +168,18 @@ void entity_properties_t::print(const propvec &in)
 {
   for (const auto & e:in)
     e.print();
+}
+
+entity_properties_t * entity_properties_t::find_index(int64_t tofind)
+{
+  auto member = first_member;
+  while (member) {
+    if (member->m_id == tofind)
+      return member;
+    else
+      member = member->next_on_level;
+  }
+  return nullptr;
 }
 
 }

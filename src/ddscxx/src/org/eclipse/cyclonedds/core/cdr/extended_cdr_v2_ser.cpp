@@ -284,7 +284,7 @@ bool xcdr_v2_stream::list_necessary(const entity_properties_t &props)
   return props.e_ext == extensibility::ext_mutable && !m_key;
 }
 
-bool xcdr_v2_stream::start_struct(entity_properties_t &props)
+bool xcdr_v2_stream::start_constructed_type(entity_properties_t &props, bool is_union)
 {
   if (d_header_necessary(props)) {
     switch (m_mode) {
@@ -306,10 +306,10 @@ bool xcdr_v2_stream::start_struct(entity_properties_t &props)
     }
   }
 
-  return cdr_stream::start_struct(props);
+  return cdr_stream::start_constructed_type(props, is_union);
 }
 
-bool xcdr_v2_stream::finish_struct(entity_properties_t &props)
+bool xcdr_v2_stream::finish_constructed_type(entity_properties_t &props, bool is_union)
 {
   switch (m_mode) {
     case stream_mode::write:
@@ -317,7 +317,7 @@ bool xcdr_v2_stream::finish_struct(entity_properties_t &props)
         return false;
       break;
     case stream_mode::read:
-      check_struct_completeness(props);
+      check_constructed_type_completeness(props, is_union);
       if (d_header_necessary(props))
         m_buffer_end.pop();
       break;
@@ -397,8 +397,8 @@ bool xcdr_v2_stream::finish_consecutive()
 
 bool xcdr_v2_stream::write_em_header(entity_properties_t &props)
 {
-  uint32_t mheader = (props.must_understand || props.is_key ? must_understand : 0)
-                     + (id_mask & props.m_id) + nextint;
+  uint32_t mheader = static_cast<uint32_t>((props.must_understand || props.is_key ? must_understand : 0)
+                     + (id_mask & props.m_id) + nextint);
 
   return write(*this, mheader) && write(*this, uint32_t(0));
 }

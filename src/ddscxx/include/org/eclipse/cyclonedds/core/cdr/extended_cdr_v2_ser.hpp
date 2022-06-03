@@ -104,10 +104,11 @@ public:
    * This function is called by the generated streaming functions, and will start a parameter list, if that is relevant for it.
    *
    * @param[in, out] props The entity whose members might be represented by a parameter list.
+   * @param[in] is_union Whether the constructed type is a union.
    *
    * @return Whether the operation was completed succesfully.
    */
-  bool start_struct(entity_properties_t &props);
+  bool start_constructed_type(entity_properties_t &props, bool is_union);
 
   /**
    * @brief
@@ -116,10 +117,11 @@ public:
    * This function is called by the generated streaming functions, and will finish the current parameter list, if that is relevant for it.
    *
    * @param[in, out] props The entity whose members might be represented by a parameter list.
+   * @param[in] is_union Whether the constructed type is a union.
    *
    * @return Whether the struct is complete and correct.
    */
-  bool finish_struct(entity_properties_t &props);
+  bool finish_constructed_type(entity_properties_t &props, bool is_union);
 
   /**
    * @brief
@@ -305,22 +307,24 @@ private:
  *
  * @param[in, out] str The stream which is read from.
  * @param[out] toread The variable to read into.
+ * @param[in, out] props The properties of the variable.
+ * @param[in] max_sz The maximum sizes of any sequences to be read.
  * @param[in] N The number of entities to read.
  *
  * @return Whether the operation was completed succesfully.
  */
-template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool read(xcdr_v2_stream& str, T& toread, size_t N = 1) {
+template<typename T, std::enable_if_t<std::is_enum<T>::value, bool> = true >
+bool read(xcdr_v2_stream& str, T& toread, entity_properties_t *props, const size_t *max_sz, size_t N = 1) {
   switch (str.is_key() ? bb_32_bits : get_bit_bound<T>())
   {
     case bb_8_bits:
-      return read_enum_impl<xcdr_v2_stream,T,uint8_t>(str, toread, N);
+      return read_enum_impl<xcdr_v2_stream,T,uint8_t>(str, toread, props, max_sz, N);
       break;
     case bb_16_bits:
-      return read_enum_impl<xcdr_v2_stream,T,uint16_t>(str, toread, N);
+      return read_enum_impl<xcdr_v2_stream,T,uint16_t>(str, toread, props, max_sz, N);
       break;
     case bb_32_bits:
-      return read_enum_impl<xcdr_v2_stream,T,uint32_t>(str, toread, N);
+      return read_enum_impl<xcdr_v2_stream,T,uint32_t>(str, toread, props, max_sz, N);
       break;
     default:
       assert(false);
@@ -332,24 +336,27 @@ bool read(xcdr_v2_stream& str, T& toread, size_t N = 1) {
  * @brief
  * Writes the value of the enum to the stream.
  *
- * @param [in, out] str The stream which is written to.
- * @param [in] towrite The variable to write.
+ * @param[in, out] str The stream which is written to.
+ * @param[in] towrite The variable to write.
+ * @param[in, out] props The properties of the variable.
+ * @param[in] max_sz The maximum sizes of any sequences to be written.
  * @param[in] N The number of entities to write.
  *
  * @return Whether the operation was completed succesfully.
  */
-template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool write(xcdr_v2_stream& str, const T& towrite, size_t N = 1) {
+template<typename T, std::enable_if_t<std::is_enum<T>::value, bool> = true >
+bool write(xcdr_v2_stream& str, const T& towrite, entity_properties_t *props, const size_t *max_sz, size_t N = 1)
+{
   switch (str.is_key() ? bb_32_bits : get_bit_bound<T>())
   {
     case bb_8_bits:
-      return write_enum_impl<xcdr_v2_stream,T,uint8_t>(str, towrite, N);
+      return write_enum_impl<xcdr_v2_stream,T,uint8_t>(str, towrite, props, max_sz, N);
       break;
     case bb_16_bits:
-      return write_enum_impl<xcdr_v2_stream,T,uint16_t>(str, towrite, N);
+      return write_enum_impl<xcdr_v2_stream,T,uint16_t>(str, towrite, props, max_sz, N);
       break;
     case bb_32_bits:
-      return write_enum_impl<xcdr_v2_stream,T,uint32_t>(str, towrite, N);
+      return write_enum_impl<xcdr_v2_stream,T,uint32_t>(str, towrite, props, max_sz, N);
       break;
     default:
       assert(false);
@@ -362,22 +369,25 @@ bool write(xcdr_v2_stream& str, const T& towrite, size_t N = 1) {
  * Moves the cursor of the stream by the size the enum would take up.
  *
  * @param[in, out] str The stream whose cursor is moved.
+ * @param[in, out] props The properties of the variable.
+ * @param[in] max_sz The maximum sizes of any sequences to be moved.
  * @param[in] N The number of entities to move.
  *
  * @return Whether the operation was completed succesfully.
  */
-template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool move(xcdr_v2_stream& str, const T&, size_t N = 1) {
+template<typename T, std::enable_if_t<std::is_enum<T>::value, bool> = true >
+bool move(xcdr_v2_stream& str, const T&, entity_properties_t *props, const size_t *max_sz, size_t N = 1)
+{
   switch (str.is_key() ? bb_32_bits : get_bit_bound<T>())
   {
     case bb_8_bits:
-      return move(str, int8_t(0), N);
+      return move(str, int8_t(0), props, max_sz, N);
       break;
     case bb_16_bits:
-      return move(str, int16_t(0), N);
+      return move(str, int16_t(0), props, max_sz, N);
       break;
     case bb_32_bits:
-      return move(str, int32_t(0), N);
+      return move(str, int32_t(0), props, max_sz, N);
       break;
     default:
       assert(false);
@@ -390,14 +400,17 @@ bool move(xcdr_v2_stream& str, const T&, size_t N = 1) {
  * Moves the cursor of the stream by the size the enum would take up (maximum size version).
  *
  * @param[in, out] str The stream whose cursor is moved.
- * @param[in] max_sz The variable to move the cursor by, no contents of this variable are used, it is just used to determine the template.
+ * @param[in] tomax The entity to move the cursor by.
+ * @param[in, out] props The properties of the variable.
+ * @param[in] max_sz The maximum sizes of any sequences to be moved.
  * @param[in] N The number of entities at most to move.
  *
  * @return Whether the operation was completed succesfully.
  */
-template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool max(xcdr_v2_stream& str, const T& max_sz, size_t N = 1) {
-  return move(str, max_sz, N);
+template<typename T, std::enable_if_t<std::is_enum<T>::value, bool> = true >
+bool max(xcdr_v2_stream& str, const T& tomax, entity_properties_t *props, const size_t *max_sz, size_t N = 1)
+{
+  return move(str, tomax, props, max_sz, N);
 }
 
 }
