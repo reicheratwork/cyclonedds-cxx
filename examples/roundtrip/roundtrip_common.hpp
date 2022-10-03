@@ -45,55 +45,48 @@ static bool match_readers_and_writers(
   printf ("# Waiting for readers and writers to match up\n");
   try {
     waitset.attach_condition(wsc);
-    waitset.wait(timeout);
-
-    waitset.detach_condition(wsc);
     waitset.attach_condition(rsc);
-    waitset.wait(timeout);
+    auto result = waitset.wait(timeout);
+
+    bool is_pub = false;
+    if (result.empty()) {
+      return false;
+    } if (result[0] == wsc) {
+      is_pub = true;
+      waitset.detach_condition(wsc);
+    } else if (result[0] == rsc) {
+      waitset.detach_condition(rsc);
+    } else {
+      return false;
+    }
+    
+    result = waitset.wait(timeout);
+    if (result.empty() ||
+        (is_pub && result[0] != rsc) ||
+        (!is_pub && result[0] != wsc))
+      return false;
   } catch (const dds::core::TimeoutError &) {
     return false;
   }
   return true;
 }
 
-class RoundTripListener: public dds::sub::DataReaderListener<RoundTripModule::DataType>
+class RoundTripListener: public dds::sub::NoOpDataReaderListener<RoundTripModule::DataType>
 {
   public:
   using callback_func = std::function<bool(dds::sub::DataReader<RoundTripModule::DataType>&, dds::pub::DataWriter<RoundTripModule::DataType>&)>;
-  RoundTripListener() = delete;
-  RoundTripListener(dds::pub::DataWriter<RoundTripModule::DataType> &wr, const callback_func &f):
-    dds::sub::DataReaderListener<RoundTripModule::DataType>(), _wr(wr), _f(f) { ; }
-  /*implementation of virtual functions*/
 
-  /*only on_data_available does anything*/
+  RoundTripListener() = delete;
+
+  RoundTripListener(
+    dds::pub::DataWriter<RoundTripModule::DataType> &wr,
+    const callback_func &f):
+      dds::sub::NoOpDataReaderListener<RoundTripModule::DataType>(), _wr(wr), _f(f) { ; }
+
+  /*implementation of virtual functions*/
   void on_data_available(dds::sub::DataReader<RoundTripModule::DataType>& rd) {
     (void)_f(rd, _wr);
   }
-
-  /*all others are just dummies*/
-  void on_requested_deadline_missed(
-      dds::sub::DataReader<RoundTripModule::DataType>&,
-      const dds::core::status::RequestedDeadlineMissedStatus&) { }
-
-  void on_requested_incompatible_qos(
-      dds::sub::DataReader<RoundTripModule::DataType>&,
-      const dds::core::status::RequestedIncompatibleQosStatus&) { }
-
-  void on_sample_rejected(
-      dds::sub::DataReader<RoundTripModule::DataType>&,
-      const dds::core::status::SampleRejectedStatus&) { }
-
-  void on_liveliness_changed(
-      dds::sub::DataReader<RoundTripModule::DataType>&,
-      const dds::core::status::LivelinessChangedStatus&) { }
-
-  void on_subscription_matched(
-      dds::sub::DataReader<RoundTripModule::DataType>&,
-      const dds::core::status::SubscriptionMatchedStatus&) { }
-
-  void on_sample_lost(
-      dds::sub::DataReader<RoundTripModule::DataType>&,
-      const dds::core::status::SampleLostStatus&) { }
 
   private:
     dds::pub::DataWriter<RoundTripModule::DataType> &_wr;

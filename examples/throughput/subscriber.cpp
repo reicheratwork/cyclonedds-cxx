@@ -230,40 +230,13 @@ bool wait_for_writer(dds::sub::DataReader<ThroughputModule::DataType> &reader)
   return false;
 }
 
-class ThroughputListener: public dds::sub::DataReaderListener<ThroughputModule::DataType>
+class ThroughputListener: public dds::sub::NoOpDataReaderListener<ThroughputModule::DataType>
 {
   public:
   /*implementation of virtual functions*/
-
-  /*only on_data_available does anything*/
   void on_data_available(dds::sub::DataReader<ThroughputModule::DataType>& rd) {
     (void)do_take(rd);
   }
-
-  /*all others are just dummies*/
-  void on_requested_deadline_missed(
-      dds::sub::DataReader<ThroughputModule::DataType>&,
-      const dds::core::status::RequestedDeadlineMissedStatus&) { }
-
-  void on_requested_incompatible_qos(
-      dds::sub::DataReader<ThroughputModule::DataType>&,
-      const dds::core::status::RequestedIncompatibleQosStatus&) { }
-
-  void on_sample_rejected(
-      dds::sub::DataReader<ThroughputModule::DataType>&,
-      const dds::core::status::SampleRejectedStatus&) { }
-
-  void on_liveliness_changed(
-      dds::sub::DataReader<ThroughputModule::DataType>&,
-      const dds::core::status::LivelinessChangedStatus&) { }
-
-  void on_subscription_matched(
-      dds::sub::DataReader<ThroughputModule::DataType>&,
-      const dds::core::status::SubscriptionMatchedStatus&) { }
-
-  void on_sample_lost(
-      dds::sub::DataReader<ThroughputModule::DataType>&,
-      const dds::core::status::SampleLostStatus&) { }
 };
 
 int main (int argc, char **argv)

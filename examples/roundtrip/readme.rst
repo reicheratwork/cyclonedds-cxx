@@ -60,11 +60,11 @@ It is recommended that you run ping and pong in separate terminals to avoid mixi
 - In the second terminal start Ping by running ping.
 
   ping usage (parameters must be supplied in order):
-    ``./cxxRoundtripPing [payloadSize (bytes, 0 - 655536)] [numSamples (0 = infinite)] [timeOut (seconds, 0 = infinite)]``
+    ``./cxxRoundtripPing [payloadSize (bytes, 0 - 65536)] [numSamples (0 = infinite)] [timeOut (seconds, 0 = infinite)]``
 
     to quit the ping program just press control-C
   defaults:
-    ``./ping 0 0 0``
+    ``./cxxRoundtripPing 0 0 0``
 
 - To achieve optimal performance it is recommended to set the CPU affinity so that ping and pong run on separate CPU cores,
   and use real-time scheduling. In a Linux environment this can be achieved as follows:
