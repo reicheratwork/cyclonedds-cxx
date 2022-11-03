@@ -1116,7 +1116,8 @@ print_switchbox_open(struct streams *streams)
 
 static idl_retcode_t
 print_constructed_type_close(
-  struct streams *streams)
+  struct streams *streams,
+  const void* node)
 {
   const char *fmt =
     "  return streamer.finish_struct(*props, member_ids);\n"
@@ -1126,9 +1127,25 @@ print_constructed_type_close(
     "  initialized.store(true, std::memory_order_release);\n"
     "  return props;\n"
     "}\n\n";
+  static const char *pfmt2 =
+    "static const propvec &properties_%1$s = get_type_props<%2$s>();\n\n";
+
+
+  char *fullname = NULL, *newname = NULL;
+  if (IDL_PRINTA(&fullname, get_cpp11_fully_scoped_name, node, streams->generator) < 0 ||
+      IDL_PRINTA(&newname, get_cpp11_fully_scoped_name, node, streams->generator) < 0)
+    return IDL_RETCODE_NO_MEMORY;
+
+  char *ptr = newname;
+  while (*ptr) {
+    if (*ptr == ':')
+      *ptr = '_';
+    ptr++;
+  }
 
   if (multi_putf(streams, ALL, fmt)
-   || putf(&streams->props, pfmt))
+   || putf(&streams->props, pfmt)
+   || idl_fprintf(streams->generator->header.handle, pfmt2, newname, fullname) < 0)
     return IDL_RETCODE_NO_MEMORY;
 
   return IDL_RETCODE_OK;
@@ -1226,7 +1243,7 @@ process_struct(
 
   if (revisit) {
     if (print_switchbox_close(user_data)
-     || print_constructed_type_close(user_data)
+     || print_constructed_type_close(user_data, node)
      || (!is_nested(node) && print_entry_point_functions(streams, fullname)))
       return IDL_RETCODE_NO_MEMORY;
 
@@ -1296,7 +1313,7 @@ process_union(
 
   if (revisit) {
     if (multi_putf(streams, MAX, pfmt)
-     || print_constructed_type_close(user_data)
+     || print_constructed_type_close(user_data, node)
      || (!is_nested(node) && print_entry_point_functions(streams, fullname))) /*only add entry point functions for non-nested (topic) types*/
       return IDL_RETCODE_NO_MEMORY;
 
