@@ -312,8 +312,12 @@ private:
  *
  * @return Whether the operation was completed succesfully.
  */
-template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool read(xcdr_v2_stream& str, T& toread, size_t N = 1) {
+template<typename T, std::enable_if_t<std::is_enum<T>::value, bool> = true >
+bool read(xcdr_v2_stream& str, T& toread, const entity_properties_t *props = nullptr, const size_t *max_sz = nullptr, size_t N = 1)
+{
+  (void) props;
+  (void) max_sz;
+
   switch (str.is_key() ? bb_32_bits : get_bit_bound<T>())
   {
     case bb_8_bits:
@@ -328,7 +332,7 @@ bool read(xcdr_v2_stream& str, T& toread, size_t N = 1) {
     default:
       assert(false);
   }
-  return true;
+  return false;
 }
 
 /**
@@ -341,8 +345,12 @@ bool read(xcdr_v2_stream& str, T& toread, size_t N = 1) {
  *
  * @return Whether the operation was completed succesfully.
  */
-template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool write(xcdr_v2_stream& str, const T& towrite, size_t N = 1) {
+template<typename T, std::enable_if_t<std::is_enum<T>::value, bool> = true >
+bool write(xcdr_v2_stream& str, const T& towrite, const entity_properties_t *props = nullptr, const size_t *max_sz = nullptr, size_t N = 1)
+{
+  (void) props;
+  (void) max_sz;
+
   switch (str.is_key() ? bb_32_bits : get_bit_bound<T>())
   {
     case bb_8_bits:
@@ -357,7 +365,7 @@ bool write(xcdr_v2_stream& str, const T& towrite, size_t N = 1) {
     default:
       assert(false);
   }
-  return true;
+  return false;
 }
 
 /**
@@ -369,23 +377,24 @@ bool write(xcdr_v2_stream& str, const T& towrite, size_t N = 1) {
  *
  * @return Whether the operation was completed succesfully.
  */
-template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool move(xcdr_v2_stream& str, const T&, size_t N = 1) {
+template<typename T, std::enable_if_t<std::is_enum<T>::value, bool> = true >
+bool move(xcdr_v2_stream& str, const T&, const entity_properties_t *props = nullptr, const size_t *max_sz = nullptr, size_t N = 1)
+{
   switch (str.is_key() ? bb_32_bits : get_bit_bound<T>())
   {
     case bb_8_bits:
-      return move(str, int8_t(0), N);
+      return move(str, int8_t(0), props, max_sz, N);
       break;
     case bb_16_bits:
-      return move(str, int16_t(0), N);
+      return move(str, int16_t(0), props, max_sz, N);
       break;
     case bb_32_bits:
-      return move(str, int32_t(0), N);
+      return move(str, int32_t(0), props, max_sz, N);
       break;
     default:
       assert(false);
   }
-  return true;
+  return false;
 }
 
 /**
@@ -399,8 +408,9 @@ bool move(xcdr_v2_stream& str, const T&, size_t N = 1) {
  * @return Whether the operation was completed succesfully.
  */
 template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool max(xcdr_v2_stream& str, const T& max_sz, size_t N = 1) {
-  return move(str, max_sz, N);
+bool max(xcdr_v2_stream& str, const T& tomax, const entity_properties_t *props = nullptr, const size_t *max_sz = nullptr, size_t N = 1)
+{
+  return move(str, tomax, props, max_sz, N);
 }
 
 }

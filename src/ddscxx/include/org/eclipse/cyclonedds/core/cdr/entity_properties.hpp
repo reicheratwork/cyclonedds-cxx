@@ -133,6 +133,7 @@ struct OMG_DDS_API entity_properties
     uint32_t _depth = 0,
     uint32_t _m_id = 0,
     bool _is_optional = false,
+    bool _is_primitive = true,
     bit_bound _bb = bb_unset,
     extensibility _ext = extensibility::ext_final,
     bool _must_understand = true):
@@ -142,6 +143,7 @@ struct OMG_DDS_API entity_properties
       must_understand(_must_understand),
       xtypes_necessary(_ext != extensibility::ext_final || _is_optional),
       is_optional(_is_optional),
+      is_primitive(_is_primitive),
       e_bb(_bb) {;}
 
   extensibility e_ext = extensibility::ext_final; /**< The extensibility of the entity itself. */
@@ -153,6 +155,7 @@ struct OMG_DDS_API entity_properties
   bool implementation_extension = false;          /**< Can be set in XCDR_v1 stream parameter list headers.*/
   bool ignore = false;                            /**< Indicates that this field must be ignored.*/
   bool is_optional = false;                       /**< Indicates that this field can be empty (length 0) for reading/writing purposes.*/
+  bool is_primitive = false;                      /**< Indicates whether this field is a primitive type.*/
   bool is_key = false;                            /**< Indicates that this field is a key field.*/
   bit_bound e_bb = bb_unset;                      /**< The minimum number of bytes necessary to represent this entity/bitmask.*/
 

@@ -70,10 +70,15 @@ public:
  *
  * @param[in, out] str The stream which is read from.
  * @param[out] toread The variable to read into.
+ * @param[in] props The properties of the entity to read.
+ * @param[in] max_sz The maximum sizes of any sequences to be read.
  * @param[in] N The number of entities to read.
  */
-template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool read(basic_cdr_stream& str, T& toread, size_t N = 1) {
+template<typename T, std::enable_if_t<std::is_enum<T>::value, bool> = true >
+bool read(basic_cdr_stream& str, T& toread, const entity_properties_t *props = nullptr, const size_t *max_sz = nullptr, size_t N = 1) {
+  (void) props;
+  (void) max_sz;
+
   return read_enum_impl<basic_cdr_stream,T,uint32_t>(str, toread, N);
 }
 
@@ -85,8 +90,11 @@ bool read(basic_cdr_stream& str, T& toread, size_t N = 1) {
  * @param[in] towrite The variable to write.
  * @param[in] N The number of entities to write.
  */
-template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool write(basic_cdr_stream& str, const T& towrite, size_t N = 1) {
+template<typename T, std::enable_if_t<std::is_enum<T>::value, bool> = true >
+bool write(basic_cdr_stream& str, const T& towrite, const entity_properties_t *props = nullptr, const size_t *max_sz = nullptr, size_t N = 1) {
+  (void) props;
+  (void) max_sz;
+
   return write_enum_impl<basic_cdr_stream,T,uint32_t>(str, towrite, N);
 }
 
@@ -95,11 +103,16 @@ bool write(basic_cdr_stream& str, const T& towrite, size_t N = 1) {
  * Moves the cursor of the stream by the size the enum would take up.
  *
  * @param[in, out] str The stream whose cursor is moved.
+ * @param[in] props The properties of the entity to move.
+ * @param[in] max_sz The maximum sizes of any sequences to be moved.
  * @param[in] N The number of entities to move.
  */
-template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool move(basic_cdr_stream& str, const T&, size_t N = 1) {
-  return move(str, uint32_t(0), N);
+template<typename T, std::enable_if_t<std::is_enum<T>::value, bool> = true >
+bool move(basic_cdr_stream& str, const T&, const entity_properties_t *props = nullptr, const size_t *max_sz = nullptr, size_t N = 1) {
+  (void) props;
+  (void) max_sz;
+
+  return move(str, uint32_t(0), props, max_sz, N);
 }
 
 /**
@@ -107,11 +120,13 @@ bool move(basic_cdr_stream& str, const T&, size_t N = 1) {
  * Moves the cursor of the stream by the size the enum would take up (maximum size version).
  *
  * @param[in, out] str The stream whose cursor is moved.
+ * @param[in] props The properties of the entity to move.
+ * @param[in] max_sz The maximum sizes of any sequences to be moved.
  * @param[in] N The number of entities at most to move.
  */
-template<typename T, std::enable_if_t<std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-bool max(basic_cdr_stream& str, const T&, size_t N = 1) {
-  return max(str, uint32_t(0), N);
+template<typename T, std::enable_if_t<std::is_enum<T>::value, bool> = true >
+bool max(basic_cdr_stream& str, const T&, const entity_properties_t *props = nullptr, const size_t *max_sz = nullptr, size_t N = 1) {
+  return max(str, uint32_t(0), props, max_sz, N);
 }
 
 }
