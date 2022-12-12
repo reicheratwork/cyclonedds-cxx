@@ -76,30 +76,29 @@ DDSCXX_WARNING_MSVC_ON(4251)
 
 /**
  * @brief
- * Primitive type/enum get_bit_bound function.
+ * get_bit_bound function.
  *
- * Returns a bb_unset for all primitive types and enums.
  * This function will be implemented for all enums with a manually defined bit_bound.
  *
  * @return The bit bound for the primitive type.
  */
-template<typename T, DDSCXX_STD_IMPL::enable_if_t<std::is_arithmetic<T>::value || std::is_enum<T>::value, bool> = true >
+template<typename T, DDSCXX_STD_IMPL::enable_if_t<std::is_enum<T>::value || std::is_arithmetic<T>::value, bool> = true >
 bit_bound get_bit_bound() {
   switch (sizeof(T)) {
     case 1:
-      return bb_8_bits;
+      return bit_bound::bb_8_bits;
       break;
     case 2:
-      return bb_16_bits;
+      return bit_bound::bb_16_bits;
       break;
     case 4:
-      return bb_32_bits;
+      return bit_bound::bb_32_bits;
       break;
     case 8:
-      return bb_64_bits;
+      return bit_bound::bb_64_bits;
       break;
     default:
-      return bb_unset;
+      return bit_bound::bb_unset;
   }
 }
 
@@ -112,7 +111,7 @@ bit_bound get_bit_bound() {
  * @return bb_unset always.
  */
 template<typename T, DDSCXX_STD_IMPL::enable_if_t<!std::is_enum<T>::value && !std::is_arithmetic<T>::value, bool> = true >
-constexpr bit_bound get_bit_bound() { return bb_unset;}
+constexpr bit_bound get_bit_bound() { return bit_bound::bb_unset;}
 
 typedef struct entity_properties entity_properties_t;
 typedef std::vector<entity_properties_t> propvec;
@@ -130,13 +129,14 @@ typedef std::set<uint32_t> member_id_set;
 struct OMG_DDS_API entity_properties
 {
   entity_properties(
+    const std::vector<size_t> &_max_sizes = {0},
     uint32_t _depth = 0,
     uint32_t _m_id = 0,
     bool _is_optional = false,
-    bool _is_primitive = true,
-    bit_bound _bb = bb_unset,
+    bit_bound _bb = bit_bound::bb_unset,
     extensibility _ext = extensibility::ext_final,
-    bool _must_understand = true):
+    bool _must_understand = true,
+    bool _is_primitive = true):
       e_ext(_ext),
       m_id(_m_id),
       depth(_depth),
@@ -144,7 +144,8 @@ struct OMG_DDS_API entity_properties
       xtypes_necessary(_ext != extensibility::ext_final || _is_optional),
       is_optional(_is_optional),
       is_primitive(_is_primitive),
-      e_bb(_bb) {;}
+      e_bb(_bb),
+      max_sizes(_max_sizes) {;}
 
   extensibility e_ext = extensibility::ext_final; /**< The extensibility of the entity itself. */
   extensibility p_ext = extensibility::ext_final; /**< The extensibility of the entity's parent. */
@@ -157,7 +158,8 @@ struct OMG_DDS_API entity_properties
   bool is_optional = false;                       /**< Indicates that this field can be empty (length 0) for reading/writing purposes.*/
   bool is_primitive = false;                      /**< Indicates whether this field is a primitive type.*/
   bool is_key = false;                            /**< Indicates that this field is a key field.*/
-  bit_bound e_bb = bb_unset;                      /**< The minimum number of bytes necessary to represent this entity/bitmask.*/
+  bit_bound e_bb = bit_bound::bb_unset;           /**< The minimum number of bytes necessary to represent this entity/bitmask.*/
+  std::vector<size_t>  max_sizes;                 /**< The maximum sizes of sequences and strings of this entity.*/
 
   entity_properties_t  *next_on_level = nullptr,  /**< Pointer to the next entity on the same level.*/
                        *prev_on_level = nullptr,  /**< Pointer to the previous entity on the same level.*/
@@ -250,7 +252,10 @@ struct OMG_DDS_API entity_properties
  * @return propvec "Tree" representing the type.
  */
 template<typename T>
-const propvec& get_type_props();
+const propvec& get_type_props() {
+  static propvec props(1);
+  return props;
+}
 
 }
 }

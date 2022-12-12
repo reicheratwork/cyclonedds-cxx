@@ -183,4 +183,25 @@ union union_w_seq_of_structs switch(unsigned long) {
   case 0: sequence<s_final> seq_of_structs;
 };
 
+@nested struct s_a_1 {
+  long l;
+};
+
+typedef s_a_1 s_a_1_arr[2];
+
+@topic struct s_a_2 {
+  s_a_1_arr c[3];
+};
+
+typedef long l_arr[2];
+
+@topic struct s_a_3 {
+  l_arr c[3];
+};
+
+union u_bm1 switch (long) {
+case 1: bm1 c[3];
+case 2: long l;
+};
+
 };

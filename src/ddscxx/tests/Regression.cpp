@@ -219,19 +219,30 @@ TEST_F(Regression, delimiters_bitmask)
 {
   bytes s_bm1_bytes =
   {
-    0x06, 0x00, 0x00, 0x00,  //s_bm1.dheader(6)
+    0x06, 0x00, 0x00, 0x00,  //s_bm1.c.dheader(6)
     0x03, 0x00, 0x06, 0x00, 0x05, 0x00 //s_bm1.c
   };
 
   s_bm1 s;
   s.c({b_0 | b_1, b_1 | b_2, b_2 | b_0});
 
+  bytes u_bm1_bytes =
+  {
+    0x01, 0x00, 0x00, 0x00, //u_bm1._d(1)
+    0x06, 0x00, 0x00, 0x00, //u_bm1.c.dheader(6)
+    0x03, 0x00, 0x06, 0x00, 0x05, 0x00 //u_bm1.c
+  };
+
+  u_bm1 u;
+  u.c({b_0 | b_1, b_1 | b_2, b_2 | b_0});
+
   readwrite_test(s, s_bm1_bytes, xcdr_v2_stream);
+  readwrite_test(u, u_bm1_bytes, xcdr_v2_stream);
 }
 
 TEST_F(Regression, emumerators_properties)
 {
-  EXPECT_EQ(org::eclipse::cyclonedds::core::cdr::get_bit_bound<e1>(), bb_8_bits);
+  EXPECT_EQ(org::eclipse::cyclonedds::core::cdr::get_bit_bound<e1>(), bit_bound::bb_8_bits);
 }
 
 TEST_F(Regression, delimiters_emumerators)
@@ -349,4 +360,42 @@ TEST_F(Regression, memberless_struct)
   v2.set_mode(cdr_stream::stream_mode::read, false);
   auto ptr2 = v2.first_entity(props.data());
   EXPECT_EQ(ptr2, nullptr);
+}
+
+TEST_F(Regression, nested_arrays_d_headers)
+{
+  int i = 0;
+  s_a_2 s2;
+  for (auto & a:s2.c()) {
+    for (auto & e:a) {
+      e = s_a_1(++i);
+    }
+  }
+  s_a_3 s3;
+  for (auto & a:s3.c()) {
+    for (auto & e:a) {
+      e = ++i;
+    }
+  }
+
+  bytes b2 = {
+    0x18, 0x00, 0x00, 0x00, //s_a_2.c.dheader(24)
+    0x01, 0x00, 0x00, 0x00, //s_a_2.c[0][0].l
+    0x02, 0x00, 0x00, 0x00, //s_a_2.c[0][1].l
+    0x03, 0x00, 0x00, 0x00, //s_a_2.c[1][0].l
+    0x04, 0x00, 0x00, 0x00, //s_a_2.c[1][1].l
+    0x05, 0x00, 0x00, 0x00, //s_a_2.c[2][0].l
+    0x06, 0x00, 0x00, 0x00, //s_a_2.c[2][1].l
+    };
+  bytes b3 = {
+    0x07, 0x00, 0x00, 0x00, //s_a_2.c[0][0]
+    0x08, 0x00, 0x00, 0x00, //s_a_2.c[0][1]
+    0x09, 0x00, 0x00, 0x00, //s_a_2.c[1][0]
+    0x0A, 0x00, 0x00, 0x00, //s_a_2.c[1][1]
+    0x0B, 0x00, 0x00, 0x00, //s_a_2.c[2][0]
+    0x0C, 0x00, 0x00, 0x00, //s_a_2.c[2][1]
+    };
+
+  readwrite_test(s2, b2, xcdr_v2_stream);
+  readwrite_test(s3, b3, xcdr_v2_stream);
 }

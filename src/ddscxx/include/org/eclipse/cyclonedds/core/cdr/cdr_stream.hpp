@@ -1509,7 +1509,7 @@ bool move(S& str, const T&, const entity_properties_t *props = nullptr, const si
 template<typename S, typename T, std::enable_if_t<std::is_arithmetic<T>::value && std::is_base_of<cdr_stream, S>::value, bool> = true >
 bool max(S& str, const T& tomax, const entity_properties_t *props = nullptr, const size_t *max_sz = nullptr, size_t N = 1)
 {
-  return move(str, max_sz, props, max_sz, N);
+  return move(str, tomax, props, max_sz, N);
 }
 
  /**
@@ -1537,7 +1537,7 @@ bool max(S& str, const T& tomax, const entity_properties_t *props = nullptr, con
  * @return Whether the operation was completed succesfully.
  */
 template<typename S, typename T>
-bool read_string(S& str, T& toread, const size_t *max_sz)
+bool read_string(S& str, T& toread, const entity_properties_t *, const size_t *max_sz)
 {
   if (str.position() == SIZE_MAX)
     return false;
@@ -1582,7 +1582,7 @@ bool read_string(S& str, T& toread, const size_t *max_sz)
  * @return Whether the operation was completed succesfully.
  */
 template<typename S, typename T>
-bool write_string(S& str, const T& towrite, const size_t *max_sz)
+bool write_string(S& str, const T& towrite, const entity_properties_t *, const size_t *max_sz)
 {
   if (str.position() == SIZE_MAX)
     return false;
@@ -1625,7 +1625,7 @@ bool write_string(S& str, const T& towrite, const size_t *max_sz)
  * @return Whether the operation was completed succesfully.
  */
 template<typename S, typename T>
-bool move_string(S& str, const T& toincr, const size_t *max_sz)
+bool move_string(S& str, const T& toincr, const entity_properties_t *, const size_t *max_sz)
 {
   if (str.position() != SIZE_MAX) {
     size_t string_length = toincr.length() + 1;  //add 1 extra for terminating NULL
@@ -1659,23 +1659,20 @@ bool move_string(S& str, const T& toincr, const size_t *max_sz)
  * This template function will be specialized for the string class being used.
  *
  * @param[in, out] str The stream whose cursor is moved.
- * @param[in] tomax The string used to move the cursor.
  * @param[in] max_sz The array of max sizes used for bounded sequences/strings.
  *
  * @return Whether the operation was completed succesfully.
  */
 template<typename S, typename T, std::enable_if_t<std::is_base_of<cdr_stream, S>::value, bool> = true >
-bool max_string(S& str, const T& tomax, const size_t *max_sz)
+bool max_string(S& str, const T&, const entity_properties_t *, const size_t *max_sz)
 {
-  props.is_present = false;
   if (!max_sz || !*max_sz) {
     str.position(SIZE_MAX); //unbounded string, theoretical length unlimited
-    props.is_present = true;
     return true;
   } else {
     T dummy;
     dummy.resize(*max_sz);
-    return move_string(str, dummy, props, max_sz);
+    return move_string(str, dummy, nullptr, max_sz);
   }
 }
 
