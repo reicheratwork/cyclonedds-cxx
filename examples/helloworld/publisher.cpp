@@ -38,6 +38,7 @@ int main() {
 
         /* Now, the writer can be created to publish a HelloWorld message. */
         dds::pub::DataWriter<HelloWorldData::Msg> writer(publisher, topic);
+        writer.set_batch(true);
 
         /* For this example, we'd like to have a subscriber to actually read
          * our message. This is not always necessary. Also, the way it is
@@ -56,6 +57,7 @@ int main() {
         /* Write the message. */
         std::cout << "=== [Publisher] Write sample." << std::endl;
         writer.write(msg);
+        writer.write_flush();
 
         /* With a normal configuration (see dds::pub::qos::DataWriterQos
          * for various different writer configurations), deleting a writer will

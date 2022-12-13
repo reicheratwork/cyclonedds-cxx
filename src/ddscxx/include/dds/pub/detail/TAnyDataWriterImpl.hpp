@@ -114,6 +114,20 @@ TAnyDataWriter<DELEGATE>::assert_liveliness()
     this->delegate()->assert_liveliness();
 }
 
+template <typename DELEGATE>
+void
+TAnyDataWriter<DELEGATE>::write_flush()
+{
+    this->delegate()->write_flush();
+}
+
+template <typename DELEGATE>
+void
+TAnyDataWriter<DELEGATE>::set_batch(bool toset)
+{
+    this->delegate()->set_batch(toset);
+}
+
 }
 }
 // End of implementation

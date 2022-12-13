@@ -345,6 +345,29 @@ public:
      */
     void assert_liveliness();
 
+
+    //==========================================================================
+    //== Batching Management
+
+    /**
+     * This operation flushes the queued samples for this writer.
+     *
+     * When using the WriteBatch mode you can manually batch small writes into larger
+     * datapackets for network efficiency. The normal calls to write will no longer
+     * automatically decide when to send data, you will do that manually using this function.
+     */
+
+    void write_flush();
+
+    /**
+     * This operation sets the batching mode for this writer.
+     *
+     * Overrides default configuration setting for write batching (Internal/WriteBatch).
+     *
+     * @param enable the new batching mode to set.
+     */
+    void set_batch(bool enable);
+
 };
 
 
