@@ -1827,6 +1827,110 @@ public:
 
 //==============================================================================
 
+/**
+ * \copydoc DCPS_QoS_Properties
+ */
+template <typename D>
+class TProperties : public dds::core::Value<D>
+{
+  public:
+    /**
+     * Constructs a copy of a TProperties QoS instance
+     *
+     * @param other The instance to copy.
+     */
+    TProperties(const TProperties& other);
+
+    /**
+     * Constructs an initialized TProperties QoS instance
+     */
+    explicit TProperties() = default;
+
+    /**
+     * Constructs an initialized TProperties QoS instance
+     */
+    explicit TProperties(const PropertyValues &props, const BinaryPropertyValues &bprops);
+
+    /**
+     * Copies a TProperties QoS instance
+     *
+     * @param other the instance to copy
+     */
+    TProperties& operator=(const TProperties& other) = default;
+
+    /**
+     * String property values getter.
+     *
+     * @return all the string property values of this QoS.
+     */
+    const PropertyValues& values() const;
+
+    /**
+     * String property values setter.
+     *
+     * @param v The string property values to set.
+     */
+    void values(const PropertyValues &v);
+
+    /**
+     * String property values accessor (const version).
+     * Will throw an InvalidArgumentError if there is no property with
+     * supplied name.
+     *
+     * @param name The name of the property to get.
+     *
+     * @return The string property associated with name.
+     */
+    const std::string& value(const std::string &name) const;
+
+    /**
+     * String property values accessor (non-const version).
+     * Will initialize the value for the supplied name with an empty
+     * string if it does not already exist for this QoS.
+     *
+     * @param name The name of the property to get.
+     *
+     * @return The string property associated with name.
+     */
+    std::string& value(const std::string &name);
+
+    /**
+     * Binary property values getter.
+     *
+     * @return all the binary property values of this QoS.
+     */
+    const BinaryPropertyValues& bvalues() const;
+
+    /**
+     * Binary property values setter.
+     *
+     * @param v The binary property values to set.
+     */
+    void bvalues(const BinaryPropertyValues &v);
+
+    /**
+     * Binary property values accessor (const version).
+     * Will throw an InvalidArgumentError if there is no property with
+     * supplied name.
+     *
+     * @param name The name of the property to get.
+     *
+     * @return The binary property associated with name.
+     */
+    const BinaryPropertyValue& bvalue(const std::string &name) const;
+
+    /**
+     * Binary property values accessor (non-const version).
+     * Will initialize the value for the supplied name with an empty
+     * sequence if it does not already exist for this QoS.
+     *
+     * @param name The name of the property to get.
+     *
+     * @return The binary property associated with name.
+     */
+    BinaryPropertyValue& bvalue(const std::string &name);
+
+};
 
 }
 }

@@ -974,6 +974,41 @@ private:
 
 #endif  // OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
 
+using dds::core::policy::PropertyValues;
+using dds::core::policy::BinaryPropertyValue;
+using dds::core::policy::BinaryPropertyValues;
+
+class OMG_DDS_API PropertiesDelegate
+{
+public:
+    PropertiesDelegate() = default;
+
+    explicit PropertiesDelegate(const PropertyValues &values, const BinaryPropertyValues &bvalues);
+
+    PropertiesDelegate& operator=(const PropertiesDelegate& other) = default;
+
+    const PropertyValues& values() const;
+    void values(const PropertyValues &v);
+    const std::string& value(const std::string &name) const;
+    std::string& value(const std::string &name);
+
+    const BinaryPropertyValues& bvalues() const;
+    void bvalues(const BinaryPropertyValues &v);
+    const BinaryPropertyValue& bvalue(const std::string &name) const;
+    BinaryPropertyValue& bvalue(const std::string &name);
+
+    bool operator ==(const PropertiesDelegate& other) const;
+
+    void check() const;
+
+    void set_iso_policy(const dds_qos_t* qos);
+    void set_c_policy(dds_qos_t* qos) const;
+
+private:
+    PropertyValues values_;
+    BinaryPropertyValues bvalues_;
+};
+
 }
 }
 }

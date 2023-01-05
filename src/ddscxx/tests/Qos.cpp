@@ -72,7 +72,7 @@ DataRepresentation     nonDefaultRepresentation({dds::core::policy::DataRepresen
 TypeConsistencyEnforcement nonDefaultTypeConsistencyEnforcement(dds::core::policy::TypeConsistencyKind::ALLOW_TYPE_COERCION, true, true, true, true, true);
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
 
-
+Properties             nonDefaultProperties({{"abc","def"},{"ghi","jkl"},{"mno","pqr"}},{{"ABC",{0x1,0x2,0x3}},{"DEF",{0x4,0x5,0x6}},{"GHI",{0x7,0x9,0xa}}});
 
 /*
  * Temporary policy holders.
@@ -107,6 +107,7 @@ ReaderDataLifecycle tmpRdLifecycle;
 DataRepresentation  tmpRepresentation;
 TypeConsistencyEnforcement  tmpEnforcement;
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+Properties          tmpProperties;
 
 TEST(Qos, DomainParticipant)
 {
@@ -115,7 +116,8 @@ TEST(Qos, DomainParticipant)
     /* Get non-default QoSses in different ways. */
     DomainParticipantQos dpQosShifted;
     dpQosShifted << nonDefaultEntityFactory
-                 << nonDefaultUserData;
+                 << nonDefaultUserData
+                 << nonDefaultProperties;
     DomainParticipantQos dpQosConstructed(dpQosShifted);
     DomainParticipantQos dpQosAssigned;
     dpQosAssigned = dpQosShifted;
@@ -130,11 +132,14 @@ TEST(Qos, DomainParticipant)
     /* Compare the Policies (getting them in different ways). */
     dpQosShifted >> tmpUserData;
     dpQosShifted >> tmpEntityFactory;
+    dpQosShifted >> tmpProperties;
     ASSERT_EQ(nonDefaultUserData,      tmpUserData);
     ASSERT_EQ(nonDefaultEntityFactory, tmpEntityFactory);
+    ASSERT_EQ(nonDefaultProperties,    tmpProperties);
 
     ASSERT_EQ(nonDefaultUserData,      dpQosConstructed.policy<UserData>());
     ASSERT_EQ(nonDefaultEntityFactory, dpQosConstructed.policy<EntityFactory>());
+    ASSERT_EQ(nonDefaultProperties,    dpQosConstructed.policy<Properties>());
 }
 
 TEST(Qos, Topic)
@@ -354,7 +359,7 @@ TEST(Qos, DataWriter)
                  << nonDefaultRepresentation
                  << nonDefaultTypeConsistencyEnforcement
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
-                  ;
+                << nonDefaultProperties;
     DataWriterQos dwQosWConstructed(dwQosShifted);
     DataWriterQos dwQosWAssigned1 = dwQosShifted; /* Actually calls copy constructor. */
     DataWriterQos dwQosWAssigned2;
@@ -395,6 +400,7 @@ TEST(Qos, DataWriter)
     dwQosShifted >> tmpRepresentation;
     dwQosShifted >> tmpEnforcement;
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    dwQosShifted >> tmpProperties;
     ASSERT_EQ(nonDefaultUserData,    tmpUserData);
     ASSERT_EQ(nonDefaultDurability,  tmpDurability);
     ASSERT_EQ(nonDefaultDeadline,    tmpDeadline);
@@ -412,6 +418,7 @@ TEST(Qos, DataWriter)
     ASSERT_EQ(nonDefaultRepresentation, tmpRepresentation);
     ASSERT_EQ(nonDefaultTypeConsistencyEnforcement, tmpEnforcement);
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    ASSERT_EQ(nonDefaultProperties,  tmpProperties);
 
     ASSERT_EQ(nonDefaultUserData,    dwQosWConstructed.policy<UserData>());
     ASSERT_EQ(nonDefaultDurability,  dwQosWConstructed.policy<Durability>());
@@ -430,6 +437,7 @@ TEST(Qos, DataWriter)
     ASSERT_EQ(nonDefaultRepresentation, dwQosWConstructed.policy<DataRepresentation>());
     ASSERT_EQ(nonDefaultTypeConsistencyEnforcement, dwQosWConstructed.policy<TypeConsistencyEnforcement>());
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    ASSERT_EQ(nonDefaultProperties, dwQosWConstructed.policy<Properties>());
 
 #ifdef  OMG_DDS_OWNERSHIP_SUPPORT
     dwQosShifted >> tmpStrength;
@@ -482,7 +490,7 @@ TEST(Qos, DataReader)
                  << nonDefaultRepresentation
                  << nonDefaultTypeConsistencyEnforcement
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
-                  ;
+                << nonDefaultProperties;
     DataReaderQos drQosRConstructed(drQosShifted);
     DataReaderQos drQosRAssigned1 = drQosShifted; /* Actually calls copy constructor. */
     DataReaderQos drQosRAssigned2;
@@ -522,6 +530,7 @@ TEST(Qos, DataReader)
     drQosShifted >> tmpRepresentation;
     drQosShifted >> tmpEnforcement;
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    drQosShifted >> tmpProperties;
     ASSERT_EQ(nonDefaultUserData,    tmpUserData);
     ASSERT_EQ(nonDefaultDurability,  tmpDurability);
     ASSERT_EQ(nonDefaultDeadline,    tmpDeadline);
@@ -538,6 +547,7 @@ TEST(Qos, DataReader)
     ASSERT_EQ(nonDefaultRepresentation, tmpRepresentation);
     ASSERT_EQ(nonDefaultTypeConsistencyEnforcement, tmpEnforcement);
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    ASSERT_EQ(nonDefaultProperties,  tmpProperties);
 
     ASSERT_EQ(nonDefaultUserData,    drQosRConstructed.policy<UserData>());
     ASSERT_EQ(nonDefaultDurability,  drQosRConstructed.policy<Durability>());
@@ -555,6 +565,7 @@ TEST(Qos, DataReader)
     ASSERT_EQ(nonDefaultRepresentation, drQosRConstructed.policy<DataRepresentation>());
     ASSERT_EQ(nonDefaultTypeConsistencyEnforcement, drQosRConstructed.policy<TypeConsistencyEnforcement>());
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    ASSERT_EQ(nonDefaultProperties, drQosRConstructed.policy<Properties>());
 }
 
 TEST(Qos, invalid_values)
@@ -646,4 +657,5 @@ TEST(Qos, policy_name)
     ASSERT_EQ(dds::core::policy::policy_name<DataRepresentation>::name(),  "DataRepresentation");
     ASSERT_EQ(dds::core::policy::policy_name<TypeConsistencyEnforcement>::name(),  "TypeConsistencyEnforcement");
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    ASSERT_EQ(dds::core::policy::policy_name<Properties>::name(),  "Properties");
 }

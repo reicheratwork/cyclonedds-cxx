@@ -157,6 +157,9 @@ typedef ::dds::core::policy::detail::DurabilityService
 DurabilityService;
 #endif  // OMG_DDS_PERSISTENCE_SUPPORT
 
+typedef dds::core::policy::detail::Properties
+Properties;
+
 
 OMG_DDS_POLICY_TRAITS(UserData,             1)
 OMG_DDS_POLICY_TRAITS(Durability,           2)
@@ -192,6 +195,8 @@ OMG_DDS_POLICY_TRAITS(DurabilityService,    22)
 OMG_DDS_POLICY_TRAITS(DataRepresentation,   23)
 OMG_DDS_POLICY_TRAITS(TypeConsistencyEnforcement, 24)
 #endif  // OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+
+OMG_DDS_POLICY_TRAITS(Properties, 25)
 
 }
 }

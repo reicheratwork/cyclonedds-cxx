@@ -55,6 +55,14 @@ DomainParticipantQosDelegate::policy(const dds::core::policy::EntityFactory& ent
     entity_factory_ = entity_factory;
 }
 
+void
+DomainParticipantQosDelegate::policy(const dds::core::policy::Properties& properties)
+{
+    properties.delegate().check();
+    present_ |= DDSI_QP_PROPERTY_LIST;
+    properties_ = properties;
+}
+
 dds_qos_t*
 DomainParticipantQosDelegate::ddsc_qos() const
 {
@@ -65,6 +73,8 @@ DomainParticipantQosDelegate::ddsc_qos() const
     if (present_ & DDSI_QP_USER_DATA)
         user_data_.delegate().set_c_policy(qos);
     if (present_ & DDSI_QP_ADLINK_ENTITY_FACTORY)
+        entity_factory_.delegate().set_c_policy(qos);
+    if (present_ & DDSI_QP_PROPERTY_LIST)
         entity_factory_.delegate().set_c_policy(qos);
     return qos;
 }
@@ -78,6 +88,8 @@ DomainParticipantQosDelegate::ddsc_qos(const dds_qos_t* qos)
         user_data_.delegate().set_iso_policy(qos);
     if (present_ & DDSI_QP_ADLINK_ENTITY_FACTORY)
         entity_factory_.delegate().set_iso_policy(qos);
+    if (present_ & DDSI_QP_PROPERTY_LIST)
+        properties_.delegate().set_iso_policy(qos);
 }
 
 void
@@ -108,7 +120,8 @@ DomainParticipantQosDelegate::operator ==(const DomainParticipantQosDelegate& ot
 {
     return other.present_             == present_ &&
            other.user_data_           == user_data_ &&
-           other.entity_factory_      == entity_factory_;
+           other.entity_factory_      == entity_factory_ &&
+           other.properties_          == properties_;
 
 }
 
@@ -126,6 +139,14 @@ DomainParticipantQosDelegate::policy<dds::core::policy::EntityFactory> ()
 {
     present_ |= DDSI_QP_ADLINK_ENTITY_FACTORY;
     return entity_factory_;
+}
+
+template<>
+dds::core::policy::Properties&
+DomainParticipantQosDelegate::policy<dds::core::policy::Properties> ()
+{
+    present_ |= DDSI_QP_PROPERTY_LIST;
+    return properties_;
 }
 
 }

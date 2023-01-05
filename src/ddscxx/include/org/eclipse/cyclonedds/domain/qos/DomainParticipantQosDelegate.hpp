@@ -40,6 +40,7 @@ public:
 
     void policy(const dds::core::policy::UserData& ud);
     void policy(const dds::core::policy::EntityFactory& efp);
+    void policy(const dds::core::policy::Properties& prop);
 
     template <typename POLICY> const POLICY& policy() const;
     template <typename POLICY> POLICY& policy();
@@ -60,6 +61,7 @@ private:
     uint64_t                          present_ = 0;
     dds::core::policy::UserData       user_data_;
     dds::core::policy::EntityFactory  entity_factory_;
+    dds::core::policy::Properties     properties_;
 };
 
 
@@ -89,6 +91,17 @@ DomainParticipantQosDelegate::policy<dds::core::policy::EntityFactory> () const
 template<>
 OMG_DDS_API dds::core::policy::EntityFactory&
 DomainParticipantQosDelegate::policy<dds::core::policy::EntityFactory> ();
+
+template<>
+inline const dds::core::policy::Properties&
+DomainParticipantQosDelegate::policy<dds::core::policy::Properties> () const
+{
+    return properties_;
+}
+
+template<>
+OMG_DDS_API dds::core::policy::Properties&
+DomainParticipantQosDelegate::policy<dds::core::policy::Properties> ();
 
 }
 }

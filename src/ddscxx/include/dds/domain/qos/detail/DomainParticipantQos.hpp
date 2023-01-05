@@ -41,6 +41,7 @@
  * --------------------------------------------------- | -------------------------------------------------------| --------------------
  * dds::core::policy::UserData                         | Additional information (@ref DCPS_QoS_UserData "info") | UserData::UserData(empty)
  * dds::core::policy::EntityFactory                    | Create enabled (@ref DCPS_QoS_EntityFactory "info")    | EntityFactory::AutoEnable()
+ * dds::core::policy::Properties                       | QoS Properties (@ref DCPS_QoS_Properties "info")       | Properties::Properties(empty)
  *
  * A QosPolicy can be set when the DomainParticipant is created or modified with the
  * set qos operations.

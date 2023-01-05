@@ -1113,6 +1113,64 @@ bool TTypeConsistencyEnforcement<D>::force_type_validation() const
 
 #endif  // defined(OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT)
 
+template <typename D>
+TProperties<D>::TProperties(const PropertyValues& props, const BinaryPropertyValues& bprops) : dds::core::Value<D>(props, bprops)
+{
+}
+
+template <typename D>
+TProperties<D>::TProperties(const TProperties& other) : dds::core::Value<D>(other.delegate())
+{
+}
+
+template <typename D>
+const PropertyValues& TProperties<D>::values() const
+{
+    return this->delegate().values();
+}
+
+template <typename D>
+void  TProperties<D>::values(const PropertyValues &v)
+{
+    this->delegate().values(v);
+}
+
+template <typename D>
+const std::string& TProperties<D>::value(const std::string &name) const
+{
+    return this->delegate().value(name);
+}
+
+template <typename D>
+std::string& TProperties<D>::value(const std::string &name)
+{
+    return this->delegate().value(name);
+}
+
+template <typename D>
+const BinaryPropertyValues& TProperties<D>::bvalues() const
+{
+    return this->delegate().bvalues();
+}
+
+template <typename D>
+void TProperties<D>::bvalues(const BinaryPropertyValues &v)
+{
+    this->delegate().bvalues(v);
+}
+
+template <typename D>
+const BinaryPropertyValue& TProperties<D>::bvalue(const std::string &name) const
+{
+    return this->delegate().bvalue(name);
+}
+
+template <typename D>
+BinaryPropertyValue& TProperties<D>::bvalue(const std::string &name)
+{
+    return this->delegate().bvalue(name);
+}
+
 }
 }
 }

@@ -178,6 +178,14 @@ DataWriterQosDelegate::policy(const dds::core::policy::TypeConsistencyEnforcemen
 }
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
 
+void
+DataWriterQosDelegate::policy(const dds::core::policy::Properties& properties)
+{
+    properties.delegate().check();
+    present_ |= DDSI_QP_PROPERTY_LIST;
+    properties_ = properties;
+}
+
 dds_qos_t*
 DataWriterQosDelegate::ddsc_qos() const
 {
@@ -221,6 +229,8 @@ DataWriterQosDelegate::ddsc_qos() const
     if (present_ & DDSI_QP_TYPE_CONSISTENCY_ENFORCEMENT)
         typeconsistencyenforcement_.delegate().set_c_policy(qos);
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    if (present_ & DDSI_QP_PROPERTY_LIST)
+        properties_.delegate().set_c_policy(qos);
     return qos;
 }
 
@@ -265,6 +275,8 @@ DataWriterQosDelegate::ddsc_qos(const dds_qos_t* qos)
     if (present_ & DDSI_QP_TYPE_CONSISTENCY_ENFORCEMENT)
         typeconsistencyenforcement_.delegate().set_iso_policy(qos);
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    if (present_ & DDSI_QP_PROPERTY_LIST)
+        properties_.delegate().set_iso_policy(qos);
 }
 
 void
@@ -331,7 +343,7 @@ DataWriterQosDelegate::operator ==(const DataWriterQosDelegate& other) const
         && other.datarepresentation_ == datarepresentation_
         && other.typeconsistencyenforcement_ == typeconsistencyenforcement_
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
-           ;
+        && other.properties_          == properties_;
 }
 
 DataWriterQosDelegate&
@@ -483,6 +495,14 @@ DataWriterQosDelegate::policy<dds::core::policy::TypeConsistencyEnforcement>()
     return typeconsistencyenforcement_;
 }
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+
+template<>
+dds::core::policy::Properties&
+DataWriterQosDelegate::policy<dds::core::policy::Properties> ()
+{
+    present_ |= DDSI_QP_PROPERTY_LIST;
+    return properties_;
+}
 
 }
 }

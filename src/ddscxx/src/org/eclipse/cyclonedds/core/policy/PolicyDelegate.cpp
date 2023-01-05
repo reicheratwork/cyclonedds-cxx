@@ -1879,6 +1879,111 @@ void TypeConsistencyEnforcementDelegate::set_c_policy(dds_qos_t* qos) const
 
 #endif  // OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
 
+
+PropertiesDelegate::PropertiesDelegate(const PropertyValues &values, const BinaryPropertyValues &bvalues): values_(values), bvalues_(bvalues)
+{
+}
+
+const PropertyValues& PropertiesDelegate::values() const
+{
+  return values_;
+}
+
+void PropertiesDelegate::values(const PropertyValues &v)
+{
+  values_ = v;
+}
+
+const std::string& PropertiesDelegate::value(const std::string &name) const
+{
+  auto it = values_.find(name);
+  if (values_.end() == it) {
+    throw dds::core::InvalidArgumentError(std::string("No property with name \"") + name + std::string("\" present."));
+  } else {
+    return it->second;
+  }
+}
+
+std::string& PropertiesDelegate::value(const std::string &name)
+{
+  return values_[name];
+}
+
+const BinaryPropertyValues& PropertiesDelegate::bvalues() const
+{
+  return bvalues_;
+}
+
+void PropertiesDelegate::bvalues(const BinaryPropertyValues &v)
+{
+  bvalues_ = v;
+}
+
+const BinaryPropertyValue& PropertiesDelegate::bvalue(const std::string &name) const
+{
+  auto it = bvalues_.find(name);
+  if (bvalues_.end() == it) {
+    throw dds::core::InvalidArgumentError(std::string("No binary property with name \"") + name + std::string("\" present."));
+  } else {
+    return it->second;
+  }
+}
+
+BinaryPropertyValue& PropertiesDelegate::bvalue(const std::string &name)
+{
+  return bvalues_[name];
+}
+
+bool PropertiesDelegate::operator==(const PropertiesDelegate& other) const
+{
+  return other.values_ == values_;
+}
+
+void PropertiesDelegate::check() const
+{
+    /* Both binary and string values are just containers, nothing to check */
+}
+
+void PropertiesDelegate::set_iso_policy(const dds_qos_t* qos)
+{
+  uint32_t n = 0, bn = 0;
+  char **names = NULL, **bnames = NULL;
+  if (dds_qget_propnames (qos, &n, &names)) {
+      for (uint32_t i = 0; i < n; i++) {
+          char *value = NULL;
+          if (dds_qget_prop(qos, names[i], &value)) {
+              values_[names[i]] = value;
+          }
+          dds_free(value);
+      }
+  }
+
+  if (dds_qget_bpropnames (qos, &bn, &bnames)) {
+      for (uint32_t i = 0; i < bn; i++) {
+          char *value = NULL;
+          size_t sz = 0;
+          if (dds_qget_bprop(qos, bnames[i], reinterpret_cast<void**>(&value), &sz)) {
+              bvalues_[bnames[i]].assign(value, value+sz);
+          }
+          dds_free(value);
+      }
+  }
+
+  dds_free(names);
+  dds_free(bnames);
+}
+
+void PropertiesDelegate::set_c_policy(dds_qos_t* qos) const
+{
+    for (const auto &v:values_) {
+        dds_qset_prop(qos, v.first.c_str(), v.second.c_str());
+    }
+
+    for (const auto &v:bvalues_) {
+        dds_qset_bprop(qos, v.first.c_str(), v.second.data(), v.second.size());
+    }
+}
+
 }
 }
 }

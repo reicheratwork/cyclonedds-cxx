@@ -22,6 +22,8 @@
 #include <dds/core/detail/conformance.hpp>
 #include <dds/core/SafeEnumeration.hpp>
 #include <vector>
+#include <map>
+#include <string>
 #include <cstdint>
 
 namespace dds
@@ -66,6 +68,9 @@ struct DataRepresentationId_def
 
 typedef dds::core::safe_enum<DataRepresentationId_def> DataRepresentationId;
 typedef std::vector<DataRepresentationId> DataRepresentationIdSeq;
+typedef std::map<std::string, std::string> PropertyValues;
+typedef std::vector<char> BinaryPropertyValue;
+typedef std::map<std::string, BinaryPropertyValue> BinaryPropertyValues;
 
 struct DurabilityKind_def
 {

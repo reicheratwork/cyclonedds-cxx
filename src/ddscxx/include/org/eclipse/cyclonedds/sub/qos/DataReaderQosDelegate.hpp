@@ -56,6 +56,7 @@ public:
     void policy(const dds::core::policy::DataRepresentation&  datarepresentation);
     void policy(const dds::core::policy::TypeConsistencyEnforcement& typeconsistencyenforcement);
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    void policy(const dds::core::policy::Properties&          properties);
 
     template <typename POLICY> const POLICY& policy() const;
     template <typename POLICY> POLICY& policy();
@@ -91,6 +92,7 @@ private:
     dds::core::policy::DataRepresentation      datarepresentation_;
     dds::core::policy::TypeConsistencyEnforcement typeconsistencyenforcement_;
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    dds::core::policy::Properties              properties_;
 };
 
 
@@ -240,6 +242,16 @@ template<>
 OMG_DDS_API dds::core::policy::TypeConsistencyEnforcement&
 DataReaderQosDelegate::policy<dds::core::policy::TypeConsistencyEnforcement>();
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+
+template<>
+OMG_DDS_API dds::core::policy::Properties&
+DataReaderQosDelegate::policy<dds::core::policy::Properties>();
+
+template<> inline const  dds::core::policy::Properties&
+DataReaderQosDelegate::policy<dds::core::policy::Properties>() const
+{
+    return properties_;
+}
 
 }
 }
