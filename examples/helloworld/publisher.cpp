@@ -51,22 +51,18 @@ int main() {
         }
 
         /* Create a message to write. */
-        HelloWorldData::Msg msg(1, "Hello World");
 
-        /* Write the message. */
-        std::cout << "=== [Publisher] Write sample." << std::endl;
-        writer.write(msg);
+        HelloWorldData::Msg msg(1024, "Hello World");
+        while (msg.userID())  {
 
-        /* With a normal configuration (see dds::pub::qos::DataWriterQos
-         * for various different writer configurations), deleting a writer will
-         * dispose all its related message.
-         * Wait for the subscriber to have stopped to be sure it received the
-         * message. Again, not normally necessary and not recommended to do
-         * this in a polling loop. */
-        std::cout << "=== [Publisher] Waiting for sample to be accepted." << std::endl;
-        while (writer.publication_matched_status().current_count() > 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+          /* Write the message. */
+          writer.write(msg);
+
+          msg.userID()--;
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     catch (const dds::core::Exception& e) {
         std::cerr << "=== [Publisher] Exception: " << e.what() << std::endl;
