@@ -22,18 +22,18 @@ namespace org
     {
       namespace topic
       {
-        bool simple_key(const std::vector<unsigned char>& in, ddsi_keyhash_t& out)
+        bool simple_key(const std::vector<unsigned char>& in, size_t bytes, ddsi_keyhash_t& out)
         {
-          memcpy(&out.value, in.data(), in.size());
+          memcpy(&out.value, in.data(), bytes);
 
           return false;
         }
 
-        bool complex_key(const std::vector<unsigned char>& in, ddsi_keyhash_t& out)
+        bool complex_key(const std::vector<unsigned char>& in, size_t bytes, ddsi_keyhash_t& out)
         {
           ddsrt_md5_state_t md5st;
           ddsrt_md5_init(&md5st);
-          ddsrt_md5_append(&md5st, reinterpret_cast<const ddsrt_md5_byte_t*>(in.data()), static_cast<unsigned int>(in.size()));
+          ddsrt_md5_append(&md5st, reinterpret_cast<const ddsrt_md5_byte_t*>(in.data()), static_cast<unsigned int>(bytes));
           ddsrt_md5_finish(&md5st, reinterpret_cast<ddsrt_md5_byte_t*>(out.value));
 
           return true;

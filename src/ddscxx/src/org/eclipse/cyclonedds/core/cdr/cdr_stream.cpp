@@ -21,10 +21,13 @@ namespace cyclonedds {
 namespace core {
 namespace cdr {
 
-void cdr_stream::set_buffer(void* toset, size_t buffer_size)
+void cdr_stream::set_buffer(void* toset, size_t buffer_size, char* (*increase_bufsize_func)(void*, size_t), void *buffer_container)
 {
-  m_buffer = static_cast<char*>(toset);
   m_buffer_size = buffer_size;
+  m_increase_bufsize_func = increase_bufsize_func;
+  m_buffer = static_cast<char*>(toset);
+  m_buffer_container = buffer_container;
+  assert ((m_increase_bufsize_func != nullptr) == (m_buffer_container != nullptr));
   reset();
 }
 
@@ -91,7 +94,13 @@ bool cdr_stream::bytes_available(size_t N, bool peek)
         return !peek && !status(read_bound_exceeded);
         break;
       case stream_mode::write:
-        return !peek && !status(write_bound_exceeded);
+        if (m_increase_bufsize_func) {
+          m_buffer_size = m_buffer_size*2+N;
+          m_buffer = (*m_increase_bufsize_func)(m_buffer_container,m_buffer_size);
+          m_buffer_end.top() = m_buffer_size;
+        } else {
+          return !peek && !status(write_bound_exceeded);
+        }
         break;
       default:
         break;

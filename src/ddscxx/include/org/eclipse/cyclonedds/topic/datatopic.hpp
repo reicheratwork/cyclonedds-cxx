@@ -54,6 +54,33 @@ using org::eclipse::cyclonedds::topic::TopicTraits;
 template<typename T, class S>
 bool get_serialized_size(const T& sample, bool as_key, size_t &sz);
 
+static inline void* calc_offset(void* ptr, ptrdiff_t n)
+{
+  return static_cast<void*>(static_cast<unsigned char*>(ptr) + n);
+}
+
+static inline const void* calc_offset(const void* ptr, ptrdiff_t n)
+{
+  return static_cast<const void*>(static_cast<const unsigned char*>(ptr) + n);
+}
+
+template<typename T>
+char* resize_vector(void *ptr, size_t newsize) {
+  std::vector<T> *v = reinterpret_cast<std::vector<T>*>(ptr);
+  v->resize(newsize);
+  return reinterpret_cast<char*>(v->data());
+}
+
+template<typename T>
+class ddscxx_serdata;
+
+template<typename T>
+char* resize_serdata(void *ptr, size_t newsize) {
+  ddscxx_serdata<T> *d = reinterpret_cast<ddscxx_serdata<T>*>(ptr);
+  d->resize(newsize+CDR_HEADER_SIZE);
+  return reinterpret_cast<char*>(calc_offset(d->data(),CDR_HEADER_SIZE));
+}
+
 template<typename T>
 bool to_key(const T& tokey, ddsi_keyhash_t& hash)
 {
@@ -64,26 +91,21 @@ bool to_key(const T& tokey, ddsi_keyhash_t& hash)
   } else
   {
     basic_cdr_stream str(endianness::big_endian);
-    size_t sz = 0;
-    if (!get_serialized_size<T, basic_cdr_stream>(tokey, true, sz)) {
-      assert(false);
-      return false;
-    }
-    size_t padding = 0;
-    if (sz < 16)
-      padding = (16 - sz % 16)%16;
-    std::vector<unsigned char> buffer(sz + padding);
-    if (padding)
-      memset(buffer.data() + sz, 0x0, padding);
-    str.set_buffer(buffer.data(), sz);
+    std::vector<unsigned char> buffer(16);  //use unique_ptr buffer?
+    str.set_buffer(buffer.data(), buffer.size(), &resize_vector<unsigned char>, &buffer);
     if (!write(str, tokey, true)) {
       assert(false);
       return false;
     }
-    static thread_local bool (*fptr)(const std::vector<unsigned char>&, ddsi_keyhash_t&) = NULL;
+
+    size_t sz = str.position();
+
+    static thread_local bool (*fptr)(const std::vector<unsigned char>&, size_t, ddsi_keyhash_t&) = NULL;
     if (fptr == NULL)
     {
-      max(str, tokey, true);
+      str.reset();
+      if (!max(str, tokey, true))
+        return false;
       if (str.position() <= 16)
       {
         //bind to unmodified function which just copies buffer into the keyhash
@@ -95,18 +117,8 @@ bool to_key(const T& tokey, ddsi_keyhash_t& hash)
         fptr = &org::eclipse::cyclonedds::topic::complex_key;
       }
     }
-    return (*fptr)(buffer, hash);
+    return (*fptr)(buffer, sz < 16 ? 16 : sz, hash);
   }
-}
-
-static inline void* calc_offset(void* ptr, ptrdiff_t n)
-{
-  return static_cast<void*>(static_cast<unsigned char*>(ptr) + n);
-}
-
-static inline const void* calc_offset(const void* ptr, ptrdiff_t n)
-{
-  return static_cast<const void*>(static_cast<const unsigned char*>(ptr) + n);
 }
 
 template<typename T,
@@ -305,9 +317,9 @@ bool serialize_into(void *buffer,
 
   S str;
   str.set_buffer(calc_offset(buffer, CDR_HEADER_SIZE), buf_sz-CDR_HEADER_SIZE);
-  return (write_header<T,S>(buffer)
-        && write(str, sample, as_key)
-        && finish_header<T>(buffer, buf_sz));
+  return write_header<T,S>(buffer)
+      && write(str, sample, as_key)
+      && finish_header<T>(buffer, buf_sz);
 }
 
 /// \brief De-serialize the buffer into the sample
@@ -456,15 +468,16 @@ ddsi_serdata *serdata_from_sample(
   assert(kind != SDK_EMPTY);
   auto d = new ddscxx_serdata<T>(typecmn, kind);
   const auto& msg = *static_cast<const T*>(sample);
-  size_t sz = 0;
+  S str;
 
-  if (!get_serialized_size<T,S>(msg, kind == SDK_KEY, sz))
+  d->resize(CDR_HEADER_SIZE);
+  if (!d->data())
     goto failure;
 
-  sz += CDR_HEADER_SIZE;
-  d->resize(sz);
-
-  if (!serialize_into<T,S>(d->data(), sz, msg, kind == SDK_KEY))
+  str.set_buffer(nullptr, 0, &resize_serdata<T>, d);
+  if (!write_header<T,S>(d->data())
+   || !write(str, msg, kind == SDK_KEY)
+   || !finish_header<T>(d->data(), str.position()))
     goto failure;
 
   d->key_md5_hashed() = to_key(msg, d->key());
@@ -533,17 +546,19 @@ ddsi_serdata *serdata_to_untyped(const ddsi_serdata* dcmn)
    */
   auto d = const_cast<ddscxx_serdata<T>*>(static_cast<const ddscxx_serdata<T>*>(dcmn));
   auto d1 = new ddscxx_serdata<T>(d->type, SDK_KEY);
+  S str;
+
   d1->type = nullptr;
+  d1->resize(CDR_HEADER_SIZE);
 
   auto t = d->getT();
-  size_t sz = 0;
-  if (t == nullptr || !get_serialized_size<T,S>(*t, true, sz))
+  if (t == nullptr || d1->data() == nullptr)
     goto failure;
 
-  sz += CDR_HEADER_SIZE;
-  d1->resize(sz);
-
-  if (!serialize_into<T,S>(d1->data(), sz, *t, true))
+  str.set_buffer(nullptr, 0, &resize_serdata<T>, d1);
+  if (!write_header<T,S>(d1->data())
+   || !write(str, *t, true)
+   || !finish_header<T>(d1->data(), str.position()))
     goto failure;
 
   d1->key_md5_hashed() = to_key(*t, d1->key());
@@ -729,17 +744,22 @@ void ddscxx_serdata<T>::resize(size_t requested_size)
   if (!requested_size) {
     m_size = 0;
     m_data.reset();
-    return;
+  } else {
+    /* FIXME: CDR padding in DDSI makes me do this to avoid reading beyond the bounds
+    when copying data to network.  Should fix Cyclone to handle that more elegantly.  */
+    size_t padding = (0 - requested_size) % 4;
+    auto ptr = new unsigned char[requested_size+padding];
+    if (m_data.get()) {
+      std::memcpy(ptr, m_data.get(), m_size);
+    }
+
+    // zero the very end. The caller isn't necessarily going to overwrite it.
+    std::memset(calc_offset(ptr, static_cast<ptrdiff_t>(requested_size)), '\0', padding);
+
+    m_data.reset(ptr);
+
+    m_size = requested_size+padding;
   }
-
-  /* FIXME: CDR padding in DDSI makes me do this to avoid reading beyond the bounds
-  when copying data to network.  Should fix Cyclone to handle that more elegantly.  */
-  size_t n_pad_bytes = (0 - requested_size) % 4;
-  m_data.reset(new unsigned char[requested_size + n_pad_bytes]);
-  m_size = requested_size + n_pad_bytes;
-
-  // zero the very end. The caller isn't necessarily going to overwrite it.
-  std::memset(calc_offset(m_data.get(), static_cast<ptrdiff_t>(requested_size)), '\0', n_pad_bytes);
 }
 
 template <typename T>

@@ -261,7 +261,7 @@ public:
      * @param[in] toset The new pointer of the buffer to set.
      * @param[in] buffer_size The size of the buffer being set.
      */
-    void set_buffer(void* toset, size_t buffer_size = SIZE_MAX);
+    void set_buffer(void* toset, size_t buffer_size = SIZE_MAX, char* (*increase_bufsize_func)(void*, size_t) = nullptr, void *buffer_container = nullptr);
 
     /**
      * @brief
@@ -273,6 +273,16 @@ public:
      * @return The current cursor pointer.
      */
     inline char* get_cursor() const { return m_buffer + m_position; }
+
+    /**
+     * @brief
+     * Gets the current buffer pointer.
+     *
+     * Returns the pointer to the buffer currently in use.
+     *
+     * @retval The current cursor pointer.
+     */
+    inline char* get_buffer() const { return m_buffer; }
 
     /**
      * @brief
@@ -571,6 +581,9 @@ protected:
     custom_stack<uint32_t, m_maximum_depth> m_e_off, /**< the offset of the entity at the current level*/
                                             m_e_sz; /**< the size of the entity at the current level*/
     DDSCXX_WARNING_MSVC_ON(4251)
+
+    char* (*m_increase_bufsize_func)(void*, size_t) = nullptr; /**< optional function for increasing the size of the provided buffer*/
+    void* m_buffer_container = nullptr; /**< pointer to the container of the buffer*/
 };
 
 /**

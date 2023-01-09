@@ -31,9 +31,9 @@ namespace org
     {
       namespace topic
       {
-        bool OMG_DDS_API simple_key(const std::vector<unsigned char>& in, ddsi_keyhash_t& out);
+        bool OMG_DDS_API simple_key(const std::vector<unsigned char>& in, size_t bytes, ddsi_keyhash_t& out);
 
-        bool OMG_DDS_API complex_key(const std::vector<unsigned char>& in, ddsi_keyhash_t& out);
+        bool OMG_DDS_API complex_key(const std::vector<unsigned char>& in, size_t bytes, ddsi_keyhash_t& out);
       }
     }
   }
