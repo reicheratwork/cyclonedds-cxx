@@ -51,6 +51,22 @@ using org::eclipse::cyclonedds::core::cdr::extensibility;
 using org::eclipse::cyclonedds::core::cdr::encoding_version;
 using org::eclipse::cyclonedds::topic::TopicTraits;
 
+enum class buffer_mode {
+  pre_allocated,
+  incremental
+};
+
+template<typename T, class S, bool K>
+struct buffer_store {
+  static buffer_mode mode() { return m_mode.load(); }
+  static void mode(buffer_mode newmode) { m_mode.store(newmode); }  //allow this to be settable through a QoS or config?
+  public:
+  static thread_local std::atomic<buffer_mode> m_mode;
+};
+
+template<typename T, class S, bool K>
+thread_local std::atomic<buffer_mode> buffer_store<T,S,K>::m_mode(TopicTraits<T>::isSelfContained() ? buffer_mode::pre_allocated : buffer_mode::incremental);
+
 template<typename T, class S>
 bool get_serialized_size(const T& sample, bool as_key, size_t &sz);
 
@@ -91,14 +107,23 @@ bool to_key(const T& tokey, ddsi_keyhash_t& hash)
   } else
   {
     basic_cdr_stream str(endianness::big_endian);
-    std::vector<unsigned char> buffer(16);  //use unique_ptr buffer?
-    str.set_buffer(buffer.data(), buffer.size(), &resize_vector<unsigned char>, &buffer);
-    if (!write(str, tokey, true)) {
-      assert(false);
-      return false;
-    }
 
-    size_t sz = str.position();
+    //determine serialization mode
+
+    std::vector<unsigned char> buffer;
+    size_t sz = 16;
+    if (buffer_mode::pre_allocated == buffer_store<T,basic_cdr_stream,true>::mode()) {
+      if (!get_serialized_size<T,basic_cdr_stream>(tokey,true,sz))
+        return false;
+      sz = std::max<size_t>(16,sz);
+    }
+    buffer.resize(sz,0x0);
+
+    str.set_buffer(buffer.data(), buffer.size(), &resize_vector<unsigned char>, &buffer);
+    if (!write(str, tokey, true))
+      return false;
+
+    sz = str.position();
 
     static thread_local bool (*fptr)(const std::vector<unsigned char>&, size_t, ddsi_keyhash_t&) = NULL;
     if (fptr == NULL)
@@ -468,15 +493,22 @@ ddsi_serdata *serdata_from_sample(
   assert(kind != SDK_EMPTY);
   auto d = new ddscxx_serdata<T>(typecmn, kind);
   const auto& msg = *static_cast<const T*>(sample);
+  bool as_key = (SDK_KEY == kind);
   S str;
 
-  d->resize(CDR_HEADER_SIZE);
+  size_t sz = 16;
+  if ((as_key && buffer_mode::pre_allocated == buffer_store<T,S,true>::mode()) ||
+      (!as_key && buffer_mode::pre_allocated == buffer_store<T,S,false>::mode())) {
+    if (!get_serialized_size<T,S>(msg,as_key,sz))
+      goto failure;
+  }
+  d->resize(CDR_HEADER_SIZE+sz);
   if (!d->data())
     goto failure;
 
-  str.set_buffer(nullptr, 0, &resize_serdata<T>, d);
+  str.set_buffer(calc_offset(d->data(),CDR_HEADER_SIZE), sz, &resize_serdata<T>, d);
   if (!write_header<T,S>(d->data())
-   || !write(str, msg, kind == SDK_KEY)
+   || !write(str, msg, as_key)
    || !finish_header<T>(d->data(), str.position()))
     goto failure;
 
@@ -547,21 +579,30 @@ ddsi_serdata *serdata_to_untyped(const ddsi_serdata* dcmn)
   auto d = const_cast<ddscxx_serdata<T>*>(static_cast<const ddscxx_serdata<T>*>(dcmn));
   auto d1 = new ddscxx_serdata<T>(d->type, SDK_KEY);
   S str;
+  size_t sz = 16;
 
   d1->type = nullptr;
-  d1->resize(CDR_HEADER_SIZE);
 
-  auto t = d->getT();
-  if (t == nullptr || d1->data() == nullptr)
+  auto t_ptr = d->getT();
+  if (t_ptr == nullptr)
     goto failure;
 
-  str.set_buffer(nullptr, 0, &resize_serdata<T>, d1);
+  if (buffer_mode::pre_allocated == buffer_store<T,S,true>::mode()) {
+    if (!get_serialized_size<T,S>(*t_ptr,true,sz))
+      goto failure;
+  }
+  d1->resize(CDR_HEADER_SIZE+sz);
+
+  if (d1->data() == nullptr)
+    goto failure;
+
+  str.set_buffer(calc_offset(d1->data(),CDR_HEADER_SIZE), sz, &resize_serdata<T>, d1);
   if (!write_header<T,S>(d1->data())
-   || !write(str, *t, true)
+   || !write(str, *t_ptr, true)
    || !finish_header<T>(d1->data(), str.position()))
     goto failure;
 
-  d1->key_md5_hashed() = to_key(*t, d1->key());
+  d1->key_md5_hashed() = to_key(*t_ptr, d1->key());
   d1->hash = d->hash;
 
   return d1;
