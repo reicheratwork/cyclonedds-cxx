@@ -43,6 +43,9 @@ template <typename T>
 class Sample
 {
 public:
+    /**
+     * @brief Default constructor.
+     */
     Sample() { }
 
     Sample(const T& d, const dds::sub::SampleInfo& i)
@@ -56,11 +59,29 @@ public:
         copy(other);
     }
 
+    /**
+     * @brief Copy assignment operator.
+     *
+     * Copies the contents of another Sample into this one.
+     *
+     * @param[in] other The Sample whose contents are to be copied.
+     *
+     * @return Sample reference to the Sample who has the contents copied into.
+     */
     Sample& operator=(const Sample& other)
     {
         return copy(other);
     }
 
+    /**
+     * @brief Copy function.
+     *
+     * Copies the sample data and sample info fields into this Sample.
+     *
+     * @param[in] other Reference to the sample to copy.
+     *
+     * @return Sample reference to the object which was copied into.
+     */
     Sample& copy(const Sample& other)
     {
         this->data_ = other.data_;
@@ -70,11 +91,21 @@ public:
     }
 
 public:
+    /**
+     * @brief Data field accessor function (const version).
+     *
+     * @return Sample const reference to the contained data.
+     */
     const T& data() const
     {
         return data_;
     }
 
+    /**
+     * @brief Data field accessor function.
+     *
+     * @return Sample reference to the contained data.
+     */
     T& data()
     {
         return data_;
@@ -85,11 +116,21 @@ public:
         data_ = d;
     }
 
+    /**
+     * @brief SampleInfo accessor function (const version).
+     *
+     * @return SampleInfo const reference to the sample info contained.
+     */
     const dds::sub::SampleInfo& info() const
     {
         return info_;
     }
 
+    /**
+     * @brief SampleInfo accessor function.
+     *
+     * @return SampleInfo reference to the sample info contained.
+     */
     dds::sub::SampleInfo& info()
     {
         return info_;
@@ -100,12 +141,24 @@ public:
         info_ = i;
     }
 
+    /**
+     * @brief Equality comparison operator.
+     *
+     * @param[in] other The other sample to compare.
+     *
+     * @retval false returns always false.
+     */
     bool operator ==(const Sample& other) const
     {
         (void)other;
         return false;
     }
 
+    /**
+     * @brief Data field address accessor function.
+     *
+     * @return T* pointer to the contained data.
+     */
     T* data_ptr()
     {
         return &this->data_;

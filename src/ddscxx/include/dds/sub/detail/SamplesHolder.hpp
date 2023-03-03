@@ -99,40 +99,101 @@ public:
     {
     }
 
+    /**
+     * @brief Container length setter.
+     *
+     * Sets the capacity for the container.
+     *
+     * @param[in] len the new capacity of the container to set.
+     */
     void set_length(uint32_t len) {
         this->samples_.delegate()->resize(len);
     }
 
+    /**
+     * @brief Current index offset getter.
+     *
+     * Gets the current offset of the current sample in the container.
+     *
+     * @return uint32_t the current offset of the container.
+     */
     uint32_t get_length() const {
         return this->index_;
     }
 
+    /**
+     * @brief Current index offset incrementer.
+     *
+     * Increases the offset of the current sample by 1.
+     *
+     * @return SamplesHolder reference to the sample at the new offset
+     */
     SamplesHolder& operator++(int)
     {
         this->index_++;
         return *this;
     }
 
+    /**
+     * @brief Current data pointer getter.
+     *
+     * Returns the pointer to the current offset's Sample's data.
+     *
+     * @return void pointer to the data of the sample at the current offset
+     */
     void *data()
     {
         return (*this->samples_.delegate())[this->index_].delegate().data_ptr();
     }
 
+    /**
+     * @brief Current sample info getter.
+     *
+     * Returns the sample info of the current offset's Sample.
+     *
+     * @return SampleInfo the sample info at the current offset.
+     */
     detail::SampleInfo& info()
     {
         return (*this->samples_.delegate())[this->index_].delegate().info();
     }
 
+    /**
+     * @brief Serialized sample data buffer preparation function.
+     *
+     * Creates a new array of pointers for serialized sample data.
+     *
+     * @param[in] length the number of samples the array should be able to contain.
+     *
+     * @return void** pointer to the array of pointers created.
+     */
     void **cpp_sample_pointers(size_t length)
     {
         return new void * [length];
     }
 
+    /**
+     * @brief Sample info buffer preparation function.
+     *
+     * Creates a new array of sample infos.
+     *
+     * @param[in] length the number of sample infos the array should be able to contain.
+     *
+     * @return dds_sample_info_t* pointer to the array of sample infos created.
+     */
     dds_sample_info_t *cpp_info_pointers(size_t length)
     {
         return new dds_sample_info_t[length];
     }
 
+    /**
+     * @brief Sample contents setter function.
+     *
+     * Used in retrieving serialized sample data from DDS.
+     *
+     * @param[in,out] c_sample_pointers pointer to the array of serialized data.
+     * @param[in,out] info pointer to the array of sample infos.
+     */
     void set_sample_contents(void** c_sample_pointers, dds_sample_info_t *info)
     {
       struct ddsi_serdata **cdr_blobs = reinterpret_cast<struct ddsi_serdata **>(c_sample_pointers);
@@ -158,6 +219,14 @@ public:
       }
     }
 
+    /**
+     * @brief Sample and info buffer cleanup function.
+     *
+     * Cleans up the arrays created by the cpp_sample_pointers and cpp_info_pointers functions.
+     *
+     * @param[in] c_sample_pointers Array of samples to clean up.
+     * @param[in] c_sample_infos Array of sample infos to clean up.
+     */
     void fini_samples_buffers(void**& c_sample_pointers, dds_sample_info_t*& c_sample_infos)
     {
         delete [] c_sample_pointers;
