@@ -917,7 +917,11 @@ public:
     static TReaderDataLifecycle NoAutoPurgeDisposedSamples();
 
     /**
+     * @brief Create a ReaderDataLifecycle QoSPolicy with a specific AutoPurgeDisposedSamples
+     * delay.
+     *
      * @param autopurge_disposed_samples_delay the autopurge disposed samples delay
+     *
      * @return a ReaderDataLifecycle QoS instance with autopurge_disposed_samples_delay
      * set to a specified value
      */
@@ -1081,6 +1085,8 @@ public:
 
 public:
     /**
+     * @brief Creates a Presentation QoSPolicy with GROUP access scope.
+     *
      * @param coherent_access the coherent_access setting
      * @param ordered_access the ordered_access setting
      *
@@ -1090,6 +1096,8 @@ public:
     static TPresentation GroupAccessScope(bool coherent_access = false, bool ordered_access = false);
 
     /**
+     * @brief Creates a Presentation QoSPolicy with INSTANCE access scope.
+     *
      * @param coherent_access the coherent_access setting
      * @param ordered_access the ordered_access setting
      *
@@ -1099,6 +1107,8 @@ public:
     static TPresentation InstanceAccessScope(bool coherent_access = false, bool ordered_access = false);
 
     /**
+     * @brief Creates a Presentation QoSPolicy with TOPIC access scope.
+     *
      * @param coherent_access the coherent_access setting
      * @param ordered_access the ordered_access setting
      *
@@ -1174,14 +1184,22 @@ public:
 
 public:
     /**
-     * @param max_blocking_time the max blocking time
+     * @brief Create a RELIABLE Reliability QoSPolicy.
+     *
+     * @param max_blocking_time the max blocking time.
+     *
      * @return a Reliability QoS instance with the kind set to RELIABLE and the max_blocking_time
-     * set to the supplied value
+     * set to the supplied value.
      */
     static TReliability Reliable(const dds::core::Duration& max_blocking_time = dds::core::Duration::from_millisecs(100));
 
     /**
-     * @return a Reliability QoS instance with the kind set to BEST_EFFORT
+     * @brief Create a BEST_EFFORT Reliability QoSPolicy.
+     *
+     * @param max_blocking_time the max blocking time.
+     *
+     * @return a Reliability QoS instance with the kind set to BEST_EFFORT and the max_blocking_time
+     * set to the supplied value.
      */
     static TReliability BestEffort(const dds::core::Duration& max_blocking_time = dds::core::Duration::from_millisecs(100));
 
@@ -1320,7 +1338,10 @@ public:
     static THistory KeepAll();
 
     /**
+     * @brief Create a Keep Last history with specified history depth.
+     *
      * @param depth the history depth
+     *
      * @return a History QoS instance with the kind set to KEEP_LAST and the
      * depth set to the supplied value
      */

@@ -33,12 +33,19 @@ namespace status
 {
 
 /**
- * \copydoc DCPS_Status_InconsistentTopic
+ * @brief Inconsistent topic status.
+ *
+ * Records the number of times the status "InconsistentTopic" was triggered.
+ * This occurs when an existing Topic observes the (attempted) creation of another
+ * with the same name as its own, but with an incompatible datatype.
  */
 template <typename D>
 class TInconsistentTopicStatus : public dds::core::Value<D>
 {
 public:
+    /**
+     * @brief Default constructor.
+     */
     TInconsistentTopicStatus();
 
 public:
@@ -55,12 +62,18 @@ public:
 };
 
 /**
- * \copydoc DCPS_Status_SampleLost
+ * @brief Sample lost status.
+ *
+ * Records the number of times a DataReader determined that a sample that was written
+ * to the topic it is on, was not received by it.
  */
 template <typename D>
 class TSampleLostStatus : public dds::core::Value<D>
 {
 public:
+    /**
+     * @brief Default constructor.
+     */
     TSampleLostStatus();
 
 public:
@@ -77,14 +90,19 @@ public:
     int32_t total_count_change() const;
 };
 
-
 /**
- * \copydoc DCPS_Status_SampleRejected
+ * @brief Sample rejected status.
+ *
+ * Records the number of times a DataReader determined that a sample that was written
+ * to the topic it is on, was rejected by it.
  */
 template <typename D>
 class TSampleRejectedStatus : public dds::core::Value<D>
 {
 public:
+    /**
+     * @brief Default constructor.
+     */
     TSampleRejectedStatus();
 
 public:
@@ -113,12 +131,18 @@ public:
 };
 
 /**
- * \copydoc DCPS_Status_LivelinessLost
+ * @brief Liveliness lost status.
+ *
+ * Records the number of times the status of an instance has gone from "alive" to
+ * "not alive".
  */
 template <typename D>
 class TLivelinessLostStatus : public dds::core::Value<D>
 {
 public:
+    /**
+     * @brief Default constructor.
+     */
     TLivelinessLostStatus();
 
 public:
@@ -139,12 +163,17 @@ public:
 };
 
 /**
- * \copydoc DCPS_Status_LivelinessChanged
+ * @brief Liveliness changed status.
+ *
+ * Records the number of times a DataWriter determined that a sample's alive status has changed.
  */
 template <typename D>
 class TLivelinessChangedStatus : public dds::core::Value<D>
 {
 public:
+    /**
+     * @brief Default constructor.
+     */
     TLivelinessChangedStatus();
 
 public:
@@ -189,12 +218,18 @@ public:
 };
 
 /**
- * \copydoc DCPS_Status_OfferedDeadlineMissed
+ * @brief Offered deadline missed status.
+ *
+ * Records the number of times a deadline promised by a DataWriter through the Deadline QoSPolicy was
+ * not adhered to.
  */
 template <typename D>
 class TOfferedDeadlineMissedStatus : public dds::core::Value<D>
 {
 public:
+    /**
+     * @brief Default constructor.
+     */
     TOfferedDeadlineMissedStatus();
 
 public:
@@ -220,12 +255,18 @@ public:
 };
 
 /**
- * \copydoc DCPS_Status_RequestedDeadlineMissed
+ * @brief Requested deadline missed status.
+ *
+ * Records the number of times a deadline requested by a DataReader through the Deadline QoSPolicy was
+ * not adhered to.
  */
 template <typename D>
 class TRequestedDeadlineMissedStatus : public dds::core::Value<D>
 {
 public:
+    /**
+     * @brief Default constructor.
+     */
     TRequestedDeadlineMissedStatus();
 public:
 
@@ -250,14 +291,19 @@ public:
     const dds::core::InstanceHandle last_instance_handle() const;
 };
 
-
 /**
- * \copydoc DCPS_Status_OfferedIncompatibleQoS
+ * @brief Offered incompatible QoS status.
+ *
+ * Records the number of times the DataWriter encountered a DataReader it attempted to match
+ * with, but couldn't, due to their QoSes not being compatible.
  */
 template <typename D>
 class TOfferedIncompatibleQosStatus : public dds::core::Value<D>
 {
 public:
+    /**
+     * @brief Default constructor.
+     */
     TOfferedIncompatibleQosStatus();
 
 public:
@@ -301,12 +347,18 @@ public:
 };
 
 /**
- * \copydoc DCPS_Status_RequestedIncompatibleQoS
+ * @brief Requested incompatible QoS status.
+ *
+ * Records the number of times the DataReader encountered a DataWriter it attempted to match
+ * with, but couldn't, due to their QoSes not being compatible.
  */
 template <typename D>
 class TRequestedIncompatibleQosStatus : public dds::core::Value<D>
 {
 public:
+    /**
+     * @brief Default constructor.
+     */
     TRequestedIncompatibleQosStatus();
 
 public:
@@ -350,12 +402,17 @@ public:
 };
 
 /**
- * \copydoc DCPS_Status_PublicationMatched
+ * @brief Publication matched status.
+ *
+ * Records the number of times the DataWriter has matched with a DataReader.
  */
 template <typename D>
 class TPublicationMatchedStatus : public dds::core::Value<D>
 {
 public:
+    /**
+     * @brief Default constructor.
+     */
     TPublicationMatchedStatus();
 
 public:
@@ -393,12 +450,17 @@ public:
 };
 
 /**
- * \copydoc DCPS_Status_SubscriptionMatched
+ * @brief Subscription matched status.
+ *
+ * Records the number of times the DataReader has matched with a DataWriter.
  */
 template <typename D>
 class TSubscriptionMatchedStatus : public dds::core::Value<D>
 {
 public:
+    /**
+     * @brief Default constructor.
+     */
     TSubscriptionMatchedStatus();
 
 public:

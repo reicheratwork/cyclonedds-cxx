@@ -130,30 +130,44 @@ public:
 
 public:
     /**
-     * Assigns new delegate to this Value
-     * @param other Value
+     * @brief Copy assignment operator.
+     *
+     * Assigns new delegate to this Value.
+     *
+     * @param other Value to assign to this.
      */
     Value& operator=(const Value& other);
 
     /**
-     * Moves delegate to this Value
-     * @param other Value
+     * @brief move assignment operator.
+     *
+     * Moves delegate to this Value.
+     *
+     * @param other Value to move into this.
      */
     Value& operator=(Value&& other);
 
     /**
-     * Compare this Value with another Value
+     * @brief Equality comparison operator.
      *
-     * @param other Value
-     * @return true if equal
+     * Compare this Value with another Value.
+     *
+     * @param other Value to compare with this
+     *
+     * @retval true if equal
+     * @retval false otherwise
      */
     bool operator==(const Value& other) const;
 
     /**
-     * Compare this Value with another Value
+     * @brief Inequality comparison operator.
      *
-     * @param other Value
-     * @return true if not equal
+     * Compare this Value with another Value.
+     *
+     * @param other Value to compare with this
+     *
+     * @retval false if equal
+     * @retval true otherwise
      */
     bool operator !=(const Value& other) const;
 
