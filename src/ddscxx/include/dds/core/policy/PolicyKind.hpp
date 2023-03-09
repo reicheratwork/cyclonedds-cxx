@@ -34,6 +34,13 @@ namespace policy
 #if defined (__SUNPRO_CC) && defined(SHARED)
 #   undef SHARED
 #endif
+/**
+ * @brief Definition of the enumerated values allowed for OwnerShipKind.
+ *
+ * This enumerator is used in the Ownership QoS Policy and can assume the following values:
+ * - SHARED
+ * - EXCLUSIVE
+ */
 struct OwnershipKind_def
 {
     enum Type
@@ -54,6 +61,15 @@ struct OwnershipKind_def
 
 typedef dds::core::safe_enum<OwnershipKind_def> OwnershipKind;
 
+
+/**
+ * @brief Definition of the enumerated values allowed for DataRepresentationId.
+ *
+ * This enumerator is used in the DataRepresentation QoS Policy and can assume the following values:
+ * - XCDR1
+ * - XML
+ * - XCDR2
+ */
 struct DataRepresentationId_def
 {
     enum Type: std::int16_t
@@ -67,6 +83,16 @@ struct DataRepresentationId_def
 typedef dds::core::safe_enum<DataRepresentationId_def> DataRepresentationId;
 typedef std::vector<DataRepresentationId> DataRepresentationIdSeq;
 
+
+/**
+ * @brief Definition of the enumerated values allowed for DurabilityKind.
+ *
+ * This enumerator is used in the Durability QoS Policy and can assume the following values:
+ * - VOLATILE
+ * - TRANSIENT_LOCAL
+ * - TRANSIENT
+ * - PERSISTENT
+ */
 struct DurabilityKind_def
 {
     enum Type
@@ -118,6 +144,15 @@ struct DurabilityKind_def
 };
 typedef dds::core::safe_enum<DurabilityKind_def> DurabilityKind;
 
+
+/**
+ * @brief Definition of the enumerated values allowed for PresentationAccessScopeKind.
+ *
+ * This enumerator is used in the Presentation QoS Policy and can assume the following values:
+ * - INSTANCE
+ * - TOPIC
+ * - GROUP
+ */
 struct PresentationAccessScopeKind_def
 {
     enum Type
@@ -134,6 +169,13 @@ struct PresentationAccessScopeKind_def
 typedef dds::core::safe_enum<PresentationAccessScopeKind_def> PresentationAccessScopeKind;
 
 
+/**
+ * @brief Definition of the enumerated values allowed for ReliabilityKind.
+ *
+ * This enumerator is used in the Reliability QoS Policy and can assume the following values:
+ * - BEST_EFFORT
+ * - RELIABLE
+ */
 struct ReliabilityKind_def
 {
     enum Type
@@ -158,7 +200,13 @@ struct ReliabilityKind_def
 };
 typedef dds::core::safe_enum<ReliabilityKind_def> ReliabilityKind;
 
-
+/**
+ * @brief Definition of the enumerated values allowed for DestinationOrderKind.
+ *
+ * This enumerator is used in the DestinationOrder QoS Policy and can assume the following values:
+ * - BY_RECEPTION_TIMESTAMP
+ * - BY_SOURCE_TIMESTAMP
+ */
 struct DestinationOrderKind_def
 {
     enum Type
@@ -174,6 +222,13 @@ struct DestinationOrderKind_def
 
 typedef dds::core::safe_enum<DestinationOrderKind_def> DestinationOrderKind;
 
+/**
+ * @brief Definition of the enumerated values allowed for HistoryKind.
+ *
+ * This enumerator is used in the History QoS Policy and can assume the following values:
+ * - KEEP_LAST
+ * - KEEP_ALL
+ */
 struct HistoryKind_def
 {
     enum Type
@@ -218,6 +273,14 @@ struct HistoryKind_def
 
 typedef dds::core::safe_enum<HistoryKind_def> HistoryKind;
 
+/**
+ * @brief Definition of the enumerated values allowed for LivelinessKind.
+ *
+ * This enumerator is used in the Liveliness QoS Policy and can assume the following values:
+ * - AUTOMATIC
+ * - MANUAL_BY_PARTICIPANT
+ * - MANUAL_BY_TOPIC
+ */
 struct LivelinessKind_def
 {
     enum Type
@@ -243,6 +306,14 @@ struct LivelinessKind_def
 };
 typedef dds::core::safe_enum<LivelinessKind_def> LivelinessKind;
 
+
+/**
+ * @brief Definition of the enumerated values allowed for TypeConsistencyKind.
+ *
+ * This enumerator is used in the TypeConsistency QoS Policy and can assume the following values:
+ * - DISALLOW_TYPE_COERCION
+ * - ALLOW_TYPE_COERCION
+ */
 struct TypeConsistencyKind_def
 {
     enum Type

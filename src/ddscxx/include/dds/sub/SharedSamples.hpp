@@ -56,7 +56,7 @@ public:
 
 public:
     /**
-     * Constructs a SharedSamples instance.
+     * Constructs an empty SharedSamples instance.
      */
     SharedSamples();
 
@@ -68,16 +68,21 @@ public:
      * automatically once the delegate of this reference type will have a
      * zero reference count.
      *
-     * @param ls the loaned samples
+     * @param[in,out] ls the loaned samples
      *
      */
     SharedSamples(dds::sub::LoanedSamples<T> ls);
 
     /**
      * Copies a SharedSamples instance.
+     *
+     * @param[in] other the instance to copy.
      */
     SharedSamples(const SharedSamples& other);
 
+    /**
+     * Destructs a SharedSamples instance.
+     */
     ~SharedSamples();
 
 

@@ -80,15 +80,15 @@ public:
     /**
      * Creates a Sample instance.
      *
-     * @param data the data
-     * @param info the sample info
+     * @param[in] data the data
+     * @param[in] info the sample info
      */
     Sample(const T& data, const SampleInfo& info);
 
     /**
      * Copies a sample instance.
      *
-     * @param other the sample instance to copy
+     * @param[in] other the sample instance to copy
      */
     Sample(const Sample& other);
 
@@ -102,7 +102,7 @@ public:
     /**
      * Sets the data.
      *
-     * @param data the data
+     * @param[in] data the data
      */
     void data(const DataType& data);
 
@@ -116,7 +116,7 @@ public:
     /**
      * Sets the info.
      *
-     * @param info the info
+     * @param[in] info the info
      */
     void info(const SampleInfo& info);
 };

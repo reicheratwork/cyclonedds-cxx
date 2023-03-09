@@ -71,6 +71,13 @@ TAnyDataReader(const H__& h)
     }
 }
 
+/**
+ * @brief Copy assignment operator.
+ *
+ * @param[in] rhs the TAnyDataReader to copy
+ *
+ * @return TAnyDataReader& reference to the entity copied into.
+ */
 template <typename T__>
 TAnyDataReader&
 operator=(const T__& rhs) {

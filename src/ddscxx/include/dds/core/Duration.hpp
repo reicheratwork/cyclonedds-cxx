@@ -73,18 +73,21 @@ public:
 public:
     /**
      * Create a Duration from a number of microseconds
+     *
      * @param microseconds number of microseconds
      */
     static const Duration from_microsecs(int64_t microseconds);
 
     /**
      * Create a Duration from a number of milliseconds
+     *
      * @param milliseconds number of milliseconds
      */
     static const Duration from_millisecs(int64_t milliseconds);
 
     /**
      * Create a Duration from a number of seconds
+     *
      * @param seconds number of seconds
      */
     static const Duration from_secs(double seconds);
@@ -92,22 +95,26 @@ public:
 public:
     /**
      * Get seconds part of the Duration.
+     *
      * @return number of seconds
      */
     int64_t sec() const;
     /**
-     * Set number of seconds
+     * Set number of seconds.
+     *
      * @param s number of seconds
      */
     void sec(int64_t s);
 
     /**
      * Get nanoseconds part of the Duration.
+     *
      * @return number of nanoseconds
      */
     uint32_t nanosec() const;
     /**
-     * Set number of nanoseconds
+     * Set number of nanoseconds.
+     *
      * @param ns number of nanoseconds
      */
     void nanosec(uint32_t ns);
@@ -135,6 +142,7 @@ public:
 
     /**
      * Returns true if the Duration is greater than or equal to the comparator
+     *
      * @param that the Duration to compare
      * @return true if that is larger than or equal to this
      */

@@ -42,7 +42,14 @@ class Time;
 class OMG_DDS_API dds::core::Time
 {
 public:
-    static const Time invalid();       // {-1, 0xffffffff}
+    /**
+     * @brief Invalid time point.
+     *
+     * A value of Time that represents a time that will never occur during the
+     * lifetime of the program.
+     * Represented by the values -1 seconds and 0xFFFFFFFF nanoseconds,
+     */
+    static const Time invalid();
 
 public:
     /**
@@ -99,59 +106,96 @@ public:
 
 public:
     /**
-     * Returns an integer indicating the result of a comparison
-      * of two Times:
-     *   1 if this Time is greater than the comparator (that)
-     *  -1 if the Time is less than the comparator (that)
-     *   0 if the Time matches the comparator (that)
+     * @brief Returns an integer indicating the result of a comparison
+     * of two Times.
      *
      * @param that Time to compare
-     * @return comparison result
+     *
+     * @retval 1 if this Time is greater than the comparator (that)
+     * @retval 0 if the Time matches the comparator (that)
+     * @retval -1 if the Time is less than the comparator (that)
      */
     int compare(const Time& that) const;
 
     /**
+     * @brief Greater than comparison operator.
+     *
      * @param that Time to compare
-     * @return true if the Time is greater than the comparator
+     *
+     * @retval true if the Time is greater than the comparator
+     * @retval false otherwise
      */
     bool operator >(const Time& that) const;
 
     /**
+     * @brief Greater than or equal comparison operator.
+     *
      * @param that Time to compare
-     * @return true if the Time is greater than or equal to the comparator
+     *
+     * @retval true if the Time is greater than or equal to the comparator
+     * @retval false otherwise
      */
     bool operator >=(const Time& that) const;
 
     /**
+     * @brief Non equality comparison operator.
+     *
      * @param that Time to compare
-     * @return true if the Time is not equal to the comparator
+     *
+     * @retval true if the Time is not equal to the comparator
+     * @retval false otherwise
      */
     bool operator !=(const Time& that) const;
 
     /**
+     * @brief Equality comparison operator.
+     *
      * @param that Time to compare
-     * @return true if the Time is equal to the comparator
+     *
+     * @retval true if the Time is equal to the comparator
+     * @retval false otherwise
      */
     bool operator ==(const Time& that) const;
+
     /**
+     * @brief Smaller than or equal comparison operator.
+     *
      * @param that Time to compare
-     * @return true if the Time is less than or equal to the comparator
+     *
+     * @retval true if the Time is smaller than or equal to the comparator
+     * @retval false otherwise
      */
     bool operator <=(const Time& that) const;
+
     /**
+     * @brief Smaller than comparison operator.
+     *
      * @param that Time to compare
-     * @return true if the Time is less than the comparator
+     *
+     * @retval true if the Time is smaller than the comparator
+     * @retval false otherwise
      */
     bool operator <(const Time& that) const;
 
 public:
     /**
+     * @brief Addition operator.
+     *
+     * Adds the supplied Duration to the time instance.
+     *
      * @param a_ti Duration to add
+     *
      * @return Time value + Duration
      */
     Time& operator+=(const Duration& a_ti);
+
     /**
+     * @brief Subtraction operator.
+     *
+     * Subtracts the supplied Duration from the time instance.
+     *
      * @param a_ti Duration to subtract
+     *
      * @return Time value - Duration
      */
     Time& operator-=(const Duration& a_ti);
