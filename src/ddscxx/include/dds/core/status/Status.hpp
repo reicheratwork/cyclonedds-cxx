@@ -40,7 +40,11 @@ class DataOnReadersStatus
     // empty
 };
 
-// This trait is used to get the state associated with each status
+/**
+ * @brief Status bitmask getter.
+ *
+ * @return StatusMask: the status bitmask associated with the templated Status.
+ */
 template <typename STATUS>
 StatusMask get_status();
 

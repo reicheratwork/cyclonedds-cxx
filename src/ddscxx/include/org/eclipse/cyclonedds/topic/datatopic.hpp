@@ -660,32 +660,119 @@ ddsi_serdata * serdata_from_iox_buffer(
 }
 #endif
 
+/**
+ * @brief Class for datatype and serialization specific serdata_ops
+ *
+ * Implements specific functions for (de)serialization.
+ */
 template<typename T,
          class S >
 struct ddscxx_serdata_ops: public ddsi_serdata_ops {
   ddscxx_serdata_ops(): ddsi_serdata_ops {
+  /**
+   * @brief Key comparison function.
+   */
   &serdata_eqkey<T>,
+  /**
+   * @brief Serialized buffer size getter function.
+   */
   &serdata_size<T>,
+  /**
+   * @brief From serialized data generator function.
+   *
+   * Generates a ddscxx_serdata from serialized data.
+   */
   &serdata_from_ser<T>,
+  /**
+   * @brief From serialized data generator function.
+   *
+   * Generates a ddscxx_serdata from serialized data in iovector containers.
+   */
   &serdata_from_ser_iov<T>,
+  /**
+   * @brief From keyhash generator function.
+   *
+   * Currently not implemented!!!
+   */
   &serdata_from_keyhash<T>,
+  /**
+   * @brief From sample generator function.
+   *
+   * Generates a ddscxx_serdata from a sample.
+   */
   &serdata_from_sample<T, S>,
+  /**
+   * @brief Serialized data copying function.
+   *
+   * Copies the serialized data into an output buffer.
+   */
   &serdata_to_ser<T>,
+  /**
+   * @brief Serialization buffer association function.
+   *
+   * Associates an iovector buffer object with the serialization buffer of the supplied ddscxx_serdata.
+   */
   &serdata_to_ser_ref<T>,
+  /**
+   * @brief Serialization buffer de-association function.
+   *
+   * De-ssociates an iovector buffer object with the serialization buffer of the supplied ddscxx_serdata.
+   */
   &serdata_to_ser_unref<T>,
+  /**
+   * @brief Sample generation function.
+   *
+   * Generates a sample from the serialized data associated with the supplied ddscxx_serdata.
+   */
   &serdata_to_sample<T>,
+  /**
+   * @brief Untyped serialization function.
+   *
+   * Generates serialized data from the sample associated with the supplied ddscxx_serdata.
+   */
   &serdata_to_untyped<T, S>,
+  /**
+   * @brief Untyped sample generation function.
+   *
+   * Generates a sample from the serialized data associated with the supplied ddscxx_serdata.
+   */
   &serdata_untyped_to_sample<T>,
+  /**
+   * @brief Serdata cleanup function.
+   */
   &serdata_free<T>,
+  /**
+   * @brief Serdata print function.
+   *
+   * Currently not implemented!!!
+   */
   &serdata_print<T>,
+  /**
+   * @brief Serdata keyhash getter function.
+   *
+   * Generates the keyhash of the supplied ddscxx_serdata and optionally forces an MD5 hash.
+   */
   &serdata_get_keyhash<T>
 #ifdef DDSCXX_HAS_SHM
+  /**
+   * @brief Iceoryx block size getter function.
+   *
+   * Returns the iceoryx block size required for this entity.
+   */
   , &serdata_iox_size<T>
+  /**
+   * @brief From iceoryx block generator function.
+   *
+   * Generates a ddscxx_serdata from a supplied iceoryx block.
+   */
   , &serdata_from_iox_buffer<T>
 #endif
   } { ; }
 };
 
+/**
+ * @brief Class for datatype specific serialization of samples.
+ */
 template <typename T>
 class ddscxx_serdata : public ddsi_serdata {
   size_t m_size{ 0 };
@@ -696,18 +783,97 @@ class ddscxx_serdata : public ddsi_serdata {
 
 public:
   bool hash_populated = false;
+  /**
+   * @brief Initialized constructor.
+   *
+   * Will initialize with from CycloneDDS-C with datatype and kind.
+   *
+   * @param type The datatype associated with the topic this sample is on, will contain the serdata_ops used in (de)serialization.
+   * @param kind The kind of sample associated with this, can be DATA or KEY.
+   */
   ddscxx_serdata(const ddsi_sertype* type, ddsi_serdata_kind kind);
+  /**
+   * @brief Destructor.
+   *
+   * Will clean up the associated sample.
+   */
   ~ddscxx_serdata() { delete m_t.load(std::memory_order_acquire); }
 
+  /**
+   * @brief Serialized buffer resize function.
+   *
+   * Will resize the associated buffer to the requested size and set the trailing 4 bytes to 0x0.
+   *
+   * @param requested_size the new size the buffer should attain.
+   */
   void resize(size_t requested_size);
+  /**
+   * @brief Associated buffer size getter.
+   *
+   * Returns the size of the associated serialized data buffer.
+   *
+   * @return size_t The associated buffer size.
+   */
   size_t size() const { return m_size; }
+  /**
+   * @brief Associated buffer get function.
+   *
+   * Returns the raw pointer to the associated serialized data buffer.
+   *
+   * @return void* pointer to the associated buffer.
+   */
   void* data() const { return m_data.get(); }
+  /**
+   * @brief Associated keyhash getter function.
+   *
+   * @return ddsi_keyhash_t& reference to the associated C keyhash.
+   */
   ddsi_keyhash_t& key() { return m_key; }
+  /**
+   * @brief Associated keyhash getter function (const version).
+   *
+   * @return ddsi_keyhash_t& const reference to the associated C keyhash.
+   */
   const ddsi_keyhash_t& key() const { return m_key; }
+  /**
+   * @brief Keyhash hashed getter function.
+   *
+   * @retval true if the assocated keyhash value is MD5 hashed.
+   * @retval false if the assocated keyhash value is RAW.
+   */
   bool& key_md5_hashed() { return m_key_md5_hashed; }
+  /**
+   * @brief Keyhash hashed getter function (const version).
+   *
+   * @retval true if the assocated keyhash value is MD5 hashed.
+   * @retval false if the assocated keyhash value is RAW.
+   */
   const bool& key_md5_hashed() const { return m_key_md5_hashed; }
+  /**
+   * @brief Keyhash value population function.
+   *
+   * Will CDR serialize the key values of the associated sample, and if the maximum possible size of that
+   * is larger than 16 bytes, it will MD5 hash it. Otherwise it will pad the buffer with 0x0 to size 16.
+   */
   void populate_hash();
+  /**
+   * @brief Associated sample setter function.
+   *
+   * Will create a new sample on the heap if none yet exists, and then copy the data of toset into it.
+   *
+   * @param[in] toset pointer to the sample being set on this container.
+   * @return T* pointer to the sample associated with this container.
+   */
   T* setT(const T* toset);
+  /**
+   * @brief Associated sample getter function.
+   *
+   * Will create a new sample on the heap if none yet exists, and then deserialize any associated buffers,
+   * either from shared memory or network transfer, into this sample.
+   *
+   * @return T* pointer to the sample associated with this container.
+   * @retval nullptr no deserialization could be completed succesfully.
+   */
   T* getT();
 
 private:

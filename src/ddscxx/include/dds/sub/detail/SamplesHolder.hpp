@@ -95,6 +95,11 @@ private:
 class CDRSamplesHolder : public SamplesHolder
 {
 public:
+    /**
+     * @brief Initialized constructor.
+     *
+     * @param[in] samples The container of serialized samples to initialize it with.
+     */
     CDRSamplesHolder(dds::sub::LoanedSamples<org::eclipse::cyclonedds::topic::CDRBlob>& samples) : samples_(samples), index_(0)
     {
     }

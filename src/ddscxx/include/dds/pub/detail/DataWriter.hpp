@@ -83,8 +83,7 @@ public:
      * @brief Check if a Loan is available to this entity.
      *
      * The loan is available if the shared memory is enabled and all the constraints
-     * to enable shared memory are met and the type is fixed
-     * @note loan_sample() can be used if and only if
+     * to enable shared memory are met and the type is fixed loan_sample() can be used if and only if
      * is_loan_supported() returns true, otherwise a dds::core::UnsupportedError will be thrown.
      *
      * @returns loan available or not
@@ -94,10 +93,8 @@ public:
     /**
      * @brief Loan a sample from the writer.
      *
-     * @note This function is to be used with write() to publish the loaned
-     * sample.
-     * @note The function can only be used if is_loan_supported() is
-     *       true for the writer.
+     * This function is to be used with write() to publish the loaned sample.
+     * The function can only be used if is_loan_supported() is true for the writer.
      *
      * @return T& reference to the loaned sample.
      *
