@@ -15,11 +15,11 @@ INPUT                  = ../../src/ddscxx/include
 FILE_PATTERNS          = *.c *.idl *.h *.cpp *.hpp
 RECURSIVE              = YES
 EXCLUDE_SYMLINKS       = NO
-EXCLUDE_PATTERNS       = */tests/* */xtests/* */.git/* */CMakeFiles/* "*/include/org/eclipse/*" "*/dds/core/xtypes/*"
+EXCLUDE_PATTERNS       = */tests/* */xtests/* */.git/* */CMakeFiles/* "*/dds/core/xtypes/*"
 SOURCE_BROWSER         = YES
 GENERATE_HTML          = NO
 GENERATE_LATEX         = NO
 GENERATE_XML           = YES
 MACRO_EXPANSION        = YES
-PREDEFINED             = DOXYGEN_FOR_ISOCPP=1 OMG_DDS_API=
+PREDEFINED             = DOXYGEN_FOR_ISOCPP=1 OMG_DDS_API= OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT=1 OMG_DDS_PERSISTENCE_SUPPORT=1 OMG_DDS_OWNERSHIP_SUPPORT=1 OMG_DDS_CONTENT_SUBSCRIPTION_SUPPORT=1 OMG_DDS_MULTI_TOPIC_SUPPORT=1
 CLASS_GRAPH            = NO
