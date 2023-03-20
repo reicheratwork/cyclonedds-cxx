@@ -54,6 +54,19 @@ using org::eclipse::cyclonedds::topic::TopicTraits;
 template<typename T, class S>
 bool get_serialized_size(const T& sample, bool as_key, size_t &sz);
 
+/**
+  * \brief Keyhash calculation function.
+  *
+  * Calculates the keyhash for a given sample:
+  * - will set all bytes to 0x0 if the sample is keyless
+  * - will generate the key stream of the sample
+  * - will MD5 hash the key stream if its maximum size is larger than 16
+  *
+  * \param[in] tokey The sample to calculate the keyhash for.
+  * \param[out] hash The container to store the keyhash into.
+  *
+  * \return bool Whether the operation was succesful.
+  */
 template<typename T>
 bool to_key(const T& tokey, ddsi_keyhash_t& hash)
 {
@@ -99,16 +112,50 @@ bool to_key(const T& tokey, ddsi_keyhash_t& hash)
   }
 }
 
+/**
+  * \brief Pointer arithmetic helper function.
+  *
+  * Calculates the pointer offset from another address.
+  *
+  * \param[in] ptr The pointer to calculate the offset from.
+  * \param[in] n The number of bytes to increase ptr by.
+  *
+  * \return void* the new address.
+  */
 static inline void* calc_offset(void* ptr, ptrdiff_t n)
 {
   return static_cast<void*>(static_cast<unsigned char*>(ptr) + n);
 }
 
+/**
+  * \brief Pointer arithmetic helper function (const version).
+  *
+  * Calculates the pointer offset from another address.
+  *
+  * \param[in] ptr The pointer to calculate the offset from.
+  * \param[in] n The number of bytes to increase ptr by.
+  *
+  * \return const void* the new address.
+  */
 static inline const void* calc_offset(const void* ptr, ptrdiff_t n)
 {
   return static_cast<const void*>(static_cast<const unsigned char*>(ptr) + n);
 }
 
+/**
+  * \brief CDR header start function (basic_cdr version).
+  *
+  * Starts a CDR header by writing the encoding bytes, and setting the rest of
+  * the bytes of the CDR header to 0x0. The header will be finished by the finish_header
+  * function.
+  *
+  * \param[in] buffer The start of the CDR stream.
+  * \tparam T The sample type.
+  * \tparam S The serializer type.
+  *
+  * \retval True if the operation is successful.
+  * \retval False if the operation failed.
+  */
 template<typename T,
          class S,
          std::enable_if_t<std::is_same<basic_cdr_stream, S>::value, bool> = true >
@@ -128,6 +175,20 @@ bool write_header(void *buffer)
   return true;
 }
 
+/**
+  * \brief CDR header start function (xcdr_v2 version).
+  *
+  * Starts a CDR header by writing the encoding bytes, and setting the rest of
+  * the bytes of the CDR header to 0x0. The header will be finished by the finish_header
+  * function.
+  *
+  * \param[in] buffer The start of the CDR stream.
+  * \tparam T The sample type.
+  * \tparam S The serializer type.
+  *
+  * \retval True if the operation is successful.
+  * \retval False if the operation failed.
+  */
 template<typename T,
          class S,
          std::enable_if_t<std::is_same<xcdr_v2_stream, S>::value, bool> = true >
@@ -156,6 +217,20 @@ bool write_header(void *buffer)
   return true;
 }
 
+/**
+  * \brief CDR header start function (xcdr_v1 version).
+  *
+  * Starts a CDR header by writing the encoding bytes, and setting the rest of
+  * the bytes of the CDR header to 0x0. The header will be finished by the finish_header
+  * function.
+  *
+  * \param[in] buffer The start of the CDR stream.
+  * \tparam T The sample type.
+  * \tparam S The serializer type.
+  *
+  * \retval True if the operation is successful.
+  * \retval False if the operation failed.
+  */
 template<typename T,
          class S,
          std::enable_if_t<std::is_same<xcdr_v1_stream, S>::value, bool> = true >
@@ -182,6 +257,19 @@ bool write_header(void *buffer)
   return true;
 }
 
+/**
+  * \brief CDR header finish function.
+  *
+  * Finishes the CDR header started by write_header by writing the
+  * alignment bytes for required at the end of the CDR stream.
+  *
+  * \param[in] buffer The start of the CDR stream.
+  * \param[in] bytes_written The number of bytes written to the CDR stream for the sample.
+  * \tparam T The sample type.
+  *
+  * \retval True if the operation is successful.
+  * \retval False if the operation failed.
+  */
 template<typename T>
 bool finish_header(void *buffer, size_t bytes_written)
 {
@@ -194,6 +282,20 @@ bool finish_header(void *buffer, size_t bytes_written)
   return true;
 }
 
+/**
+  * \brief CDR header read function.
+  *
+  * Reads the information contained in the CDR header: CDR encoding version
+  * and stream endianness.
+  *
+  * \param[in] buffer The start of the CDR stream.
+  * \param[out] ver The encoding version of the CDR stream.
+  * \param[out] end The endianness of the CDR stream.
+  * \tparam T The sample type.
+  *
+  * \retval True if the operation is successful.
+  * \retval False if the operation failed.
+  */
 template<typename T>
 bool read_header(const void *buffer, encoding_version &ver, endianness &end)
 {
@@ -253,6 +355,23 @@ bool read_header(const void *buffer, encoding_version &ver, endianness &end)
   return true;
 }
 
+/**
+  * \brief Serialized fixed size getter function.
+  *
+  * Static size calculation function.
+  * Is only called if the serialized size of a sample does not change,
+  * will be calculated only once, and then return the same result
+  * without calculating it anew.
+  *
+  * \param[in] sample The sample whose serialized size to get.
+  * \param[out] sz The serialized size.
+  * \tparam T The sample type.
+  * \tparam S The serializer type.
+  * \tparam K Whether the stream type is a key.
+  *
+  * \retval True if the operation is successful.
+  * \retval False if the operation failed.
+  */
 template<typename T, class S, bool K>
 bool get_serialized_fixed_size(const T& sample, size_t &sz)
 {
@@ -277,6 +396,21 @@ bool get_serialized_fixed_size(const T& sample, size_t &sz)
   return true;
 }
 
+/**
+  * \brief Serialized size getter function.
+  *
+  * Will do a static calculation of the serialized size if the sample
+  * is of fixed size, for performance purposes.
+  *
+  * \param[in] sample The sample whose serialized size to get.
+  * \param[in] as_key Whether to serialize as a key stream.
+  * \param[out] sz The serialized size.
+  * \tparam T The sample type.
+  * \tparam S The serializer type.
+  *
+  * \retval True if the operation is successful.
+  * \retval False if the operation failed.
+  */
 template<typename T, class S>
 bool get_serialized_size(const T& sample, bool as_key, size_t &sz)
 {
@@ -294,6 +428,22 @@ bool get_serialized_size(const T& sample, bool as_key, size_t &sz)
   return true;
 }
 
+/**
+  * \brief Serialize the sample into the buffer.
+  *
+  * Will CDR serialize the sample into the buffer and also prepend it
+  * with the appropriate header information (endianness + encoding).
+  *
+  * \param[out] buffer The buffer to serialize into
+  * \param[in] buf_sz The size of the buffer.
+  * \param[in] sample Type to which the buffer will be de-serialized.
+  * \param[in] as_key Whether to serialize as a key stream.
+  * \tparam T The sample type.
+  * \tparam S The serializer type.
+  *
+  * \retval True if the serialization is successful.
+  * \retval False if the serialization failed.
+  */
 template<typename T, class S>
 bool serialize_into(void *buffer,
                     size_t buf_sz,
@@ -310,13 +460,22 @@ bool serialize_into(void *buffer,
         && finish_header<T>(buffer, buf_sz));
 }
 
-/// \brief De-serialize the buffer into the sample
-/// \param[in] buffer The buffer to be de-serialized
-/// \param[out] sample Type to which the buffer will be de-serialized
-/// \param[in] data_kind The data kind (data, or key)
-/// \tparam T The sample type
-/// \return True if the deserialization is successful
-///         False if the deserialization failed
+/**
+  * \brief Deserialize the buffer into the sample.
+  *
+  * Will read the CDR header for encoding and endianness information, and deserialize the
+  * buffer into the sample accordingly.
+  *
+  * \param[in] buffer The buffer to be de-serialized.
+  * \param[in] buf_sz The size of the buffer.
+  * \param[out] sample Type to which the buffer will be de-serialized.
+  * \param[in] data_kind The data kind (data, or key).
+  * \tparam T The sample type.
+  * \tparam T The sample type.
+  *
+  * \retval True if the deserialization is successful.
+  * \retval False if the deserialization failed.
+  */
 template <typename T>
 bool deserialize_sample_from_buffer(void *buffer,
                                     size_t buf_sz,
@@ -360,6 +519,20 @@ bool deserialize_sample_from_buffer(void *buffer,
 
 template <typename T> class ddscxx_serdata;
 
+/**
+  * @brief Key comparison function implementation.
+  *
+  * Compares the key values of two different serialized data containers.
+  * This is based on the key members of the attached sample, not necessarily the entire sample's contents.
+  * Used to uniquely identify the sample instance on the DDS Topic.
+  *
+  * @param[in] a Pointer to the first container to compare.
+  * @param[in] b Pointer to the second container to compare.
+  * \tparam T The sample type
+  *
+  * @retval true The key values of the two containers are the same.
+  * @retval false The key values of the two containers are not the same.
+  */
 template <typename T>
 bool serdata_eqkey(const ddsi_serdata* a, const ddsi_serdata* b)
 {
@@ -369,12 +542,34 @@ bool serdata_eqkey(const ddsi_serdata* a, const ddsi_serdata* b)
   return 0 == memcmp(s_a->key().value, s_b->key().value, 16);
 }
 
+/**
+  * @brief Serialized buffer size getter function implementation.
+  *
+  * @param[in] dcmn Pointer to the serialized data container.
+  * \tparam T The sample type
+  *
+  * @return uint32_t The size in bytes of the serialized buffer.
+  */
 template <typename T>
 uint32_t serdata_size(const ddsi_serdata* dcmn)
 {
   return static_cast<uint32_t>(static_cast<const ddscxx_serdata<T>*>(dcmn)->size());
 }
 
+/**
+  * @brief From serialized data generator function implementation.
+  *
+  * Generates a ddscxx_serdata from serialized data.
+  * Deserializes the data into the user sample representation.
+  *
+  * @param[in] type The data type of to generate, associated with the topic.
+  * @param[in] kind deThe kind of serialization to use (DATA/KEY).
+  * @param[in] fragchain The network fragments of data.
+  * @param[in] size The number of bytes to deserialize.
+  * \tparam T The sample type
+  *
+  * @return ddsi_serdata* pointer to the container of the sample, if generated succesfully.
+  */
 template <typename T>
 ddsi_serdata *serdata_from_ser(
   const ddsi_sertype* type,
@@ -401,6 +596,20 @@ ddsi_serdata *serdata_from_ser(
   return d;
 }
 
+/**
+  * @brief From serialized data generator function implementation.
+  *
+  * Generates a ddscxx_serdata from serialized data in iovector containers.
+  *
+  * @param[in] type The data type of to generate, associated with the topic.
+  * @param[in] kind The kind of deserialization to use (DATA/KEY).
+  * @param[in] niov Number of iovector fragments.
+  * @param[in] iov First of the iovector fragments.
+  * @param[in] size The number of bytes to deserialize.
+  * \tparam T The sample type
+  *
+  * @return ddsi_serdata* pointer to the container of the sample, if generated succesfully.
+  */
 template <typename T>
 ddsi_serdata *serdata_from_ser_iov(
   const ddsi_sertype* type,
@@ -436,6 +645,17 @@ ddsi_serdata *serdata_from_ser_iov(
 
 }
 
+/**
+  * @brief From keyhash generator function implementation.
+  *
+  * Currently not implemented!!!
+
+  * @param[in] type The data type of to generate, associated with the topic.
+  * @param[in] keyhash The keyhash whose sample to generate.
+  * \tparam T The sample type
+  *
+  * @return nullptr always.
+  */
 template <typename T>
 ddsi_serdata *serdata_from_keyhash(
   const ddsi_sertype* type,
@@ -447,6 +667,20 @@ ddsi_serdata *serdata_from_keyhash(
   return nullptr;
 }
 
+/**
+  * @brief From sample generator function implementation.
+  *
+  * Generates a ddscxx_serdata from a sample.
+  * Serializes a sample using the specified type of serialization, and generates the keyhash value.
+  *
+  * @param[in] typecmn The data type of to generate, associated with the topic.
+  * @param[in] kind The kind of serialization to use (DATA/KEY).
+  * @param[in] sample The sample to serialize.
+  * \tparam T The sample type
+  * \tparam S The serializer type
+  *
+  * @return ddsi_serdata* pointer to the generated serialized data container.
+  */
 template <typename T, class S>
 ddsi_serdata *serdata_from_sample(
   const ddsi_sertype* typecmn,
@@ -478,6 +712,17 @@ failure:
   return nullptr;
 }
 
+/**
+  * @brief Serialized data copying function implementation.
+  *
+  * Copies the serialized data into an output buffer.
+  *
+  * @param[in] dcmn The serialized container to copy the data from.
+  * @param[in] off The offset of the serialized data to start copying from.
+  * @param[in] sz The number of bytes to copy.
+  * @param[in,out] buf The destination buffer to copy into.
+  * \tparam T The sample type
+  */
 template <typename T>
 void serdata_to_ser(const ddsi_serdata* dcmn, size_t off, size_t sz, void* buf)
 {
@@ -485,6 +730,20 @@ void serdata_to_ser(const ddsi_serdata* dcmn, size_t off, size_t sz, void* buf)
   memcpy(buf, calc_offset(d->data(), static_cast<ptrdiff_t>(off)), sz);
 }
 
+/**
+  * @brief Serialization buffer association function implementation.
+  *
+  * Associates an iovector buffer object with the serialization buffer of the supplied ddscxx_serdata.
+  * Increases the number of references to the supplied serialized data container so that the buffer cannot be destroyed.
+  *
+  * @param[in] dcmn The serialized container to associate with the iovector.
+  * @param[in] off The offset of the serialized data to start the iovector at.
+  * @param[in] sz The number of bytes to say the iovector will contain.
+  * @param[in,out] ref The iovector to associate with the serialized container.
+  * \tparam T The sample type
+  *
+  * @return ddsi_serdata* The reference to the supplied serialization buffer.
+  */
 template <typename T>
 ddsi_serdata *serdata_to_ser_ref(
   const ddsi_serdata* dcmn, size_t off,
@@ -496,6 +755,16 @@ ddsi_serdata *serdata_to_ser_ref(
   return ddsi_serdata_ref(d);
 }
 
+/**
+  * @brief Serialization buffer de-association function implementation.
+  *
+  * Deassociates an iovector buffer object with the serialization buffer of the supplied ddscxx_serdata.
+  * The inverse of the operation serdata_to_ser_ref, allows the serialization buffer to be destroyed safely.
+  *
+  * @param[in] dcmn The serialized container to deassociate from the iovector.
+  * @param[in] ref The iovector to deassociate from the serialized container.
+  * \tparam T The sample type
+  */
 template <typename T>
 void serdata_to_ser_unref(ddsi_serdata* dcmn, const ddsrt_iovec_t* ref)
 {
@@ -503,6 +772,17 @@ void serdata_to_ser_unref(ddsi_serdata* dcmn, const ddsrt_iovec_t* ref)
   ddsi_serdata_unref(static_cast<ddscxx_serdata<T>*>(dcmn));
 }
 
+/**
+  * @brief Sample generation function implementation.
+  *
+  * Generates a sample from the serialized data associated with the supplied ddscxx_serdata.
+  *
+  * @param[in] dcmn The serialization buffer to generate the sample from.
+  * @param[out] sample Pointer to the entity to be set with the contents of the deserialized sample.
+  * @param bufptr unused parameter
+  * @param buflim unused parameter
+  * \tparam T The sample type
+  */
 template <typename T>
 bool serdata_to_sample(
   const ddsi_serdata* dcmn, void* sample, void** bufptr,
@@ -524,6 +804,18 @@ bool serdata_to_sample(
   return true;
 }
 
+/**
+  * @brief Serialization buffer conversion function implementation.
+  *
+  * Generates serialized data from another serialized data container.
+  * This container may not have been serialized yet.
+  *
+  * @param[in] dcmn The serialized data to create from.
+  * \tparam T The sample type
+  * \tparam S The serializer type
+  *
+  * @return ddsi_serdata* The new serialized data container.
+  */
 template <typename T, class S>
 ddsi_serdata *serdata_to_untyped(const ddsi_serdata* dcmn)
 {
@@ -556,6 +848,18 @@ failure:
   return nullptr;
 }
 
+/**
+  * @brief Untyped sample generation function implementation.
+  *
+  * Generates a sample from the serialized data associated with the supplied ddscxx_serdata.
+  *
+  * @param[in] type The data type of to generate, associated with the topic.
+  * @param[in] dcmn The serialized data to create the sample from.
+  * @param[out] sample Pointer to the sample to deserialize the data into.
+  * @param bufptr unused parameter
+  * @param buflim unused parameter
+  * \tparam T The sample type
+  */
 template <typename T>
 bool serdata_untyped_to_sample(
   const ddsi_sertype* type,
@@ -572,6 +876,14 @@ bool serdata_untyped_to_sample(
   return deserialize_sample_from_buffer(d->data(), d->size(), *ptr, SDK_KEY);
 }
 
+/**
+  * @brief Serdata cleanup function implementation.
+  *
+  * Will destroy the serialized data container.
+  *
+  * @param[in] dcmn The serialized data to cleanup.
+  * \tparam T The sample type
+  */
 template <typename T>
 void serdata_free(ddsi_serdata* dcmn)
 {
@@ -590,6 +902,19 @@ void serdata_free(ddsi_serdata* dcmn)
   delete d;
 }
 
+/**
+  * @brief Serdata print function implementation.
+  *
+  * Currently not implemented!!!
+  *
+  * @param[in] tpcmn The data type of to print, associated with the topic.
+  * @param[in] dcmn The serialized data container to print.
+  * @param[out] buf The character buffer to print to.
+  * @param[in] bufsize The size of buf.
+  * \tparam T The sample type
+  *
+  * @return size_t the number of characters printed to buf.
+  */
 template <typename T>
 size_t serdata_print(
   const ddsi_sertype* tpcmn, const ddsi_serdata* dcmn, char* buf, size_t bufsize)
@@ -602,6 +927,17 @@ size_t serdata_print(
   return 0;
 }
 
+
+/**
+  * @brief Serdata keyhash getter function implementation.
+  *
+  * Generates the keyhash of the supplied ddscxx_serdata and optionally forces an MD5 hash.
+  *
+  * @param[in] d The serialized data container whose keyhash to get.
+  * @param[out] buf The output keyhash container.
+  * @param[in] force_md5 Whether to force an md5 hash of the key stream independent of whether its maximum size is larger than 16.
+  * \tparam T The sample type
+  */
 template <typename T>
 void serdata_get_keyhash(
   const ddsi_serdata* d, struct ddsi_keyhash* buf,
@@ -623,6 +959,16 @@ void serdata_get_keyhash(
 }
 
 #ifdef DDSCXX_HAS_SHM
+/**
+  * @brief Iceoryx block size getter function implementation.
+  *
+  * Returns the iceoryx block size required for this entity.
+  *
+  * @param[in] d The serialized data container to get the iceoryx block size for.
+  * \tparam T The sample type
+  *
+  * @return uint32_t The size of the iceoryx block necessary to contain the attached sample.
+  */
 template<typename T>
 uint32_t serdata_iox_size(const struct ddsi_serdata* d)
 {
@@ -630,6 +976,19 @@ uint32_t serdata_iox_size(const struct ddsi_serdata* d)
   return d->type->iox_size;
 }
 
+/**
+  * @brief From iceoryx block generator function implementation.
+  *
+  * Generates a ddscxx_serdata from a supplied iceoryx block.
+  *
+  * @param[in] typecmn The data type of to generate, associated with the topic.
+  * @param[in] kind The kind of serialization to use (DATA/KEY).
+  * @param[in] sub Pointer to the iceoryx subscriber, used to indicate when the block is no longer in use by CycloneDDS
+  * @param[in] iox_buffer Pointer to the iceoryx block.
+  * \tparam T The sample type
+  *
+  * @return ddsi_serdata* The serialized data container constructed from the block.
+  */
 template<typename T>
 ddsi_serdata * serdata_from_iox_buffer(
     const struct ddsi_sertype * typecmn, enum ddsi_serdata_kind kind,
@@ -661,10 +1020,13 @@ ddsi_serdata * serdata_from_iox_buffer(
 #endif
 
 /**
- * @brief Class for datatype and serialization specific serdata_ops
- *
- * Implements specific functions for (de)serialization.
- */
+  * @brief Class for datatype and serialization specific serdata_ops.
+  *
+  * Implements specific functions for (de)serialization.
+  *
+  * \tparam T The sample type
+  * \tparam S The serializer type
+  */
 template<typename T,
          class S >
 struct ddscxx_serdata_ops: public ddsi_serdata_ops {
@@ -692,7 +1054,7 @@ struct ddscxx_serdata_ops: public ddsi_serdata_ops {
   /**
    * @brief From keyhash generator function.
    *
-   * Currently not implemented!!!
+   * Generates the serdata associated with a provided keyhash.
    */
   &serdata_from_keyhash<T>,
   /**
@@ -744,7 +1106,7 @@ struct ddscxx_serdata_ops: public ddsi_serdata_ops {
   /**
    * @brief Serdata print function.
    *
-   * Currently not implemented!!!
+   * Prints the contents of the associated sample into a provided buffer.
    */
   &serdata_print<T>,
   /**
@@ -771,8 +1133,10 @@ struct ddscxx_serdata_ops: public ddsi_serdata_ops {
 };
 
 /**
- * @brief Class for datatype specific serialization of samples.
- */
+  * @brief Class for datatype specific serialization of samples.
+  *
+  * \tparam T The sample type
+  */
 template <typename T>
 class ddscxx_serdata : public ddsi_serdata {
   size_t m_size{ 0 };
@@ -862,6 +1226,8 @@ public:
    * Will create a new sample on the heap if none yet exists, and then copy the data of toset into it.
    *
    * @param[in] toset pointer to the sample being set on this container.
+   * \tparam T The sample type
+   *
    * @return T* pointer to the sample associated with this container.
    */
   T* setT(const T* toset);
@@ -872,6 +1238,8 @@ public:
    * either from shared memory or network transfer, into this sample.
    *
    * @return T* pointer to the sample associated with this container.
+   * \tparam T The sample type
+   *
    * @retval nullptr no deserialization could be completed succesfully.
    */
   T* getT();
