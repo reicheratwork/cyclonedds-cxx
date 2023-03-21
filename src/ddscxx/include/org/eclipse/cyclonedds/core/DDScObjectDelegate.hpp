@@ -38,21 +38,76 @@ namespace core
 
 DDSCXX_WARNING_MSVC_OFF(4251)
 
+/**
+  * @brief Wrapper class for CycloneDDS-C entities to CycloneDDS-CXX Objects.
+  */
 class OMG_DDS_API DDScObjectDelegate : public virtual org::eclipse::cyclonedds::core::ObjectDelegate
 {
 public:
-
+    /**
+      * @brief Convenience typedef.
+      */
     typedef std::unordered_map<dds_entity_t,org::eclipse::cyclonedds::core::ObjectDelegate::weak_ref_type> entity_map_type;
 
+    /**
+      * @brief Default constructor.
+      */
     DDScObjectDelegate ();
+
+    /**
+      * @brief Destructor (virtual).
+      *
+      * Removes this object from the entity map, and calls dds_delete on the CycloneDDS-C entity.
+      */
     virtual ~DDScObjectDelegate ();
 
+    /**
+      * @brief Close function.
+      *
+      * Indicates that this entity will no longer participate in the DDS shared dataspace.
+      */
     void close ();
+
+    /**
+      * @brief CycloneDDS-C entity getter.
+      *
+      * Returns the CycloneDDS-C entity this object wraps.
+      *
+      * @return dds_entity_t the entity wrapped by this object.
+      */
     dds_entity_t get_ddsc_entity ();
+
+    /**
+      * @brief CycloneDDS-C entity setter.
+      *
+      * Sets the CycloneDDS-C entity this object wraps.
+      *
+      * @param[in] e the entity to be wrapped by this object.
+      */
     void set_ddsc_entity (dds_entity_t e);
+
+    /**
+      * @brief Entity management addition function.
+      *
+      * Adds this entity to the map of C to C++ entities.
+      * This entity will be removed from this mapping on deletion.
+      *
+      * @param[in] weak_ref reference to the entity to add to the mapping.
+      */
     void add_to_entity_map (org::eclipse::cyclonedds::core::ObjectDelegate::weak_ref_type weak_ref);
 
 public:
+
+    /**
+      * @brief C to C++ conversion function.
+      *
+      * Looks up the supplied C entity in the entity management mapping, and
+      * returns the associated C++ reference, if any.
+      *
+      * @param[in] e the CycloneDDS-C entity to look up.
+      *
+      * @return ObjectDelegate::ref_type strong reference to the C++ entity that wraps e.
+      */
     static ObjectDelegate::ref_type extract_strong_ref(dds_entity_t e);
 
 protected:

@@ -30,46 +30,101 @@ namespace cyclonedds
 namespace topic
 {
 
+/**
+  * @brief Topic helper class.
+  *
+  * The TopicDescriptionDelegate helps the Topic and derived classes (ContentFilteredTopic, MultiTopic) by
+  * storing common data.
+  */
 class OMG_DDS_API TopicDescriptionDelegate : public virtual org::eclipse::cyclonedds::core::DDScObjectDelegate
 {
 public:
+    /**
+      * @brief Convenience typedef,
+      */
     typedef ::dds::core::smart_ptr_traits< TopicDescriptionDelegate >::ref_type ref_type;
+    /**
+      * @brief Convenience typedef,
+      */
     typedef ::dds::core::smart_ptr_traits< TopicDescriptionDelegate >::weak_ref_type weak_ref_type;
 
 public:
+    /**
+      * @brief Constructor.
+      *
+      * @param[in] dp domainparticipant this topic is on.
+      * @param[in] name name of the topic.
+      * @param[in] type_name name of the datatype of the topic.
+      */
     TopicDescriptionDelegate(const dds::domain::DomainParticipant& dp,
                              const std::string& name,
                              const std::string& type_name);
+    /**
+      * @brief Destructor (virtual).
+      */
     virtual ~TopicDescriptionDelegate();
 
 public:
 
     /**
-     *  @internal Get the name used to create the TopicDescription.
-     */
+      *  @brief Topic name getter.
+      *
+      * @return const std::string& The name of the topic.
+      */
     const std::string& name() const;
 
     /**
-     *  @internal The type_name used to create the TopicDescription.
-     */
+      *  @brief Topic datatype name getter.
+      *
+      * @return const std::string& The name of the datatype.
+      */
     const std::string& type_name() const;
 
     /**
-     *  @internal This operation returns the DomainParticipant to which the
-     * TopicDescription belongs.
-     */
+      *  @brief DomainParticipant getter.
+      *
+      * @return const dds::domain::DomainParticipant& The domainparticipant the topic is on.
+      */
     const dds::domain::DomainParticipant& domain_participant() const;
 
+    /**
+      * @brief Dependents incrementer.
+      *
+      * Increments the number of dependents.
+      * Dependents are subordinate entities of Topics, so DataWriters, DataReaders and ContentFilteredTopics.
+      */
     void incrNrDependents();
 
+    /**
+      * @brief Dependents decrementer.
+      *
+      * Decrements the number of dependents.
+      * Dependents are subordinate entities of Topics, so DataWriters, DataReaders and ContentFilteredTopics.
+      */
     void decrNrDependents();
 
+    /**
+      * @brief Dependents check function.
+      *
+      * Checks whether this Topic has dependents.
+      * Dependents are subordinate entities of Topics, so DataWriters, DataReaders and ContentFilteredTopics.
+      *
+      * @retval true When there are more than 0 dependents.
+      * @retval false When there are 0 dependents.
+      */
     bool hasDependents() const;
 
     virtual std::string reader_expression() const = 0;
 
     //@todo virtual c_value *reader_parameters() const = 0;
 
+    /**
+      * @brief C sertype getter.
+      *
+      * Returns the CycloneDDS-C sertype information for this topic.
+      *
+      * @return ddsi_sertype* pointer to the sertype information for this topic.
+      */
     ddsi_sertype *get_ser_type() const;
 
 protected:

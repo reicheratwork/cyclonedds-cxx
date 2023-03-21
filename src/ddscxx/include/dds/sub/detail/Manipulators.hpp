@@ -183,10 +183,9 @@ private:
 };
 
 /**
- * @brief Functor which allows the user to filter the samples returned on specific instance handles.
+ * @brief Functor which allows the user to return the next instance handle in stored samples.
  *
  * Used when passed as a Selector function to a read/take operation.
- * !!!TODO!!! HOW IS THIS DIFFERENT FROM InstanceManipulatorFunctor???
  */
 class NextInstanceManipulatorFunctor
 {

@@ -29,14 +29,46 @@ namespace cyclonedds
 namespace core
 {
 
+/**
+  * @brief Mutex wrapper class.
+  *
+  * This class wraps the CycloneDDS-C mutex implementation.
+  */
 class OMG_DDS_API Mutex
 {
 public:
+    /**
+      * @brief Constructor.
+      *
+      * Creates and initializes the CycloneDDS-C mutex (ddsrt_mutex_t).
+      */
     Mutex();
+    /**
+      * @brief Destructor (virtual).
+      *
+      * Cleans up resources associated with the CycloneDDS-C mutex.
+      */
     virtual ~Mutex();
 
+    /**
+      * @brief Locking function.
+      *
+      * Will block the calling thread until the lock can be acquired.
+      */
     void lock() const;
+    /**
+      * @brief Attempt locking function.
+      *
+      * Will attempt to acquire the lock, and returns whether this was succesful.
+      *
+      * @return bool whether the lock was acquired.
+      */
     bool try_lock() const;
+    /**
+      * @brief Unlocking function.
+      *
+      * Will unlock the mutex.
+      */
     void unlock() const;
 private:
     void* mtx;

@@ -33,22 +33,77 @@ namespace core
 
 DDSCXX_WARNING_MSVC_OFF(4251)
 
+/**
+  * @brief CycloneDDS object helper class.
+  *
+  * Responsible for handling refcounts of the object and locks on the object.
+  */
 class OMG_DDS_API ObjectDelegate
 {
 public:
-
+    /**
+      * @brief Convenience typedef.
+      */
     typedef ::dds::core::smart_ptr_traits< ObjectDelegate >::ref_type ref_type;
+    /**
+      * @brief Convenience typedef.
+      */
     typedef ::dds::core::smart_ptr_traits< ObjectDelegate >::weak_ref_type weak_ref_type;
 
+    /**
+      * @brief Default constructor.
+      */
     ObjectDelegate ();
+    /**
+      * @brief Destructor (virtual).
+      */
     virtual ~ObjectDelegate ();
 
+    /**
+      * @brief Close function.
+      *
+      * This function indicates to DDS that the object will no longer be valid, and
+      * no longer participate.
+      */
     virtual void close ();
+
+    /**
+      * @brief Lock function.
+      *
+      * Calling this function will block execution on the calling thread until the mutex can be acquired.
+      */
     void lock() const;
+
+    /**
+      * @brief Unlock function.
+      *
+      * Calling this function will unlock the mutex allowing other threads to acquire it.
+      */
     void unlock() const;
 
+    /**
+      * @brief Initialization function (virtual).
+      *
+      * This function will need to be implemented by classes deriving from this.
+      *
+      * @param[in] weak_ref the weak reference to the object this helper is associated with.
+      */
     virtual void init (ObjectDelegate::weak_ref_type weak_ref) = 0;
+
+    /**
+      * @brief Weak reference getter.
+      *
+      * @return ObjectDelegate::weak_ref_type the weak reference to the object associated with this.
+      */
     ObjectDelegate::weak_ref_type get_weak_ref () const;
+
+    /**
+      * @brief Strong reference getter.
+      *
+      * Will lock the weak reference this object is associated with, thereby ensuring its lifetime.
+      *
+      * @return ObjectDelegate::ref_type the reference to the object associated with this.
+      */
     ObjectDelegate::ref_type get_strong_ref () const;
 
 protected:

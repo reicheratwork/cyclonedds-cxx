@@ -29,12 +29,21 @@ namespace core
 namespace status
 {
 
+/**
+ * @brief Data available status.
+ *
+ * Is triggered when data becomes available on the DataReader.
+ */
 class DataAvailableStatus
 {
     // empty
 };
 
-
+/**
+ * @brief Data on readers status.
+ *
+ * Is triggered when data becomes available on DataReaders belonging to the Subscriber.
+ */
 class DataOnReadersStatus
 {
     // empty
