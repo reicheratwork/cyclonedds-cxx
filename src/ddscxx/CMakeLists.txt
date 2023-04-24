@@ -45,6 +45,7 @@ set(sources
     src/org/eclipse/cyclonedds/core/cond/StatusConditionDelegate.cpp
     src/org/eclipse/cyclonedds/core/cond/WaitSetDelegate.cpp
     src/org/eclipse/cyclonedds/core/policy/PolicyDelegate.cpp
+    src/org/eclipse/cyclonedds/core/policy/QosDelegate.cpp
     src/org/eclipse/cyclonedds/domain/Domain.cpp
     src/org/eclipse/cyclonedds/domain/DomainWrap.cpp
     src/org/eclipse/cyclonedds/domain/DomainParticipantDelegate.cpp

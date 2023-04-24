@@ -92,8 +92,8 @@ org::eclipse::cyclonedds::sub::BuiltinSubscriberDelegate::get_builtin_subscriber
     } else {
         dds::sub::qos::SubscriberQos qos;
 
-        qos << dds::core::policy::PresentationAccessScopeKind::TOPIC;
-        qos << dds::core::policy::Partition("__BUILT-IN PARTITION__");
+        qos << dds::core::policy::Presentation::TopicAccessScope()
+            << dds::core::policy::Partition("__BUILT-IN PARTITION__");
 
         builtin_subscriber.reset(new org::eclipse::cyclonedds::sub::BuiltinSubscriberDelegate(dp, qos));
         builtin_subscriber->init(builtin_subscriber);

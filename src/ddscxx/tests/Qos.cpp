@@ -18,6 +18,10 @@ using namespace dds::topic::qos;
 using namespace dds::domain::qos;
 using namespace dds::core::policy;
 using namespace org::eclipse::cyclonedds::core::policy;
+using namespace org::eclipse::cyclonedds::pub::qos;
+using namespace org::eclipse::cyclonedds::sub::qos;
+using namespace org::eclipse::cyclonedds::topic::qos;
+using namespace org::eclipse::cyclonedds::domain::qos;
 
 
 
@@ -108,7 +112,160 @@ DataRepresentation  tmpRepresentation;
 TypeConsistencyEnforcement  tmpEnforcement;
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
 
-TEST(Qos, DomainParticipant)
+class Qos : public ::testing::Test
+{
+public:
+    QosDelegate qdShifted;
+
+    Qos() : qdShifted() {
+        qdShifted  << nonDefaultUserData
+              << nonDefaultEntityFactory
+              << nonDefaultTopicData
+              << nonDefaultDurability
+          #ifdef  OMG_DDS_PERSISTENCE_SUPPORT
+              << nonDefaultDurabilityService
+          #endif  // OMG_DDS_PERSISTENCE_SUPPORT
+              << nonDefaultDeadline
+              << nonDefaultBudget
+              << nonDefaultLiveliness
+              << nonDefaultReliability
+              << nonDefaultOrder
+              << nonDefaultHistory
+              << nonDefaultResources
+              << nonDefaultPriority
+              << nonDefaultLifespan
+              << nonDefaultOwnership
+              << nonDefaultPresentation
+              << nonDefaultPartition
+              << nonDefaultGdata
+          #ifdef  OMG_DDS_OWNERSHIP_SUPPORT
+              << nonDefaultStrength
+          #endif  // OMG_DDS_OWNERSHIP_SUPPORT
+              << nonDefaultWdLifecycle
+              << nonDefaultTbFilter
+              << nonDefaultRdLifecycle
+          #ifdef OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+              << nonDefaultRepresentation
+              << nonDefaultTypeConsistencyEnforcement
+          #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+              ;
+    }
+
+    void SetUp() {
+    }
+
+    void TearDown() {
+    }
+};
+
+TEST_F(Qos, Delegate)
+{
+    QosDelegate qdDefault;
+
+    QosDelegate qdConstructed(qdShifted), qdAssigned;
+    qdAssigned = qdShifted;
+    
+    ASSERT_NE(qdDefault, qdShifted);
+    ASSERT_NE(qdDefault, qdAssigned);
+    ASSERT_NE(qdDefault, qdConstructed);
+    ASSERT_EQ(qdShifted, qdConstructed);
+    ASSERT_EQ(qdShifted, qdAssigned);
+
+    qdShifted >> tmpUserData;
+    qdShifted >> tmpEntityFactory;
+    qdShifted >> tmpTopicData;
+    qdShifted >> tmpDurability;
+    #ifdef  OMG_DDS_PERSISTENCE_SUPPORT
+    qdShifted >> tmpDurabilityService;
+    #endif  // OMG_DDS_PERSISTENCE_SUPPORT
+    qdShifted >> tmpDeadline;
+    qdShifted >> tmpBudget;
+    qdShifted >> tmpLiveliness;
+    qdShifted >> tmpReliability;
+    qdShifted >> tmpOrder;
+    qdShifted >> tmpHistory;
+    qdShifted >> tmpResources;
+    qdShifted >> tmpPriority;
+    qdShifted >> tmpLifespan;
+    qdShifted >> tmpOwnership;
+    qdShifted >> tmpPresentation;
+    qdShifted >> tmpPartition;
+    qdShifted >> tmpGdata;
+    #ifdef  OMG_DDS_OWNERSHIP_SUPPORT
+    qdShifted >> tmpStrength;
+    #endif  // OMG_DDS_OWNERSHIP_SUPPORT
+    qdShifted >> tmpWdLifecycle;
+    qdShifted >> tmpTbFilter;
+    qdShifted >> tmpRdLifecycle;
+    #ifdef OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    qdShifted >> tmpRepresentation;
+    qdShifted >> tmpEnforcement;
+    #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+
+    ASSERT_EQ(tmpUserData, nonDefaultUserData);
+    ASSERT_EQ(tmpEntityFactory, nonDefaultEntityFactory);
+    ASSERT_EQ(tmpTopicData, nonDefaultTopicData);
+    ASSERT_EQ(tmpDurability, nonDefaultDurability);
+    #ifdef  OMG_DDS_PERSISTENCE_SUPPORT
+    ASSERT_EQ(tmpDurabilityService, nonDefaultDurabilityService);
+    #endif  // OMG_DDS_PERSISTENCE_SUPPORT
+    ASSERT_EQ(tmpDeadline, nonDefaultDeadline);
+    ASSERT_EQ(tmpBudget, nonDefaultBudget);
+    ASSERT_EQ(tmpLiveliness, nonDefaultLiveliness);
+    ASSERT_EQ(tmpReliability, nonDefaultReliability);
+    ASSERT_EQ(tmpOrder, nonDefaultOrder);
+    ASSERT_EQ(tmpHistory, nonDefaultHistory);
+    ASSERT_EQ(tmpResources, nonDefaultResources);
+    ASSERT_EQ(tmpPriority, nonDefaultPriority);
+    ASSERT_EQ(tmpLifespan, nonDefaultLifespan);
+    ASSERT_EQ(tmpOwnership, nonDefaultOwnership);
+    ASSERT_EQ(tmpPresentation, nonDefaultPresentation);
+    ASSERT_EQ(tmpPartition, nonDefaultPartition);
+    ASSERT_EQ(tmpGdata, nonDefaultGdata);
+    #ifdef  OMG_DDS_OWNERSHIP_SUPPORT
+    ASSERT_EQ(tmpStrength, nonDefaultStrength);
+    #endif  // OMG_DDS_OWNERSHIP_SUPPORT
+    ASSERT_EQ(tmpWdLifecycle, nonDefaultWdLifecycle);
+    ASSERT_EQ(tmpTbFilter, nonDefaultTbFilter);
+    ASSERT_EQ(tmpRdLifecycle, nonDefaultRdLifecycle);
+    #ifdef OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    ASSERT_EQ(tmpRepresentation, nonDefaultRepresentation);
+    ASSERT_EQ(tmpEnforcement, nonDefaultTypeConsistencyEnforcement);
+    #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::UserData>(), nonDefaultUserData);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::EntityFactory>(), nonDefaultEntityFactory);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::TopicData>(), nonDefaultTopicData);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::Durability>(), nonDefaultDurability);
+    #ifdef  OMG_DDS_PERSISTENCE_SUPPORT
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::DurabilityService>(), nonDefaultDurabilityService);
+    #endif  // OMG_DDS_PERSISTENCE_SUPPORT
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::Deadline>(), nonDefaultDeadline);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::LatencyBudget>(), nonDefaultBudget);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::Liveliness>(), nonDefaultLiveliness);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::Reliability>(), nonDefaultReliability);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::DestinationOrder>(), nonDefaultOrder);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::History>(), nonDefaultHistory);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::ResourceLimits>(), nonDefaultResources);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::TransportPriority>(), nonDefaultPriority);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::Lifespan>(), nonDefaultLifespan);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::Ownership>(), nonDefaultOwnership);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::Presentation>(), nonDefaultPresentation);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::Partition>(), nonDefaultPartition);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::GroupData>(), nonDefaultGdata);
+    #ifdef  OMG_DDS_OWNERSHIP_SUPPORT
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::OwnershipStrength>(), nonDefaultStrength);
+    #endif  // OMG_DDS_OWNERSHIP_SUPPORT
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::WriterDataLifecycle>(), nonDefaultWdLifecycle);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::TimeBasedFilter>(), nonDefaultTbFilter);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::ReaderDataLifecycle>(), nonDefaultRdLifecycle);
+    #ifdef OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::DataRepresentation>(), nonDefaultRepresentation);
+    ASSERT_EQ(qdConstructed.policy<dds::core::policy::TypeConsistencyEnforcement>(), nonDefaultTypeConsistencyEnforcement);
+    #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+}
+
+TEST_F(Qos, DomainParticipant)
 {
     DomainParticipantQos dpQosDefault;
 
@@ -119,6 +276,8 @@ TEST(Qos, DomainParticipant)
     DomainParticipantQos dpQosConstructed(dpQosShifted);
     DomainParticipantQos dpQosAssigned;
     dpQosAssigned = dpQosShifted;
+    DomainParticipantQos dpQosDecayed;
+    dpQosDecayed.delegate() = qdShifted;
 
     /* Compare the QoSses. */
     ASSERT_NE(dpQosDefault, dpQosShifted);
@@ -126,6 +285,7 @@ TEST(Qos, DomainParticipant)
     ASSERT_NE(dpQosDefault, dpQosConstructed);
     ASSERT_EQ(dpQosShifted, dpQosConstructed);
     ASSERT_EQ(dpQosShifted, dpQosAssigned);
+    ASSERT_EQ(dpQosShifted, dpQosDecayed);
 
     /* Compare the Policies (getting them in different ways). */
     dpQosShifted >> tmpUserData;
@@ -137,7 +297,7 @@ TEST(Qos, DomainParticipant)
     ASSERT_EQ(nonDefaultEntityFactory, dpQosConstructed.policy<EntityFactory>());
 }
 
-TEST(Qos, Topic)
+TEST_F(Qos, Topic)
 {
     TopicQos tQosDefault;
 
@@ -166,6 +326,8 @@ TEST(Qos, Topic)
     TopicQos tQosConstructed(tQosShifted);
     TopicQos tQosAssigned;
     tQosAssigned = tQosShifted;
+    TopicQos tQosDecayed;
+    tQosDecayed.delegate() = qdShifted;
 
     /* Compare the QoSses. */
     ASSERT_NE(tQosDefault, tQosShifted);
@@ -173,6 +335,7 @@ TEST(Qos, Topic)
     ASSERT_NE(tQosDefault, tQosConstructed);
     ASSERT_EQ(tQosShifted, tQosConstructed);
     ASSERT_EQ(tQosShifted, tQosAssigned);
+    ASSERT_EQ(tQosShifted, tQosDecayed);
 
     /* Compare the Policies (getting them in different ways). */
     tQosShifted >> tmpTopicData;
@@ -232,7 +395,7 @@ TEST(Qos, Topic)
 #endif  // OMG_DDS_PERSISTENCE_SUPPORT
 }
 
-TEST(Qos, Publisher)
+TEST_F(Qos, Publisher)
 {
     PublisherQos pQosDefault;
 
@@ -245,6 +408,8 @@ TEST(Qos, Publisher)
     PublisherQos pQosConstructed(pQosShifted);
     PublisherQos pQosAssigned;
     pQosAssigned = pQosShifted;
+    PublisherQos pQosDecayed;
+    pQosDecayed.delegate() = qdShifted;
 
     /* Compare the QoSses. */
     ASSERT_NE(pQosDefault, pQosShifted);
@@ -252,6 +417,7 @@ TEST(Qos, Publisher)
     ASSERT_NE(pQosDefault, pQosConstructed);
     ASSERT_EQ(pQosShifted, pQosConstructed);
     ASSERT_EQ(pQosShifted, pQosAssigned);
+    ASSERT_EQ(pQosDecayed, pQosAssigned);
 
     /* Compare the Policies (getting them in different ways). */
     pQosShifted >> tmpEntityFactory;
@@ -269,7 +435,7 @@ TEST(Qos, Publisher)
     ASSERT_EQ(nonDefaultGdata,         pQosConstructed.policy<GroupData>());
 }
 
-TEST(Qos, Subscriber)
+TEST_F(Qos, Subscriber)
 {
     SubscriberQos sQosDefault;
 
@@ -282,6 +448,8 @@ TEST(Qos, Subscriber)
     SubscriberQos sQosConstructed(sQosShifted);
     SubscriberQos sQosAssigned;
     sQosAssigned = sQosShifted;
+    SubscriberQos sQosDecayed;
+    sQosDecayed.delegate() = qdShifted;
 
     /* Compare the QoSses. */
     ASSERT_NE(sQosDefault, sQosShifted);
@@ -289,6 +457,7 @@ TEST(Qos, Subscriber)
     ASSERT_NE(sQosDefault, sQosConstructed);
     ASSERT_EQ(sQosShifted, sQosConstructed);
     ASSERT_EQ(sQosShifted, sQosAssigned);
+    ASSERT_EQ(sQosShifted, sQosDecayed);
 
     /* Compare the Policies (getting them in different ways). */
     sQosShifted >> tmpEntityFactory;
@@ -306,7 +475,7 @@ TEST(Qos, Subscriber)
     ASSERT_EQ(nonDefaultGdata,         sQosConstructed.policy<GroupData>());
 }
 
-TEST(Qos, DataWriter)
+TEST_F(Qos, DataWriter)
 {
     DataWriterQos dwQosDefault;
 
@@ -336,6 +505,9 @@ TEST(Qos, DataWriter)
     DataWriterQos dwQosShifted;
     dwQosShifted << nonDefaultUserData
                  << nonDefaultDurability
+#ifdef  OMG_DDS_PERSISTENCE_SUPPORT
+                 << nonDefaultDurabilityService
+#endif  // OMG_DDS_PERSISTENCE_SUPPORT
                  << nonDefaultDeadline
                  << nonDefaultBudget
                  << nonDefaultLiveliness
@@ -363,6 +535,11 @@ TEST(Qos, DataWriter)
     DataWriterQos dwQosTAssigned2;
     dwQosWAssigned2 = dwQosShifted;
     dwQosTAssigned2 = tQosShifted;
+    DataWriterQos dwQosDecayed;
+    dwQosDecayed.delegate() = qdShifted;
+#ifdef OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    dwQosDecayed << nonDefaultRepresentation;
+#endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
 
     /* Compare the QoSses. */
     ASSERT_NE(dwQosDefault,      dwQosWConstructed);
@@ -376,10 +553,14 @@ TEST(Qos, DataWriter)
     ASSERT_EQ(dwQosWAssigned1,   dwQosWAssigned2);
     ASSERT_EQ(dwQosTConstructed, dwQosTAssigned2);
     ASSERT_EQ(dwQosTAssigned1,   dwQosTAssigned2);
+    ASSERT_EQ(dwQosDecayed,      dwQosShifted);
 
     /* Compare the Policies (getting them in different ways). */
     dwQosShifted >> tmpUserData;
     dwQosShifted >> tmpDurability;
+#ifdef  OMG_DDS_PERSISTENCE_SUPPORT
+    dwQosShifted >> tmpDurabilityService;
+#endif  // OMG_DDS_PERSISTENCE_SUPPORT
     dwQosShifted >> tmpDeadline;
     dwQosShifted >> tmpBudget;
     dwQosShifted >> tmpLiveliness;
@@ -397,6 +578,9 @@ TEST(Qos, DataWriter)
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
     ASSERT_EQ(nonDefaultUserData,    tmpUserData);
     ASSERT_EQ(nonDefaultDurability,  tmpDurability);
+#ifdef  OMG_DDS_PERSISTENCE_SUPPORT
+    ASSERT_EQ(nonDefaultDurabilityService,  tmpDurabilityService);
+#endif  // OMG_DDS_PERSISTENCE_SUPPORT
     ASSERT_EQ(nonDefaultDeadline,    tmpDeadline);
     ASSERT_EQ(nonDefaultBudget,      tmpBudget);
     ASSERT_EQ(nonDefaultLiveliness,  tmpLiveliness);
@@ -415,6 +599,9 @@ TEST(Qos, DataWriter)
 
     ASSERT_EQ(nonDefaultUserData,    dwQosWConstructed.policy<UserData>());
     ASSERT_EQ(nonDefaultDurability,  dwQosWConstructed.policy<Durability>());
+#ifdef  OMG_DDS_PERSISTENCE_SUPPORT
+    ASSERT_EQ(nonDefaultDurabilityService, dwQosWConstructed.policy<DurabilityService>());
+#endif  // OMG_DDS_PERSISTENCE_SUPPORT
     ASSERT_EQ(nonDefaultDeadline,    dwQosWConstructed.policy<Deadline>());
     ASSERT_EQ(nonDefaultBudget,      dwQosWConstructed.policy<LatencyBudget>());
     ASSERT_EQ(nonDefaultLiveliness,  dwQosWConstructed.policy<Liveliness>());
@@ -438,7 +625,7 @@ TEST(Qos, DataWriter)
 #endif  // OMG_DDS_OWNERSHIP_SUPPORT
 }
 
-TEST(Qos, DataReader)
+TEST_F(Qos, DataReader)
 {
     DataReaderQos drQosDefault;
 
@@ -491,6 +678,11 @@ TEST(Qos, DataReader)
     DataReaderQos drQosTAssigned2;
     drQosRAssigned2 = drQosShifted;
     drQosTAssigned2 = tQosShifted;
+    DataReaderQos drQosDecayed;
+    drQosDecayed.delegate() = qdShifted;
+#ifdef OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
+    drQosDecayed << nonDefaultRepresentation;
+#endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
 
     /* Compare the QoSses. */
     ASSERT_NE(drQosDefault,      drQosRConstructed);
@@ -501,6 +693,7 @@ TEST(Qos, DataReader)
     ASSERT_NE(drQosDefault,      drQosTAssigned2);
     ASSERT_NE(drQosRConstructed, drQosTConstructed);
     ASSERT_EQ(drQosRConstructed, drQosRAssigned2);
+    ASSERT_EQ(drQosRConstructed, drQosDecayed);
     ASSERT_EQ(drQosRAssigned1,   drQosRAssigned2);
     ASSERT_EQ(drQosTConstructed, drQosTAssigned2);
     ASSERT_EQ(drQosTAssigned1,   drQosTAssigned2);
@@ -557,7 +750,7 @@ TEST(Qos, DataReader)
 #endif //  OMG_DDS_EXTENSIBLE_AND_DYNAMIC_TOPIC_TYPE_SUPPORT
 }
 
-TEST(Qos, invalid_values)
+TEST_F(Qos, invalid_values)
 {
     History        invalidHistory;
     ResourceLimits invalidResources;
@@ -574,7 +767,7 @@ TEST(Qos, invalid_values)
     }, dds::core::InvalidArgumentError);
 }
 
-TEST(Qos, invalid_policies)
+TEST_F(Qos, invalid_policies)
 {
     TopicQos             tQos;
     DataWriterQos        dwQos;
@@ -614,7 +807,7 @@ TEST(Qos, invalid_policies)
     }, dds::core::InvalidArgumentError);
 }
 
-TEST(Qos, policy_name)
+TEST_F(Qos, policy_name)
 {
     ASSERT_EQ(dds::core::policy::policy_name<UserData>::name(),            "UserData");
     ASSERT_EQ(dds::core::policy::policy_name<Durability>::name(),          "Durability");
