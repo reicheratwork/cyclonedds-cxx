@@ -332,9 +332,11 @@ TEST_F(Regression, key_value_of_appendables)
 
   unsigned char k[] = {0xcd, 0x34, 0x4d, 0x59, 0xec, 0x90, 0xb9, 0x62, 0xca, 0xb1, 0x41, 0xcf, 0x2a, 0x5d, 0xa6, 0xcf};
 
-  ASSERT_TRUE(to_key<s_final>(s_f, kh_f));
+  bool result = to_key<s_final,basic_cdr_stream>(s_f, kh_f);
+  ASSERT_TRUE(result);
   EXPECT_EQ(0, memcmp(k, kh_f.value, 16));
-  ASSERT_TRUE(to_key<s_appendable>(s_a, kh_a));
+  result = to_key<s_appendable,basic_cdr_stream>(s_a, kh_a);
+  ASSERT_TRUE(result);
   EXPECT_EQ(0, memcmp(k, kh_a.value, 16));
 }
 

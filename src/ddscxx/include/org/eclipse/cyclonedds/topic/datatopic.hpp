@@ -54,7 +54,7 @@ using org::eclipse::cyclonedds::topic::TopicTraits;
 template<typename T, class S, key_mode K>
 bool get_serialized_size(const T& sample, size_t &sz);
 
-template<typename T>
+template<typename T, class S>
 bool to_key(const T& tokey, ddsi_keyhash_t& hash)
 {
   if (TopicTraits<T>::isKeyless())
@@ -63,9 +63,9 @@ bool to_key(const T& tokey, ddsi_keyhash_t& hash)
     return true;
   } else
   {
-    basic_cdr_stream str(endianness::big_endian);
+    S str(endianness::big_endian);
     size_t sz = 0;
-    if (!get_serialized_size<T, basic_cdr_stream, key_mode::sorted>(tokey, sz)) {
+    if (!get_serialized_size<T, S, key_mode::sorted>(tokey, sz)) {
       assert(false);
       return false;
     }
@@ -373,6 +373,8 @@ bool deserialize_sample_from_buffer(void *buffer,
 }
 
 template <typename T> class ddscxx_serdata;
+template <typename T, class S>
+void populate_hash(ddscxx_serdata<T> *d);
 
 template <typename T>
 bool serdata_eqkey(const ddsi_serdata* a, const ddsi_serdata* b)
@@ -389,7 +391,7 @@ uint32_t serdata_size(const ddsi_serdata* dcmn)
   return static_cast<uint32_t>(static_cast<const ddscxx_serdata<T>*>(dcmn)->size());
 }
 
-template <typename T>
+template <typename T, class S>
 ddsi_serdata *serdata_from_ser(
   const ddsi_sertype* type,
   enum ddsi_serdata_kind kind,
@@ -403,8 +405,8 @@ ddsi_serdata *serdata_from_ser(
 
   if (d->getT())
   {
-    d->key_md5_hashed() = to_key(*d->getT(), d->key());
-    d->populate_hash();
+    d->key_md5_hashed() = to_key<T,S>(*d->getT(), d->key());
+    populate_hash<T,S>(d);
   }
   else
   {
@@ -415,7 +417,7 @@ ddsi_serdata *serdata_from_ser(
   return d;
 }
 
-template <typename T>
+template <typename T, typename S>
 ddsi_serdata *serdata_from_ser_iov(
   const ddsi_sertype* type,
   enum ddsi_serdata_kind kind,
@@ -439,8 +441,8 @@ ddsi_serdata *serdata_from_ser_iov(
 
   T* ptr = d->getT();
   if (ptr) {
-    d->key_md5_hashed() = to_key(*ptr, d->key());
-    d->populate_hash();
+    d->key_md5_hashed() = to_key<T,S>(*ptr, d->key());
+    populate_hash<T,S>(d);
   } else {
     delete d;
     d = nullptr;
@@ -483,9 +485,9 @@ ddsi_serdata *serdata_from_sample(
   if (!serialize_into<T,S>(d->data(), sz, msg, k))
     goto failure;
 
-  d->key_md5_hashed() = to_key(msg, d->key());
+  d->key_md5_hashed() = to_key<T,S>(msg, d->key());
   d->setT(&msg);
-  d->populate_hash();
+  populate_hash<T,S>(d);
   return d;
 
 failure:
@@ -553,7 +555,7 @@ ddsi_serdata *serdata_to_untyped(const ddsi_serdata* dcmn)
 
   auto t = d->getT();
   size_t sz = 0;
-  if (t == nullptr || !get_serialized_size<T,S,key_mode::sorted>(*t, sz))
+  if (t == nullptr || !get_serialized_size<T,S,key_mode::unsorted>(*t, sz))
     goto failure;
 
   sz += CDR_HEADER_SIZE;
@@ -562,7 +564,7 @@ ddsi_serdata *serdata_to_untyped(const ddsi_serdata* dcmn)
   if (!serialize_into<T,S>(d1->data(), sz, *t, true))
     goto failure;
 
-  d1->key_md5_hashed() = to_key(*t, d1->key());
+  d1->key_md5_hashed() = to_key<T,S>(*t, d1->key());
   d1->hash = d->hash;
 
   return d1;
@@ -646,7 +648,7 @@ uint32_t serdata_iox_size(const struct ddsi_serdata* d)
   return d->type->iox_size;
 }
 
-template<typename T>
+template<typename T, class S>
 ddsi_serdata * serdata_from_iox_buffer(
     const struct ddsi_sertype * typecmn, enum ddsi_serdata_kind kind,
     void * sub, void * iox_buffer)
@@ -666,14 +668,14 @@ ddsi_serdata * serdata_from_iox_buffer(
     // key handling
     if (typecmn->fixed_size) {
       const auto& msg = *static_cast<const T*>(d->iox_chunk);
-      d->key_md5_hashed() = to_key(msg, d->key());
-      d->populate_hash();
+      d->key_md5_hashed() = to_key<T,S>(msg, d->key());
+      populate_hash<T,S>(d);
     } else {
       T msg;
       iceoryx_header_t *iox_header = iceoryx_header_from_chunk(d->iox_chunk);
       if (deserialize_sample_from_buffer(d->iox_chunk, iox_header->data_size, msg, kind)) {
-        d->key_md5_hashed() = to_key(msg, d->key());
-        d->populate_hash();
+        d->key_md5_hashed() = to_key<T,S>(msg, d->key());
+        populate_hash<T,S>(d);
       } else {
         delete d;
         d = nullptr;
@@ -694,8 +696,8 @@ struct ddscxx_serdata_ops: public ddsi_serdata_ops {
   ddscxx_serdata_ops(): ddsi_serdata_ops {
   &serdata_eqkey<T>,
   &serdata_size<T>,
-  &serdata_from_ser<T>,
-  &serdata_from_ser_iov<T>,
+  &serdata_from_ser<T,S>,
+  &serdata_from_ser_iov<T,S>,
   &serdata_from_keyhash<T>,
   &serdata_from_sample<T, S>,
   &serdata_to_ser<T>,
@@ -708,8 +710,8 @@ struct ddscxx_serdata_ops: public ddsi_serdata_ops {
   &serdata_print<T>,
   &serdata_get_keyhash<T>
 #ifdef DDSCXX_HAS_SHM
-  , &serdata_iox_size<T>
-  , &serdata_from_iox_buffer<T>
+  , &serdata_iox_size<T,S>
+  , &serdata_from_iox_buffer<T,S>
 #endif
   } { ; }
 };
@@ -734,7 +736,6 @@ public:
   const ddsi_keyhash_t& key() const { return m_key; }
   bool& key_md5_hashed() { return m_key_md5_hashed; }
   const bool& key_md5_hashed() const { return m_key_md5_hashed; }
-  void populate_hash();
   T* setT(const T* toset);
   T* getT();
 
@@ -770,29 +771,29 @@ void ddscxx_serdata<T>::resize(size_t requested_size)
   std::memset(calc_offset(m_data.get(), static_cast<ptrdiff_t>(requested_size)), '\0', n_pad_bytes);
 }
 
-template <typename T>
-void ddscxx_serdata<T>::populate_hash()
+template <typename T, class S>
+void populate_hash(ddscxx_serdata<T> *d)
 {
-  if (hash_populated)
+  if (d->hash_populated)
     return;
 
-  key_md5_hashed() = to_key(*getT(), key());
-  if (!key_md5_hashed())
+  d->key_md5_hashed() = to_key<T,S>(*(d->getT()), d->key());
+  if (!d->key_md5_hashed())
   {
     ddsi_keyhash_t buf;
     ddsrt_md5_state_t md5st;
     ddsrt_md5_init(&md5st);
-    ddsrt_md5_append(&md5st, static_cast<const ddsrt_md5_byte_t*>(key().value), 16);
+    ddsrt_md5_append(&md5st, static_cast<const ddsrt_md5_byte_t*>(d->key().value), 16);
     ddsrt_md5_finish(&md5st, static_cast<ddsrt_md5_byte_t*>(buf.value));
-    memcpy(&(hash), buf.value, 4);
+    memcpy(&(d->hash), buf.value, 4);
   }
   else
   {
-    memcpy(&(hash), key().value, 4);
+    memcpy(&(d->hash), d->key().value, 4);
   }
 
-  hash ^= type->serdata_basehash;
-  hash_populated = true;
+  d->hash ^= d->type->serdata_basehash;
+  d->hash_populated = true;
 }
 
 template <typename T>
