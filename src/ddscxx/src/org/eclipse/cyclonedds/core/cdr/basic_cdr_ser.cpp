@@ -18,7 +18,7 @@ namespace cdr {
 
 bool basic_cdr_stream::start_struct(const entity_properties_t &props)
 {
-  if (key_mode::sorted != m_key && props.xtypes_necessary && status(unsupported_xtypes))
+  if (props.xtypes_necessary && status(unsupported_xtypes))
     return false;
 
   return cdr_stream::start_struct(props);

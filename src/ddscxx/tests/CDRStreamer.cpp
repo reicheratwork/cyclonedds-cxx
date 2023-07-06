@@ -73,21 +73,21 @@ TEST_F(CDRStreamer, cdr_boundary)
   basic_cdr_stream str;
   str.set_buffer(buffer.data(), 12);
 
-  ASSERT_FALSE(write(str, BS, key_mode::not_key)); /*this write should fail, as the buffer limit is too small*/
+  ASSERT_FALSE(write(str, BS)); /*this write should fail, as the buffer limit is too small*/
   ASSERT_EQ(str.status(), serialization_status::write_bound_exceeded);
 
   str.reset();
 
-  ASSERT_FALSE(read(str, BS2, key_mode::not_key)); /*this read should fail too, as the buffer limit is too small*/
+  ASSERT_FALSE(read(str, BS2)); /*this read should fail too, as the buffer limit is too small*/
   ASSERT_EQ(str.status(), serialization_status::read_bound_exceeded);
 
   str.set_buffer(buffer.data(), 32);
 
-  ASSERT_TRUE(write(str, BS, key_mode::not_key)); /*this write should finish, as the buffer limit is set as "unlimited"*/
+  ASSERT_TRUE(write(str, BS)); /*this write should finish, as the buffer limit is set as "unlimited"*/
 
   str.reset();
 
-  ASSERT_TRUE(read(str, BS2, key_mode::not_key)); /*this write should finish, as the buffer limit is set as "unlimited"*/
+  ASSERT_TRUE(read(str, BS2)); /*this write should finish, as the buffer limit is set as "unlimited"*/
   ASSERT_EQ(BS, BS2);
 }
 
@@ -819,4 +819,124 @@ TEST_F(CDRStreamer, cdr_bitmask)
   stream_test(BMS, struct_normal, struct_key);
   stream_test_union(BMU, BMK, union_normal, union_key);
 
+}
+
+template<typename T>
+void test_write(const bytes &_blob, const SerdataKeyNestedMutableImplicit &_in, key_mode _key)
+{
+  T str(_key, endianness::big_endian);
+
+  bytes buffer;
+  bool result = move(str, _in);
+  if (!result)
+    ASSERT_TRUE(result);
+
+  if (!result)
+    return;
+
+  buffer.resize(str.position());
+  str.set_buffer(buffer.data(), buffer.size());
+  if (!write(str, _in))
+    ASSERT_TRUE(false);
+
+  if (_blob != buffer)
+    ASSERT_EQ(_blob, buffer);
+}
+
+TEST_F(CDRStreamer, cdr_key_stream)
+{
+  SerdataKeyNestedMutableImplicit struct_normal(
+      SerdataKeyNestedMutableImplicitSubtype(
+        1, /*x*/
+        2, /*y*/
+        SerdataKeyOrder(
+          3,
+          4,
+          5) /*z*/
+        ), /*d*/
+      SerdataKeyNestedMutableImplicitSubtype(
+        6, /*x*/
+        7, /*y*/
+        SerdataKeyOrder(
+          8,
+          9,
+          10) /*z*/
+        ), /*e*/
+      654321);  /*f*/
+
+  SerdataKeyNestedMutableImplicit struct_key(
+      SerdataKeyNestedMutableImplicitSubtype(
+        1, /*x*/
+        2, /*y*/
+        SerdataKeyOrder(
+          3,
+          0,
+          5) /*z*/
+        ), /*d*/
+      SerdataKeyNestedMutableImplicitSubtype(
+        0, /*x*/
+        0, /*y*/
+        SerdataKeyOrder(
+          0,
+          0,
+          0) /*z*/
+        ), /*e*/
+      654321);  /*f*/
+
+  bytes bytes_normal{
+    0x00, 0x00, 0x00, 0x64,/*dheader*/
+    0x00, 0x00, 0x00, 0x2C,/*d.dheader*/
+    0xC0, 0x00, 0x00, 0x03,/*d.x.emheader*/
+    0x00, 0x00, 0x00, 0x01,/*d.x.emheader*/
+    0x01, /*d.x*/ 0x00, 0x00, 0x00, /*padding to 4 bytes*/
+    0xC0, 0x00, 0x00, 0x02,/*d.y.emheader*/
+    0x00, 0x00, 0x00, 0x01,/*d.y.emheader*/
+    0x02, /*d.y*/ 0x00, 0x00, 0x00, /*padding to 4 bytes*/
+    0xC0, 0x00, 0x00, 0x01,/*d.z.emheader*/
+    0x00, 0x00, 0x00, 0x0C,/*d.z.emheader*/
+    0x03, /*d.z.a*/
+    0x04, /*d.z.b*/ 0x00, 0x00, /*padding to 4 bytes*/
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, /*d.z.c*/
+    0x00, 0x00, 0x00, 0x2C,/*e.dheader*/
+    0x40, 0x00, 0x00, 0x03,/*e.x.emheader*/
+    0x00, 0x00, 0x00, 0x01,/*e.x.emheader*/
+    0x06, /*e.x*/ 0x00, 0x00, 0x00, /*padding to 4 bytes*/
+    0x40, 0x00, 0x00, 0x02,/*e.y.emheader*/
+    0x00, 0x00, 0x00, 0x01,/*e.y.emheader*/
+    0x07, /*e.y*/ 0x00, 0x00, 0x00, /*padding to 4 bytes*/
+    0x40, 0x00, 0x00, 0x01,/*e.z.emheader*/
+    0x00, 0x00, 0x00, 0x0C,/*e.z.emheader*/
+    0x08, /*e.z.a*/
+    0x09, /*e.z.b*/ 0x00, 0x00, /*padding to 4 bytes*/
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0A, /*e.z.c*/
+    0x00, 0x09, 0xFB, 0xF1 /*f*/
+    };
+
+  bytes bytes_key{
+    0x00, 0x00, 0x00, 0x34,/*dheader*/
+    0x00, 0x00, 0x00, 0x2C,/*d.dheader*/
+    0xC0, 0x00, 0x00, 0x03,/*d.x.emheader*/
+    0x00, 0x00, 0x00, 0x01,/*d.x.emheader*/
+    0x01, /*d.x*/ 0x00, 0x00, 0x00, /*padding to 4 bytes*/
+    0xC0, 0x00, 0x00, 0x02,/*d.y.emheader*/
+    0x00, 0x00, 0x00, 0x01,/*d.y.emheader*/
+    0x02, /*d.y*/ 0x00, 0x00, 0x00, /*padding to 4 bytes*/
+    0xC0, 0x00, 0x00, 0x01,/*d.z.emheader*/
+    0x00, 0x00, 0x00, 0x0C,/*d.z.emheader*/
+    0x03, /*d.z.a*/ 0x00, 0x00, 0x00, /*padding to 4 bytes*/
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, /*d.z.c*/
+    0x00, 0x09, 0xFB, 0xF1 /*f*/
+    };
+
+  bytes bytes_hash{
+    0x00, 0x09, 0xFB, 0xF1, /*f*/
+    0x03, /*d.z.a*/ 0x00, 0x00, 0x00, /* padding to 4 bytes*/
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, /*d.z.c*/
+    0x02, /*d.y*/
+    0x01 /*d.x*/
+    };
+  
+  test_write<xcdr_v2_stream>(bytes_normal, struct_normal, key_mode::not_key);
+  test_write<xcdr_v2_stream>(bytes_key, struct_key, key_mode::unsorted);
+  test_write<xcdr_v2_stream>(bytes_hash, struct_normal, key_mode::sorted);
 }

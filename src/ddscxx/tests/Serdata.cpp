@@ -74,16 +74,16 @@ private:
 
     template<typename T>
     void validate_impl(const T &msg, const std::vector<uint8_t> &exp, endianness end) {
-        basic_cdr_stream str(end);
+        basic_cdr_stream str(key_mode::not_key, end);
 
-        move(str, msg, key_mode::not_key);
+        move(str, msg);
 
         size_t sz = str.position();
         ASSERT_EQ(sz, exp.size());
         std::vector<uint8_t> buffer(sz, 0x0);
         str.set_buffer(buffer.data(), buffer.size());
 
-        write(str, msg, key_mode::not_key);
+        write(str, msg);
 
         ASSERT_EQ(buffer, exp);
     }
@@ -99,11 +99,11 @@ TEST_F(Serdata, alignment)
 {
     Endianness::Msg msg({16,25,36},65535);
 
-    basic_cdr_stream str(endianness::little_endian);
+    basic_cdr_stream str(key_mode::not_key, endianness::little_endian);
     std::vector<unsigned char> vec(8,0x0);
     str.set_buffer(vec.data(), vec.size());
 
-    write(str, msg, key_mode::not_key);
+    write(str, msg);
 
     ASSERT_EQ(vec, std::vector<unsigned char>({16,25,36,0,255,255,0,0}));
 }

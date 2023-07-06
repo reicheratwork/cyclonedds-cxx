@@ -63,7 +63,7 @@ bool to_key(const T& tokey, ddsi_keyhash_t& hash)
     return true;
   } else
   {
-    S str(endianness::big_endian);
+    S str(key_mode::sorted, endianness::big_endian);
     size_t sz = 0;
     if (!get_serialized_size<T, S, key_mode::sorted>(tokey, sz)) {
       assert(false);
@@ -76,14 +76,14 @@ bool to_key(const T& tokey, ddsi_keyhash_t& hash)
     if (padding)
       memset(buffer.data() + sz, 0x0, padding);
     str.set_buffer(buffer.data(), sz);
-    if (!write(str, tokey, key_mode::sorted)) {
+    if (!write(str, tokey)) {
       assert(false);
       return false;
     }
     static thread_local bool (*fptr)(const std::vector<unsigned char>&, ddsi_keyhash_t&) = NULL;
     if (fptr == NULL)
     {
-      if (!max(str, tokey, key_mode::sorted)) {
+      if (!max(str, tokey)) {
         assert(false);
         return false;
       }
@@ -282,8 +282,8 @@ bool get_serialized_fixed_size(const T& sample, size_t &sz)
     sz = serialized_size;
     return true;
   }
-  S str;
-  if (!move(str, sample, K))
+  S str(K);
+  if (!move(str, sample))
     return false;
   serialized_size = str.position();
   initialized.store(true, std::memory_order_release);
@@ -298,8 +298,8 @@ bool get_serialized_size(const T& sample, size_t &sz)
     if (!get_serialized_fixed_size<T,S,K>(sample,sz))
       return false;
   } else {
-    S str;
-    if (!move(str, sample, K))
+    S str(K);
+    if (!move(str, sample))
       return false;
     sz = str.position();
   }
@@ -316,10 +316,10 @@ bool serialize_into(void *buffer,
   CHECK_FOR_NULL(buffer);
   assert(buf_sz >= CDR_HEADER_SIZE);
 
-  S str;
+  S str(as_key ? key_mode::unsorted : key_mode::not_key);
   str.set_buffer(calc_offset(buffer, CDR_HEADER_SIZE), buf_sz-CDR_HEADER_SIZE);
   return (write_header<T,S>(buffer)
-        && write(str, sample, as_key ? key_mode::unsorted : key_mode::not_key)
+        && write(str, sample)
         && finish_header<T>(buffer, buf_sz));
 }
 
@@ -344,27 +344,27 @@ bool deserialize_sample_from_buffer(void *buffer,
   if (!read_header<T>(buffer, ver, end))
     return false;
 
-  const bool k = (data_kind == SDK_KEY);
+  const key_mode k = (data_kind == SDK_KEY ? key_mode::unsorted : key_mode::not_key);
   switch (ver) {
     case encoding_version::basic_cdr:
       {
-        basic_cdr_stream str(end);
+        basic_cdr_stream str(k, end);
         str.set_buffer(calc_offset(buffer, CDR_HEADER_SIZE), buf_sz-CDR_HEADER_SIZE);
-        return read(str, sample, k ? key_mode::unsorted : key_mode::not_key);
+        return read(str, sample);
       }
       break;
     case encoding_version::xcdr_v1:
       {
-        xcdr_v1_stream str(end);
+        xcdr_v1_stream str(k, end);
         str.set_buffer(calc_offset(buffer, CDR_HEADER_SIZE), buf_sz-CDR_HEADER_SIZE);
-        return read(str, sample, k ? key_mode::unsorted : key_mode::not_key);
+        return read(str, sample);
       }
       break;
     case encoding_version::xcdr_v2:
       {
-        xcdr_v2_stream str(end);
+        xcdr_v2_stream str(k, end);
         str.set_buffer(calc_offset(buffer, CDR_HEADER_SIZE), buf_sz-CDR_HEADER_SIZE);
-        return read(str, sample, k ? key_mode::unsorted : key_mode::not_key);
+        return read(str, sample);
       }
       break;
     default:

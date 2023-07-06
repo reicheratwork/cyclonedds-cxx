@@ -187,11 +187,12 @@ public:
      *
      * Sets the stream endianness to end, and maximum alignment to max_align.
      *
+     * @param[in] k The key mode for the streamer.
      * @param[in] end The endianness to set for the data stream, default to the local system endianness.
      * @param[in] max_align The maximum size that the stream will align CDR primitives to.
      * @param[in] ignore_faults Bitmask for ignoring faults, can be composed of bit fields from the serialization_status enumerator.
      */
-    cdr_stream(endianness end, size_t max_align, uint64_t ignore_faults = 0x0) : m_stream_endianness(end), m_max_alignment(max_align), m_fault_mask(~ignore_faults), m_swap(native_endianness() != m_stream_endianness) { ; }
+    cdr_stream(key_mode k, endianness end, size_t max_align, uint64_t ignore_faults = 0x0) : m_stream_endianness(end), m_max_alignment(max_align), m_fault_mask(~ignore_faults), m_key(k), m_swap(native_endianness() != m_stream_endianness) { ; }
 
     /**
      * @brief
@@ -397,9 +398,8 @@ public:
      * This will also reset the current cursor position.
      *
      * @param[in] mode The streaming mode to set for the stream.
-     * @param[in] key The key mode to set for the stream.
      */
-    void set_mode(stream_mode mode, key_mode key);
+    void set_mode(stream_mode mode);
 
     /**
      * @brief
@@ -543,7 +543,7 @@ protected:
 
     static const size_t m_maximum_depth = 32;     /**< the maximum depth of structures in the streamer*/
 
-    endianness m_stream_endianness;               /**< the endianness of the stream*/
+    const endianness m_stream_endianness;         /**< the endianness of the stream*/
     size_t m_position = 0,                        /**< the current offset position in the stream*/
         m_max_alignment,                          /**< the maximum bytes that can be aligned to*/
         m_current_alignment = 1,                  /**< the current alignment*/
@@ -553,8 +553,8 @@ protected:
              m_fault_mask;                        /**< the mask for statuses that will cause streaming
                                                        to be aborted*/
     stream_mode m_mode = stream_mode::unset;      /**< the current streaming mode*/
-    key_mode m_key = key_mode::unset;             /**< the current key mode*/
-    bool m_swap = false;                          /**< whether to swap endianness*/
+    const key_mode m_key;                         /**< the key mode*/
+    const bool m_swap;                            /**< whether to swap endianness*/
 
     DDSCXX_WARNING_MSVC_OFF(4251)
     custom_stack<size_t, m_maximum_depth> m_buffer_end; /**< the end of reading at the current level*/

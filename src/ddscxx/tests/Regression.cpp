@@ -39,48 +39,45 @@ public:
 
 
 template<typename T, typename S>
-void VerifyWrite_impl(const T& in, const bytes &out, S &stream, bool as_key = false, bool write_success = true, bool compare_success = true)
+void VerifyWrite_impl(const T& in, const bytes &out, S &stream)
 {
   bytes buffer;
-  bool result = move(stream, in, as_key ? key_mode::unsorted : key_mode::not_key);
-  ASSERT_EQ(result, write_success);
+  bool result = move(stream, in);
+  ASSERT_TRUE(result);
 
   if (!result)
     return;
 
   buffer.resize(stream.position());
   stream.set_buffer(buffer.data(), buffer.size());
-  ASSERT_TRUE(write(stream, in, as_key ? key_mode::unsorted : key_mode::not_key));
+  ASSERT_TRUE(write(stream, in));
 
   result = (buffer == out);
-  ASSERT_EQ(result, compare_success);
+  ASSERT_TRUE(result);
 }
 
 template<typename T, typename S>
-void VerifyRead_impl(const bytes &in, const T& out, S &stream, bool as_key = false, bool read_success = true, bool compare_success = true)
+void VerifyRead_impl(const bytes &in, const T& out, S &stream)
 {
   bytes incopy(in);
   T buffer;
   stream.set_buffer(incopy.data(), incopy.size());
-  bool result = read(stream, buffer, as_key ? key_mode::unsorted : key_mode::not_key);
-  ASSERT_EQ(result, read_success);
+  bool result = read(stream, buffer);
+  ASSERT_TRUE(result);
 
   if (!result)
     return;
 
-  if (as_key)
-    result = (buffer.c() == out.c());
-  else
-    result = (buffer == out);
+  result = (buffer == out);
 
-  ASSERT_EQ(result, compare_success);
+  ASSERT_TRUE(result);
 }
 
 #define readwrite_test(test_struct, test_cdr, streamer)\
 {\
-streamer streamer_1(endianness::little_endian);\
+streamer streamer_1(key_mode::not_key,endianness::little_endian);\
 VerifyRead_impl(test_cdr, test_struct, streamer_1);\
-streamer streamer_2(endianness::little_endian);\
+streamer streamer_2(key_mode::not_key,endianness::little_endian);\
 VerifyWrite_impl(test_struct, test_cdr, streamer_2);\
 }
 
@@ -335,7 +332,7 @@ TEST_F(Regression, key_value_of_appendables)
   bool result = to_key<s_final,basic_cdr_stream>(s_f, kh_f);
   ASSERT_TRUE(result);
   EXPECT_EQ(0, memcmp(k, kh_f.value, 16));
-  result = to_key<s_appendable,basic_cdr_stream>(s_a, kh_a);
+  result = to_key<s_appendable,xcdr_v1_stream>(s_a, kh_a);
   ASSERT_TRUE(result);
   EXPECT_EQ(0, memcmp(k, kh_a.value, 16));
 }
@@ -344,14 +341,14 @@ TEST_F(Regression, memberless_struct)
 {
   const auto &props = get_type_props<s_memberless>();
 
-  xcdr_v1_stream v1(endianness::big_endian);
-  v1.set_mode(cdr_stream::stream_mode::read, key_mode::not_key);
+  xcdr_v1_stream v1(key_mode::not_key,endianness::big_endian);
+  v1.set_mode(cdr_stream::stream_mode::read);
   auto ptr1 = v1.first_entity(props.data());
   EXPECT_EQ(ptr1, nullptr);
 
 
-  xcdr_v2_stream v2(endianness::big_endian);
-  v2.set_mode(cdr_stream::stream_mode::read, key_mode::not_key);
+  xcdr_v2_stream v2(key_mode::not_key,endianness::big_endian);
+  v2.set_mode(cdr_stream::stream_mode::read);
   auto ptr2 = v2.first_entity(props.data());
   EXPECT_EQ(ptr2, nullptr);
 }
@@ -370,38 +367,38 @@ TEST_F(Regression, unaligned_access)
 
   s_unaligned_access s;
 
-  basic_cdr_stream b(swap_end);
+  basic_cdr_stream b(key_mode::not_key, swap_end);
   b.set_buffer(correct, 16);
-  ASSERT_TRUE(org::eclipse::cyclonedds::core::cdr::read(b, s, key_mode::not_key));
+  ASSERT_TRUE(org::eclipse::cyclonedds::core::cdr::read(b, s));
   ASSERT_EQ(s.l(), int32_t(0x00010203));  //size 4 reads should be done at 4 byte offsets in stream
   ASSERT_EQ(s.ll(), int64_t(0x08090A0B0C0D0E0F));  //size 8 reads should be done at 8 byte offsets in stream
 
   b.set_buffer(incorrect, 16);
-  ASSERT_TRUE(org::eclipse::cyclonedds::core::cdr::read(b, s, key_mode::not_key));
+  ASSERT_TRUE(org::eclipse::cyclonedds::core::cdr::read(b, s));
   ASSERT_EQ(s.l(), int32_t(0x04050607));  //size 4 reads should be done at 4 byte offsets in stream
   ASSERT_EQ(s.ll(), int64_t(0x0C0D0E0F10111213));  //size 8 reads should be done at 8 byte offsets in stream
 
-  xcdr_v1_stream v1(swap_end);
+  xcdr_v1_stream v1(key_mode::not_key, swap_end);
 
   v1.set_buffer(correct, 16);
-  ASSERT_TRUE(org::eclipse::cyclonedds::core::cdr::read(v1, s, key_mode::not_key));
+  ASSERT_TRUE(org::eclipse::cyclonedds::core::cdr::read(v1, s));
   ASSERT_EQ(s.l(), int32_t(0x00010203));  //size 4 reads should be done at 4 byte offsets in stream
   ASSERT_EQ(s.ll(), int64_t(0x08090A0B0C0D0E0F));  //size 8 reads should be done at 8 byte offsets in stream
 
   v1.set_buffer(incorrect, 16);
-  ASSERT_TRUE(org::eclipse::cyclonedds::core::cdr::read(v1, s, key_mode::not_key));
+  ASSERT_TRUE(org::eclipse::cyclonedds::core::cdr::read(v1, s));
   ASSERT_EQ(s.l(), int32_t(0x04050607));  //size 4 reads should be done at 4 byte offsets in stream
   ASSERT_EQ(s.ll(), int64_t(0x0C0D0E0F10111213));  //size 8 reads should be done at 8 byte offsets in stream
 
-  xcdr_v2_stream v2(swap_end);
+  xcdr_v2_stream v2(key_mode::not_key, swap_end);
 
   v2.set_buffer(correct, 16);
-  ASSERT_TRUE(org::eclipse::cyclonedds::core::cdr::read(v2, s, key_mode::not_key));
+  ASSERT_TRUE(org::eclipse::cyclonedds::core::cdr::read(v2, s));
   ASSERT_EQ(s.l(), int32_t(0x00010203));  //size 4 reads should be done at 4 byte offsets in stream
   ASSERT_EQ(s.ll(), int64_t(0x0405060708090A0B));  //size 4 reads should be done at 4 byte offsets in stream
 
   v2.set_buffer(incorrect, 16);
-  ASSERT_TRUE(org::eclipse::cyclonedds::core::cdr::read(v2, s, key_mode::not_key));
+  ASSERT_TRUE(org::eclipse::cyclonedds::core::cdr::read(v2, s));
   ASSERT_EQ(s.l(), int32_t(0x04050607));  //size 4 reads should be done at 4 byte offsets in stream
   ASSERT_EQ(s.ll(), int64_t(0x08090A0B0C0D0E0F));  //size 4 reads should be done at 4 byte offsets in stream
 }

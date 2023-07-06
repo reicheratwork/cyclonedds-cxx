@@ -70,13 +70,11 @@ enum class bit_bound {
  * This value is used to determine which fields to write and in which order to write them.
  * Mainly used to get the first/next/previous entity from the entity properties describing a datatype.
  *
- * @var key_mode::unset The key_mode of streaming is unset.
  * @var key_mode::not_key The key_mode of streaming is not a key, all members will be streamed in declaration order.
  * @var key_mode::unsorted The key_mode of streaming is key mode, only members will be streamed in declaration order.
  * @var key_mode::sorted The key_mode of streaming is keyhash mode, only members will be streamed in member id order.
  */
 enum class key_mode {
-  unset,
   not_key,
   unsorted,
   sorted

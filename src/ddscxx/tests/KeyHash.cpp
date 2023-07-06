@@ -30,7 +30,7 @@ public:
             0x01 /*a*/, 0x0, 0x0, 0x0 /*padding*/,
             0x00, 0x00, 0x00, 0x04 /*b.length*/, 'a', 'b', 'c', '\0' /*b.c_str*/},
         s_n_h_1 = {
-            0x01 /*z.a*/, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 /*padding*/,
+            0x01 /*z.a*/, 0x00, 0x00, 0x00 /*padding*/,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03 /*z.c*/,
             0x04 /*x*/},
         s_n_h_2 = {
@@ -68,7 +68,7 @@ public:
 
 };
 
-#define hash_test(_struct, _bytes) { VerifyWrite(_struct, _bytes, basic_cdr_stream, key_mode::sorted, true, true); }
+#define hash_test(_struct, _bytes, _streamer) { VerifyWrite(_struct, _bytes, _streamer, key_mode::sorted, true, true); }
 
 TEST_F(KeyHash, basic_types)
 {
@@ -78,11 +78,11 @@ TEST_F(KeyHash, basic_types)
   SerdataKeyOrderAppendable s_a{1,2,3};
   SerdataKeyOrderMutable s_m{1,2,3};
 
-  hash_test(s_k_o, s_k_o_h);
-  hash_test(s_k_i, s_k_ih_h);
-  hash_test(s_k_h, s_k_ih_h);
-  hash_test(s_a, s_k_ih_h);
-  hash_test(s_m, s_k_ih_h);
+  hash_test(s_k_o, s_k_o_h, basic_cdr_stream);
+  hash_test(s_k_i, s_k_ih_h, basic_cdr_stream);
+  hash_test(s_k_h, s_k_ih_h, basic_cdr_stream);
+  hash_test(s_a, s_k_ih_h, xcdr_v2_stream);
+  hash_test(s_m, s_k_ih_h, xcdr_v2_stream);
 }
 
 TEST_F(KeyHash, string_types)
@@ -92,10 +92,10 @@ TEST_F(KeyHash, string_types)
   SerdataKeyStringAppendable s_a{1, "abc"};
   SerdataKeyStringBoundedAppendable s_b_a{1, "abc"};
 
-  hash_test(s, s_s);
-  hash_test(s_b, s_s);
-  hash_test(s_a, s_s);
-  hash_test(s_b_a, s_s);
+  hash_test(s, s_s, basic_cdr_stream);
+  hash_test(s_b, s_s, basic_cdr_stream);
+  hash_test(s_a, s_s, xcdr_v2_stream);
+  hash_test(s_b_a, s_s, xcdr_v2_stream);
 }
 
 TEST_F(KeyHash, nested_types)
@@ -108,12 +108,12 @@ TEST_F(KeyHash, nested_types)
   SerdataKeyOrderMutableNestedFinal m_n_f{4,5,SerdataKeyOrder{1,2,3}};
 
 
-  hash_test(s_o, s_o_h);
-  hash_test(f_n_m, s_n_h_2);
-  hash_test(a_n_m, s_n_h_2);
-  hash_test(m_n_m, s_n_h_2);
-  hash_test(m_n_a, s_n_h_2);
-  hash_test(m_n_f, s_n_h_1);
+  hash_test(s_o, s_o_h, basic_cdr_stream);
+  hash_test(f_n_m, s_n_h_2, xcdr_v2_stream);
+  hash_test(a_n_m, s_n_h_2, xcdr_v2_stream);
+  hash_test(m_n_m, s_n_h_2, xcdr_v2_stream);
+  hash_test(m_n_a, s_n_h_2, xcdr_v2_stream);
+  hash_test(m_n_f, s_n_h_1, xcdr_v2_stream);
 }
 
 TEST_F(KeyHash, nested_types_implicit)
@@ -150,8 +150,8 @@ TEST_F(KeyHash, nested_types_implicit)
       SerdataKeyOrder{8, 9, 10}}, /*e.z*/
       11 /*f*/};
 
-  hash_test(n_f_i, n_f_i_h);
-  hash_test(n_f_i_2, n_f_i_2_h);
-  hash_test(n_m_i, n_m_i_h);
+  hash_test(n_f_i, n_f_i_h, basic_cdr_stream);
+  hash_test(n_f_i_2, n_f_i_2_h, basic_cdr_stream);
+  hash_test(n_m_i, n_m_i_h, xcdr_v2_stream);
 }
 

@@ -133,11 +133,9 @@ bool cdr_stream::finish_member(const entity_properties_t &props, member_id_set &
   return true;
 }
 
-void cdr_stream::set_mode(stream_mode mode, key_mode key)
+void cdr_stream::set_mode(stream_mode mode)
 {
-  assert(key != key_mode::unset);
   m_mode = mode;
-  m_key = key;
   reset();
 }
 
@@ -156,7 +154,6 @@ bool cdr_stream::status(serialization_status toadd)
 
 bool cdr_stream::is_key() const
 {
-  assert(m_key != key_mode::unset);
   return m_key == key_mode::sorted || m_key == key_mode::unsorted;
 }
 

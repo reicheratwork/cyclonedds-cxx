@@ -207,6 +207,26 @@ module CDR_testing {
         unsigned short s;
   };
 
+  @final
+  struct SerdataKeyOrder {
+      @key uint8 a;
+      uint8 b;
+      @key uint64 c;
+  };
+
+  @mutable @nested
+  struct SerdataKeyNestedMutableImplicitSubtype {
+      @id(3) uint8 x;
+      @id(2) uint8 y;
+      @id(1) SerdataKeyOrder z;
+  };
+  @topic @appendable
+  struct SerdataKeyNestedMutableImplicit {
+      @id(3) @key SerdataKeyNestedMutableImplicitSubtype d;
+      @id(2) SerdataKeyNestedMutableImplicitSubtype e;
+      @id(1) @key uint32 f;
+  };
+
 };
 
 module DataModels_testing {

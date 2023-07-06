@@ -36,7 +36,7 @@ public:
    * @param[in] end The endianness to set for the data stream, default to the local system endianness.
    * @param[in] ignore_faults Bitmask for ignoring faults, can be composed of bit fields from the serialization_status enumerator.
    */
-  basic_cdr_stream(endianness end = native_endianness(), uint64_t ignore_faults = 0x0) : cdr_stream(end, 8, ignore_faults) { ; }
+  basic_cdr_stream(key_mode k = key_mode::not_key, endianness end = native_endianness(), uint64_t ignore_faults = 0x0) : cdr_stream(k, end, 8, ignore_faults) { ; }
 
   /**
    * @brief

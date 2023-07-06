@@ -36,7 +36,7 @@ public:
    * @param[in] end The endianness to set for the data stream, default to the local system endianness.
    * @param[in] ignore_faults Bitmask for ignoring faults, can be composed of bit fields from the serialization_status enumerator.
    */
-  xcdr_v2_stream(endianness end = native_endianness(), uint64_t ignore_faults = 0x0) : cdr_stream(end, 4, ignore_faults) { ; }
+  xcdr_v2_stream(key_mode k = key_mode::not_key, endianness end = native_endianness(), uint64_t ignore_faults = 0x0) : cdr_stream(k, end, 4, ignore_faults) { ; }
 
   /**
    * @brief
@@ -275,7 +275,7 @@ private:
    *
    * @return Whether the entity props needs a D-header
    */
-  inline bool d_header_necessary(const entity_properties_t &props) const { return props.e_ext == extensibility::ext_appendable || props.e_ext == extensibility::ext_mutable; }
+  inline bool d_header_necessary(const entity_properties_t &props) const { return m_key != key_mode::sorted && (props.e_ext == extensibility::ext_appendable || props.e_ext == extensibility::ext_mutable); }
 
   /**
    * @brief
@@ -285,7 +285,7 @@ private:
    *
    * @return Whether the entity props needs a EM-header
    */
-  inline bool em_header_necessary(const entity_properties_t &props) const { return props.p_ext == extensibility::ext_mutable; }
+  inline bool em_header_necessary(const entity_properties_t &props) const { return m_key != key_mode::sorted && props.p_ext == extensibility::ext_mutable; }
 
   /**
    * @brief
@@ -298,7 +298,7 @@ private:
    *
    * @return Whether a list is necessary for this entity.
    */
-  inline bool list_necessary(const entity_properties_t &props) const { return props.e_ext == extensibility::ext_mutable; }
+  inline bool list_necessary(const entity_properties_t &props) const { return m_key != key_mode::sorted && props.e_ext == extensibility::ext_mutable; }
 };
 
 /**
