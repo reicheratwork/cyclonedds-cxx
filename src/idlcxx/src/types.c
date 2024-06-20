@@ -1249,6 +1249,298 @@ emit_forward(
   return IDL_RETCODE_OK;
 }
 
+static idl_retcode_t
+generate_discriminator_randomization(const idl_union_t *u, struct generator *gen)
+{
+  const char  *f_start =
+    "template<>\n"
+    "%s randomize_discriminator<%s,%s>()\n"
+    "{\n"
+    "  int val = rand() % %d;  //make into int64?\n"
+    "  switch (val) {\n",
+              *case_entry =
+    "    case %d:\n"
+    "      return %s(%"PRIi64");\n"
+    "      break;\n",
+              *f_end =
+    "  }\n"
+    "  assert(false);  //this case should never be reached\n"
+    "  return %s();\n"
+    "}\n\n";
+
+  char *disc_type = NULL, *union_type = NULL;
+  int n_cases = 0, entry_number = 0;
+
+  const idl_case_t *cs = NULL;
+  IDL_FOREACH(cs, u->cases) {
+    const idl_case_label_t *cl = NULL;
+    IDL_FOREACH(cl, cs->labels) {
+      n_cases++;
+    }
+  }
+
+  if (IDL_PRINTA(&union_type, get_cpp11_type, u, gen) < 0 ||
+      IDL_PRINTA(&disc_type, get_cpp11_type, u->switch_type_spec->type_spec, gen) < 0 ||
+      union_type == NULL ||
+      disc_type == NULL ||
+      idl_fprintf(gen->impl.handle, f_start, disc_type, union_type, disc_type, n_cases) < 0)
+    return IDL_RETCODE_NO_MEMORY;
+
+  IDL_FOREACH(cs, u->cases) {
+    const idl_case_label_t *cl = NULL;
+    IDL_FOREACH(cl, cs->labels) {
+      if (idl_fprintf(gen->impl.handle, case_entry, entry_number++, disc_type, idl_case_label_intvalue(cl)) < 0)
+        return IDL_RETCODE_NO_MEMORY;
+    }
+  }
+
+  if (idl_fprintf(gen->impl.handle, f_end, disc_type) < 0)
+    return IDL_RETCODE_NO_MEMORY;
+
+  return IDL_RETCODE_OK;
+}
+
+static idl_retcode_t
+emit_constr_type_rand(
+  const idl_pstate_t *pstate,
+  bool revisit,
+  const idl_path_t *path,
+  const void *node,
+  void *user_data)
+{
+  (void) pstate;
+  (void) path;
+
+  struct generator *gen = user_data;
+
+  if (revisit) {
+
+    //if union, close switchbox
+    if (idl_is_union(node) &&
+        idl_fprintf(gen->impl.handle, "  }  //end switch discriminator\n") < 0)
+          return IDL_RETCODE_NO_MEMORY;
+
+    if (idl_fprintf(gen->impl.handle, "}\n\n") < 0)
+      return IDL_RETCODE_NO_MEMORY;
+
+  } else {
+
+    //if union, close switchbox
+    idl_retcode_t ret = IDL_RETCODE_OK;
+    if (idl_is_union(node) &&
+        (ret = generate_discriminator_randomization(node, gen)) != IDL_RETCODE_OK)
+      return ret;
+
+    static const char *fmt =
+      "void randomize_contents(%s &entity, const size_t max_str_length, size_t max_seq_length)%s\n";
+
+    char *name = NULL;
+    if (IDL_PRINTA(&name, get_cpp11_type, node, gen) < 0 ||
+        name == NULL ||
+        idl_fprintf(gen->header.handle, fmt, name, ";") < 0 ||
+        idl_fprintf(gen->impl.handle, fmt, name, " {\n  (void)entity;\n  (void)max_str_length;\n  (void)max_seq_length;") < 0)
+      return IDL_RETCODE_NO_MEMORY;
+    else
+      return IDL_VISIT_REVISIT;
+
+  }
+  return IDL_RETCODE_OK;
+}
+
+static idl_retcode_t
+emit_inherit_rand(
+  const idl_pstate_t *pstate,
+  bool revisit,
+  const idl_path_t *path,
+  const void *node,
+  void *user_data)
+{
+  (void) pstate;
+  (void) revisit;
+  (void) path;
+
+  char *base = NULL;
+  struct generator *gen = user_data;
+  const idl_inherit_spec_t *inh = node;
+
+  if (IDL_PRINTA(&base, get_cpp11_fully_scoped_name, inh->base, gen) < 0 ||
+      idl_fprintf(gen->impl.handle, "  randomize_contents(static_cast<%s&>(entity), max_str_length, max_seq_length);\n", base) < 0)
+    return IDL_RETCODE_NO_MEMORY;
+
+  return IDL_RETCODE_OK;
+}
+
+static idl_retcode_t
+emit_member_rand(
+  const idl_pstate_t *pstate,
+  bool revisit,
+  const idl_path_t *path,
+  const void *node,
+  void *user_data)
+{
+  (void) pstate;
+  (void) revisit;
+  (void) path;
+
+  const idl_member_t *mem = node;
+  struct generator *gen = user_data;
+  const idl_declarator_t *decl = NULL;
+
+  IDL_FOREACH(decl, mem->declarators) {
+    const char *memname = get_cpp11_name(decl);
+    if (memname == NULL ||
+        idl_fprintf(gen->impl.handle, "  randomize_contents(entity.%s(), max_str_length, max_seq_length);\n", memname) < 0)
+      return IDL_RETCODE_NO_MEMORY;
+  }
+  return IDL_RETCODE_OK;
+}
+
+static idl_retcode_t
+emit_switch_type_spec_rand(
+  const idl_pstate_t *pstate,
+  bool revisit,
+  const idl_path_t *path,
+  const void *node,
+  void *user_data)
+{
+  (void) pstate;
+  (void) revisit;
+  (void) path;
+  struct generator *gen = user_data;
+  const idl_switch_type_spec_t *sw = node;
+
+  char *union_type = NULL, *disc_type = NULL;
+
+  if (IDL_PRINTA(&union_type, get_cpp11_type, idl_parent(sw), gen) < 0 ||
+      IDL_PRINTA(&disc_type, get_cpp11_type, sw->type_spec, gen) < 0 ||
+      union_type == NULL ||
+      disc_type == NULL ||
+      idl_fprintf(gen->impl.handle,
+        "  auto discriminator = randomize_discriminator<%s,%s>();\n"
+        "  switch (discriminator) {\n", union_type, disc_type) < 0)
+    return IDL_RETCODE_NO_MEMORY;
+
+  return IDL_RETCODE_OK;
+}
+
+static idl_retcode_t
+emit_case_label_rand(
+  const idl_pstate_t *pstate,
+  bool revisit,
+  const idl_path_t *path,
+  const void *node,
+  void *user_data)
+{
+  (void) pstate;
+  (void) revisit;
+  (void) path;
+  struct generator *gen = user_data;
+
+  char *value = NULL;
+  const char *casefmt = "    case %s:\n";
+
+  if (idl_mask(node) == IDL_DEFAULT_CASE_LABEL) {
+    casefmt = "    default:\n";
+  } else {
+    if (idl_mask(node) == IDL_IMPLICIT_DEFAULT_CASE_LABEL)
+      casefmt = "    default:\n"
+                "    case %s;\n";
+    if (IDL_PRINTA(&value, get_cpp11_value,  ((const idl_case_label_t *)node)->const_expr, gen) < 0)
+      return IDL_RETCODE_NO_MEMORY;
+  }
+
+  if (idl_fprintf(gen->impl.handle, casefmt, value) < 0)
+    return IDL_RETCODE_NO_MEMORY;
+
+  return IDL_RETCODE_OK;
+}
+
+static idl_retcode_t
+emit_case_rand(
+  const idl_pstate_t *pstate,
+  bool revisit,
+  const idl_path_t *path,
+  const void *node,
+  void *user_data)
+{
+  (void) pstate;
+  (void) path;
+  (void) node;
+  struct generator *gen = user_data;
+  const idl_case_t *cs = node;
+  char *type = NULL;
+  const char *case_name = get_cpp11_name(cs->declarator);
+
+  static const char *fmt =
+    "    {\n"
+    "      %s value;\n"
+    "      randomize_contents(value, max_str_length, max_seq_length);\n"
+    "      entity.%s(value, discriminator);\n"
+    "    }\n"
+    "    break;\n";
+
+  const idl_type_spec_t *type_spec = NULL;
+  if (idl_is_array(cs->declarator))
+    type_spec = cs->declarator;
+  else
+    type_spec = cs->type_spec;
+
+  if (revisit) {
+    if (IDL_PRINTA(&type, get_cpp11_type, type_spec, gen) < 0 ||
+        idl_fprintf(gen->impl.handle, fmt, type, case_name) < 0)
+      return IDL_RETCODE_NO_MEMORY;
+
+    return IDL_RETCODE_OK;
+  }
+
+  return IDL_VISIT_REVISIT;
+}
+
+static idl_retcode_t
+emit_enum_rand(
+  const idl_pstate_t *pstate,
+  bool revisit,
+  const idl_path_t *path,
+  const void *node,
+  void *user_data)
+{
+  (void) pstate;
+  (void) revisit;
+  (void) path;
+
+  struct generator *gen = user_data;
+  char *name = NULL;
+
+  if (IDL_PRINTA(&name, get_cpp11_type, node, gen) < 0 ||
+      name == NULL ||
+      idl_fprintf(gen->header.handle,
+        "void randomize_contents(%s &entity, size_t, size_t);\n", name) < 0 ||
+      idl_fprintf(gen->impl.handle,
+        "void randomize_contents(%s &entity, size_t, size_t) {\n"
+        "  entity = org::eclipse::cyclonedds::core::cdr::enum_conversion<%s>(static_cast<uint32_t>(rand()));\n"
+        "}\n\n", name, name) < 0)
+    return IDL_RETCODE_NO_MEMORY;
+
+  return IDL_RETCODE_OK;
+}
+
+static idl_retcode_t
+emit_bitmask_rand(
+  const idl_pstate_t *pstate,
+  bool revisit,
+  const idl_path_t *path,
+  const void *node,
+  void *user_data)
+{
+  (void) pstate;
+  (void) revisit;
+  (void) path;
+  (void) node;
+  (void) user_data;
+
+  return IDL_RETCODE_OK;
+}
+
 idl_retcode_t
 generate_types(const idl_pstate_t *pstate, struct generator *generator)
 {
@@ -1269,5 +1561,48 @@ generate_types(const idl_pstate_t *pstate, struct generator *generator)
   sources[0] = pstate->sources->path->name;
   visitor.sources = sources;
 
-  return idl_visit(pstate, pstate->root, &visitor, generator);
+
+  idl_retcode_t ret = idl_visit(pstate, pstate->root, &visitor, generator);
+  if (ret == IDL_RETCODE_OK) {
+    //start namespace
+    const char *start_namespace =
+      "namespace org {\n"
+      "namespace eclipse {\n"
+      "namespace cyclonedds {\n"
+      "namespace util {\n\n",
+               *end_namespace =
+      "\n} //util\n"
+      "} //cyclonedds\n"
+      "} //eclipse\n"
+      "} //org\n\n";
+
+    if (fputs("#include <org/eclipse/cyclonedds/util/Randomize.hpp>\n", generator->impl.handle) < 0 ||
+        fputs(start_namespace, generator->header.handle) < 0 ||
+        fputs(start_namespace, generator->impl.handle) < 0)
+      return IDL_RETCODE_NO_MEMORY;
+
+    memset(&visitor, 0, sizeof(visitor));
+    visitor.visit = IDL_STRUCT | IDL_INHERIT_SPEC | IDL_MEMBER | IDL_UNION | IDL_SWITCH_TYPE_SPEC | IDL_CASE | IDL_CASE_LABEL | IDL_ENUM | IDL_BITMASK;
+    visitor.accept[IDL_ACCEPT_STRUCT] = &emit_constr_type_rand;
+    visitor.accept[IDL_ACCEPT_INHERIT_SPEC] = &emit_inherit_rand;
+    visitor.accept[IDL_ACCEPT_MEMBER] = &emit_member_rand;
+    visitor.accept[IDL_ACCEPT_UNION] = &emit_constr_type_rand;
+    visitor.accept[IDL_ACCEPT_SWITCH_TYPE_SPEC] = &emit_switch_type_spec_rand;
+    visitor.accept[IDL_ACCEPT_CASE_LABEL] = &emit_case_label_rand;
+    visitor.accept[IDL_ACCEPT_CASE] = &emit_case_rand;
+    visitor.accept[IDL_ACCEPT_ENUM] = &emit_enum_rand;
+    visitor.accept[IDL_ACCEPT_BITMASK] = &emit_bitmask_rand;
+    assert(pstate->sources);
+    sources[0] = pstate->sources->path->name;
+    visitor.sources = sources;
+    ret = idl_visit(pstate, pstate->root, &visitor, generator);
+
+    //end namespace
+    if (fputs(end_namespace, generator->header.handle) < 0 ||
+        fputs(end_namespace, generator->impl.handle) < 0)
+      return IDL_RETCODE_NO_MEMORY;
+  }
+
+
+  return ret;
 }

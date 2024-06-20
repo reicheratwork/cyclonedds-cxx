@@ -68,7 +68,9 @@ set(sources
     src/org/eclipse/cyclonedds/topic/AnyTopicDelegate.cpp
     src/org/eclipse/cyclonedds/topic/FilterDelegate.cpp
     src/org/eclipse/cyclonedds/topic/TopicDescriptionDelegate.cpp
-    src/org/eclipse/cyclonedds/topic/qos/TopicQosDelegate.cpp)
+    src/org/eclipse/cyclonedds/topic/qos/TopicQosDelegate.cpp
+    src/org/eclipse/cyclonedds/util/Randomize_Sequence.cpp
+    src/org/eclipse/cyclonedds/util/Randomize_String.cpp)
 
 if (ENABLE_QOS_PROVIDER)
   list(APPEND sources

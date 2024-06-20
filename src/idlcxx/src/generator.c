@@ -860,31 +860,42 @@ generate_includes(const idl_pstate_t *pstate, struct generator *generator)
       return IDL_RETCODE_NO_MEMORY;
   }
 
-  { int len = 0;
-    const char *incs[12];
+  { int len = 0, len2 = 0;
+    const char *incs[12], *incs2[12];
     incs[len++] = "<utility>";
     incs[len++] = "<ostream>";
+    incs2[len2++] = "<org/eclipse/cyclonedds/util/Randomize.hpp>";
 
     if (generator->uses_integers)
       incs[len++] = "<cstdint>";
-    if (generator->uses_array)
+    if (generator->uses_array) {
       incs[len++] = generator->array_include;
+      incs2[len2++] = "<org/eclipse/cyclonedds/util/Randomize_Array.hpp>";
+    }
     if (generator->uses_sequence)
       incs[len++] = generator->sequence_include;
     if (generator->uses_bounded_sequence)
       incs[len++] = generator->bounded_sequence_include;
+    if (generator->uses_sequence || generator->uses_bounded_sequence)
+      incs2[len2++] = "<org/eclipse/cyclonedds/util/Randomize_Sequence.hpp>";
     if (generator->uses_string)
       incs[len++] = generator->string_include;
     if (generator->uses_bounded_string)
       incs[len++] = generator->bounded_string_include;
+    if (generator->uses_string || generator->uses_bounded_string)
+      incs2[len2++] = "<org/eclipse/cyclonedds/util/Randomize_String.hpp>";
     if (generator->uses_union) {
       incs[len++] = generator->union_include;
       incs[len++] = "<dds/core/Exception.hpp>\n";
     }
-    if (generator->uses_optional)
+    if (generator->uses_optional) {
       incs[len++] = generator->optional_include;
-    if (generator->uses_external)
+      incs2[len2++] = "<org/eclipse/cyclonedds/util/Randomize_Optional.hpp>";
+    }
+    if (generator->uses_external) {
       incs[len++] = generator->external_include;
+      incs2[len2++] = "<org/eclipse/cyclonedds/util/Randomize_External.hpp>";
+    }
 
     for (int i=0, j; i < len; i++) {
       for (j=0; j < i && strcmp(incs[i], incs[j]) != 0; j++) ;
@@ -892,6 +903,15 @@ generate_includes(const idl_pstate_t *pstate, struct generator *generator)
         continue;
       const char *fmt = "#include %s\n";
       if (idl_fprintf(generator->header.handle, fmt, incs[i]) < 0)
+        return IDL_RETCODE_NO_MEMORY;
+    }
+
+    for (int i=0, j; i < len2; i++) {
+      for (j=0; j < i && strcmp(incs2[i], incs2[j]) != 0; j++) ;
+      if (j < i)
+        continue;
+      const char *fmt = "#include %s\n";
+      if (idl_fprintf(generator->impl.handle, fmt, incs2[i]) < 0)
         return IDL_RETCODE_NO_MEMORY;
     }
   }
