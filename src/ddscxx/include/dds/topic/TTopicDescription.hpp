@@ -49,7 +49,7 @@ class dds::topic::TTopicDescription : public virtual dds::core::Reference<DELEGA
 public:
     OMG_DDS_REF_TYPE_PROTECTED_DC(TTopicDescription, dds::core::Reference, DELEGATE)
     OMG_DDS_IMPLICIT_REF_BASE(TTopicDescription)
-    OMG_DDS_COMPLETE_RULE_OF_FIVE_VIRTUAL_EXPLICIT(TTopicDescription)
+    OMG_DDS_COMPLETE_RULE_OF_FIVE_VIRTUAL_EXPLICIT(TTopicDescription, DELEGATE)
 
 public:
     /**

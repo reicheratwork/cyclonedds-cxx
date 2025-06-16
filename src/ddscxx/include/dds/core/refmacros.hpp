@@ -123,8 +123,23 @@
     /* creating the TYPE class from a non-const FROM object. */ \
     TYPE(FROM& h) { this->explicit_conversion(const_cast<const FROM&>(h)); }    \
     TYPE(const FROM& h) { this->explicit_conversion(h); }    \
+    TYPE(FROM&& h) { this->explicit_conversion(h); }    \
     private:\
     void explicit_conversion(const FROM& h) \
+    { \
+        if (h.is_nil()) { \
+            /* We got a null object and are not really able to do a typecheck here. */ \
+            /* So, just set a null object. */ \
+            *this = dds::core::null; \
+        } else { \
+            this->::dds::core::Reference<DELEGATE_T>::impl_ = ::std::dynamic_pointer_cast<DELEGATE_T>(h.delegate());  \
+            if (h.delegate() != this->::dds::core::Reference< DELEGATE_T >::impl_) { \
+                throw dds::core::IllegalOperationError(std::string("Attempted invalid cast: ") + typeid(h).name() + " to " + typeid(*this).name()); \
+            } \
+        } \
+    }\
+    \
+    void explicit_conversion(FROM&& h) \
     { \
         if (h.is_nil()) { \
             /* We got a null object and are not really able to do a typecheck here. */ \
@@ -142,6 +157,24 @@
     TYPE& \
     operator=(const FROM& rhs) { \
         const TYPE &t = rhs; \
+        if (this != &t) { \
+            if (rhs.is_nil()) { \
+                /* We got a null object and are not really able to do a typecheck here. */ \
+                /* So, just set a null object. */ \
+                *this = dds::core::null; \
+            } else { \
+                TYPE other(rhs); \
+                /* Dont have to copy when the delegate is the same. */ \
+                if (other.delegate() != this->::dds::core::Reference< DELEGATE_T >::impl_) { \
+                    *this = other; \
+                } \
+            } \
+        } \
+        return *this; \
+    } \
+    TYPE& \
+    operator=(FROM&& rhs) { \
+        TYPE &&t = rhs; \
         if (this != &t) { \
             if (rhs.is_nil()) { \
                 /* We got a null object and are not really able to do a typecheck here. */ \

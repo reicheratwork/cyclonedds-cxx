@@ -62,7 +62,7 @@ public:
     OMG_DDS_EXPLICIT_REF_BASE_DECL(TCondition, dds::core::cond::detail::GuardCondition)
     OMG_DDS_EXPLICIT_REF_BASE_DECL(TCondition, dds::sub::cond::detail::ReadCondition)
     OMG_DDS_EXPLICIT_REF_BASE_DECL(TCondition, dds::sub::cond::detail::QueryCondition)
-    OMG_DDS_COMPLETE_RULE_OF_FIVE_VIRTUAL_EXPLICIT(TCondition)
+    OMG_DDS_COMPLETE_RULE_OF_FIVE_VIRTUAL_EXPLICIT(TCondition, DELEGATE)
 
 public:
     /**

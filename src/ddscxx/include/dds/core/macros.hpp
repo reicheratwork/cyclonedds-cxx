@@ -61,7 +61,7 @@ public:\
     virtual TYPE& operator=(const TYPE& tocopy) = default;\
     virtual TYPE& operator=(TYPE&& tomove) { if (this != &tomove) *this = tomove; return *this;}
 
-#define OMG_DDS_COMPLETE_RULE_OF_FIVE_VIRTUAL_EXPLICIT(TYPE) \
+#define OMG_DDS_COMPLETE_RULE_OF_FIVE_VIRTUAL_EXPLICIT(TYPE, DELEGATE) \
 public:\
     virtual ~TYPE() {}\
     TYPE(const TYPE& tocopy): dds::core::Reference<DELEGATE>(dynamic_cast<const dds::core::Reference<DELEGATE>& >(tocopy)) {}\
